@@ -58,6 +58,9 @@ export class RapierRigidBody implements RigidBody {
   private _currentRbQuaternion = new Quaternion();
   private _rbQuaternion = new Quaternion();
 
+  private _linearVelocity = new Vector3();
+  private _angularVelocity = new Vector3();
+
   constructor(
     private engine: RapierPhysicsEngine,
     private _component: Component3D,
@@ -472,6 +475,22 @@ export class RapierRigidBody implements RigidBody {
   get quaternion() {
     //
     return this._rbQuaternion;
+  }
+
+  /**
+   * Returns the linear velocity of the rigidbody
+   */
+  get linearVelocity(): Vector3 {
+    const vel = this._raw.linvel();
+    return this._linearVelocity.set(vel.x, vel.y, vel.z);
+  }
+
+  /**
+   * Returns the angular velocity of the rigidbody
+   */
+  get angularVelocity(): Vector3 {
+    const vel = this._raw.angvel();
+    return this._angularVelocity.set(vel.x, vel.y, vel.z);
   }
 
   set position(pos: Vector3) {

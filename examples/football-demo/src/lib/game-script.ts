@@ -361,7 +361,7 @@ export class GameScript {
     const ballX = this.ball.position.x;
     if (Math.abs(ballX) > GOAL_HALF_WIDTH) return false;
 
-    const vel = this.ball.rigidBody.raw.linvel();
+    const vel = this.ball.rigidBody.linearVelocity;
     // player-end goal is at -z, ball must be moving in -z direction
     // ai-end goal is at +z, ball must be moving in +z direction
     if (end === "player-end" && vel.z > 0) return false;
