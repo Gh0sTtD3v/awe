@@ -14,7 +14,7 @@ Thanks for your interest in contributing to oncyberio! This guide will help you 
 
 ```bash
 git clone <repo-url>
-cd awe-dev
+cd awe
 pnpm install
 ```
 
@@ -30,15 +30,15 @@ pnpm engine-edit:check     # Type-check engine-edit
 
 This is a pnpm monorepo managed with Turborepo. See the [README](README.md) for a full breakdown of packages. The key areas you'll work in:
 
-| Area | Path | Description |
-|------|------|-------------|
-| Engine | `packages/engine/` | Core 3D engine (components, physics, rendering) |
-| Editor | `packages/engine-edit/` | Visual editing tools (gizmos, selection, undo/redo) |
-| Asset Optimizer | `packages/asset-optimizer/` | GLTF/texture optimization pipeline |
-| MCP Server | `packages/mcp-server/` | AI tool server for scene manipulation |
-| CLI | `packages/create-oncyber-app/` | Project scaffolding tool |
-| Scripts | `scripts/` | Animation baking, GLTF inspection |
-| Docs | `docs/` | Usage guides and architecture documentation |
+| Area            | Path                             | Description                              |
+| --------------- | -------------------------------- | ---------------------------------------- |
+| Engine          | `packages/engine/`               | Core 3D engine (components, physics, rendering) |
+| Editor          | `packages/engine-edit/`          | Visual editing tools (gizmos, selection, undo/redo) |
+| Asset Optimizer | `packages/asset-optimizer/`      | GLTF/texture optimization pipeline       |
+| MCP Server      | `packages/mcp-server/`           | AI tool server for scene manipulation    |
+| Studio          | `packages/studio/`               | In-browser studio UI and tools           |
+| CLI             | `packages/create-oncyber-app/`   | Project scaffolding tool                 |
+| Scripts         | `scripts/`                       | Animation baking, GLTF inspection        |
 
 ## Code Style
 
@@ -72,6 +72,32 @@ editorEvents.ts        # incorrect
 
 ## Development Workflow
 
+### Common Commands
+
+```bash
+# Type-checking
+pnpm engine:check         # Type-check the engine
+pnpm engine-edit:check    # Type-check engine-edit
+pnpm asset-optimizer:check
+
+# Testing
+pnpm --filter engine test
+pnpm --filter mcp-server test
+pnpm --filter create-oncyber-app test
+
+# API generation
+pnpm engine:build:api     # Generate public API type definitions
+
+# Run an example project
+pnpm --filter zombie-survival dev
+
+# Utility scripts
+pnpm bake-anim            # Bake VRM animations from Mixamo FBX files
+pnpm inspect-gltf         # Inspect GLTF/GLB model files
+```
+
+Tests use [Vitest](https://vitest.dev/). Write tests for new functionality when applicable.
+
 ### Branching
 
 - `main` is the primary branch
@@ -86,28 +112,7 @@ editorEvents.ts        # incorrect
 1. **Engine changes** — work in `packages/engine/src/`. Run `pnpm engine:check` and `pnpm --filter engine test` to verify.
 2. **Editor changes** — work in `packages/engine-edit/src/`. Run `pnpm engine-edit:check` to verify.
 3. **API changes** — if you modify the engine's public API, regenerate type definitions with `pnpm engine:build:api`.
-4. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`. Run `pnpm template:dev` to test.
-
-### Testing
-
-```bash
-# Engine tests
-pnpm --filter engine test
-
-# MCP server tests
-pnpm --filter mcp-server test
-
-# CLI tests
-pnpm --filter create-oncyber-app test
-```
-
-Write tests for new functionality when applicable. Tests use [Vitest](https://vitest.dev/).
-
-### Documentation
-
-- **Engine usage** — update `docs/engine-usage/` for changes that affect how developers use the engine
-- **Engine internals** — update `packages/engine/docs/` for architectural changes
-- **API docs** — regenerate with `pnpm engine:build:api` after public API changes
+4. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`.
 
 ## Commit Messages
 
@@ -126,7 +131,7 @@ Format: `type(scope): description`
 
 **Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`
 
-**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `mcp-server`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
+**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `mcp-server`, `studio`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
 
 ## Pull Requests
 
@@ -135,18 +140,6 @@ Format: `type(scope): description`
 3. Write a clear description of what changed and why
 4. Keep PRs focused — split unrelated changes into separate PRs
 5. Link related issues if applicable
-
-## Architecture Notes
-
-Before diving into engine internals, read the architecture docs in `packages/engine/docs/`:
-
-- **[engine-pipeline.md](packages/engine/docs/engine-pipeline.md)** — render pipeline, shader compilation, multi-pass rendering
-- **[engine-instancing.md](packages/engine/docs/engine-instancing.md)** — GPU instanced mesh system, buffer management, LOD
-- **[plugins-guide.md](packages/engine/docs/plugins-guide.md)** — visual plugin system (shader hooks, registry)
-- **[event-system.md](packages/engine/docs/event-system.md)** — event architecture, frame loop, lifecycle hooks
-- **[component-lifecycle.md](packages/engine/docs/component-lifecycle.md)** — component system, factories, data model
-
-For engine usage patterns (game development), see `docs/engine-usage/`.
 
 ## Getting Help
 
