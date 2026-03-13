@@ -40,8 +40,6 @@ const AI_KICK_RANGE = 2.5;
 const AI_KICK_COOLDOWN = 0.8;
 const GOALS_TO_WIN = 3;
 const AI_PLAYER_SEPARATION = 1.5; // minimum distance between AI and player
-const BALL_LINEAR_DAMPING = 1.5;
-const BALL_ANGULAR_DAMPING = 2.0;
 const GOAL_HALF_WIDTH = 1.8; // half-width of goal opening (posts ~3.6m apart)
 const PLAYER_SPEED = 12;
 
@@ -214,12 +212,6 @@ export class GameScript {
     this.inputs.Kick.onPerformed(() => this.playerKick());
 
     this.setControlsActive(false);
-
-    // Setup ball damping
-    if (this.ball?.rigidBody) {
-      this.ball.rigidBody.setLinearDamping(BALL_LINEAR_DAMPING);
-      this.ball.rigidBody.setAngularDamping(BALL_ANGULAR_DAMPING);
-    }
 
     // Setup goal sensors — only count if ball enters through the front
     this.goalSensorP?.onSensorEnter((event) => {

@@ -140,6 +140,14 @@ export class RapierRigidBody implements RigidBody {
 
     rigibodyDesc.setRotation(opts.quaternion);
 
+    if (opts.linearDamping != null) {
+      rigibodyDesc.setLinearDamping(opts.linearDamping);
+    }
+
+    if (opts.angularDamping != null) {
+      rigibodyDesc.setAngularDamping(opts.angularDamping);
+    }
+
     this._resetPosition(opts.position as any);
     this._resetQuaternion(opts.quaternion as any);
 
@@ -633,6 +641,7 @@ export class RapierRigidBody implements RigidBody {
     //
     if (this._wasDisposed) return;
 
+    this._options.linearDamping = damping;
     this.raw.setLinearDamping(damping);
   }
 
@@ -640,6 +649,7 @@ export class RapierRigidBody implements RigidBody {
     //
     if (this._wasDisposed) return;
 
+    this._options.angularDamping = damping;
     this.raw.setAngularDamping(damping);
   }
 

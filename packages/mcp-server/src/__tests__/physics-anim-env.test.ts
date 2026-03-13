@@ -71,6 +71,41 @@ describe("set_physics", () => {
     expect(writtenData.components["comp-1"].collider!.rigidbodyType).toBe("DYNAMIC");
   });
 
+  it("merges dynamic props including damping", async () => {
+    mockReadJsonFile.mockResolvedValue(createScene({
+      "comp-1": {
+        id: "comp-1",
+        name: "Box",
+        type: "mesh",
+        collider: {
+          rigidbodyType: "DYNAMIC",
+          colliderType: "CUBE",
+          dynamicProps: {
+            mass: 2,
+            friction: 0.4,
+          },
+        },
+      },
+    }));
+
+    const result = await setPhysics({
+      componentId: "comp-1",
+      enabled: true,
+      linearDamping: 1.25,
+      angularDamping: 2.5,
+    }, "/project");
+
+    expect(result.isError).toBeUndefined();
+
+    const writtenData = mockWriteJsonFile.mock.calls[0][1] as SceneData;
+    expect(writtenData.components["comp-1"].collider?.dynamicProps).toEqual({
+      mass: 2,
+      friction: 0.4,
+      linearDamping: 1.25,
+      angularDamping: 2.5,
+    });
+  });
+
   it("removes collider (enabled=false)", async () => {
     mockReadJsonFile.mockResolvedValue(createScene({
       "comp-1": {

@@ -199,6 +199,8 @@ export const toolDefinitions: Tool[] = [
         mass: { type: "number", description: "Mass (DYNAMIC only)" },
         friction: { type: "number", description: "Friction coefficient (DYNAMIC only)" },
         restitution: { type: "number", description: "Bounciness (DYNAMIC only)" },
+        linearDamping: { type: "number", description: "Linear damping (DYNAMIC only)" },
+        angularDamping: { type: "number", description: "Angular damping (DYNAMIC only)" },
       },
       required: ["componentId", "enabled"],
     },
