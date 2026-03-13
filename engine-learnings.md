@@ -92,9 +92,9 @@ cameraRig.setMode("orbit" | "shift-lock");
 // shift-lock auto-handles Mover.autoRotate coordination
 ```
 
-### Add damping to scene JSON / DynamicProps
+### ~~Add damping to scene JSON / DynamicProps~~ — FIXED
 
-`linearDamping` and `angularDamping` must be set in code after load. `DynamicProps` already has `mass`, `friction`, `restitution`, `density` — damping should be there too.
+`linearDamping` and `angularDamping` are now supported in `DynamicProps` and flow through scene JSON into rigid-body creation. The football demo ball now uses JSON config instead of setting damping after load.
 
 ```ts
 // In DynamicProps interface
