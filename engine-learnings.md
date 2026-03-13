@@ -12,25 +12,17 @@ Things to add/clarify in the engine guide so AI assistants and developers get it
 
 Avatars face **-Z** by default. Computing a facing angle requires `Math.atan2(dir.x, dir.z) + Math.PI` — the `+ Math.PI` is consistently missed. Now prominently documented in engine guide Avatars section with explanation of why `+ Math.PI` is needed and a tip about using `facingMode` to avoid manual rotation.
 
-### RigidBody position setter behavior
+### ~~RigidBody position setter behavior~~ — DOCUMENTED
 
-`rigidBody.position = vec3` dispatches to `setNextKinematicTranslation` for KINEMATIC bodies. This is the correct way to move kinematic NPCs — not raw Rapier calls. Document behavior per body type (DYNAMIC vs KINEMATIC vs PLAYER).
+`rigidBody.position = vec3` dispatches to `setNextKinematicTranslation` for KINEMATIC bodies. This is the correct way to move kinematic NPCs — not raw Rapier calls. Now documented in engine skill `physics-config.md` with correct vs wrong usage examples.
 
-### RigidBody wrapper cheat sheet
+### ~~RigidBody wrapper cheat sheet~~ — DOCUMENTED
 
-Quick-reference table noting differences from raw Rapier:
+Quick-reference table noting differences from raw Rapier. Now documented in engine skill `physics-config.md` RigidBody Wrapper API table.
 
-| Method | Notes |
-|---|---|
-| `applyImpulse(force, point)` | No boolean 2nd arg (unlike Rapier) |
-| `resetVelocities()` | Resets both linear + angular |
-| `teleport(pos, quat)` | Takes Three.js Vector3 + Quaternion |
-| `position` setter | Dispatches to kinematic translation for KINEMATIC bodies |
-| `setLinearDamping(v)` / `setAngularDamping(v)` | Sets drag |
+### ~~Sensor setup recipe~~ — DOCUMENTED
 
-### Sensor setup recipe
-
-Full pattern: mesh with `isSensor: true`, `opacity: 0`, `script.tag` for identification. Show `onSensorEnter` with `event.other.tag`. Used in every genre for triggers, zones, pickups.
+Full pattern: mesh with `isSensor: true`, `opacity: 0`, `script.tag` for identification. Show `onSensorEnter` with `event.other.tag`. Now documented in engine skill `collision-handling.md` with full create + event examples, and reinforced in `spawn-collectibles.md`.
 
 ### Camera rig axis locking
 
@@ -47,9 +39,9 @@ Document `setLockAxis({ x?: boolean, y?: boolean })`:
 
 Document the `geometry` property with examples for each shape (box, sphere, cylinder, plane, dome). Note omitting geometry defaults to 1x1x1 box.
 
-### Game lifecycle
+### ~~Game lifecycle~~ — DOCUMENTED
 
-Document the full sequence: `createSpace` -> `reveal()` -> `space.start()` -> `space.use({ onFixedUpdate, onUpdate })` -> `cleanup()` -> `space.destroy()`. Show where inputs, movers, and camera rigs fit in.
+Full sequence: `createSpace` → `reveal()` → `space.use({ onFixedUpdate, onUpdate })` → `space.start()` → `cleanup()` → dispose. Now documented in engine skill `game-script-template.md` with complete class structure, callback descriptions, and typical setup order (avatar → Mover → camera rig → inputs).
 
 ### Performance: object reuse
 

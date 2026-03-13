@@ -17,7 +17,11 @@ export class MainGameScript {
     this.space = space;
 
     // Components are immediately available after await
-    // Set up camera, controls, game state, etc. before revealing...
+    // Typical setup order before revealing:
+    // 1. Get player avatar: space.components.byId<AvatarComponent>("player")
+    // 2. Create mover: new Mover({ body: avatar, ... })
+    // 3. Set up camera rig: new ThirdPersonCameraRig(avatar, { ... })
+    // 4. Bind inputs: createInputs(inputDefinitions)
 
     // Reveal the scene (fades out the intro/loading screen)
     await reveal();
