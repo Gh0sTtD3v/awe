@@ -1,61 +1,63 @@
 # oncyberio Engine
 
-A 3D game engine and framework built on [Three.js](https://threejs.org/) and [Next.js](https://nextjs.org/). Build browser-based 3D games with physics, character controls, VRM avatars, particle effects, and a visual editor — all from a single monorepo.
+A 3D game engine and framework built on [Three.js](https://threejs.org/). Build browser-based 3D games with physics, character controls, VRM avatars, particle effects, and a visual editor — all from a single monorepo.
 
 ## Features
 
 - **Component-based scene architecture** — meshes, models, avatars, terrain, lights, triggers, and more
-- **Physics** — Rapier3D integration with rigidbodies, colliders, and character controllers
+- **Physics** — simple high-level APIs for rigidbodies, colliders, and character controllers, built on Rapier3D
 - **VRM avatar support** — load and animate VRM characters with springbone physics
-- **Multiple control presets** — first-person, third-person, platformer, top-down, side-scroller, auto-runner
+- **Composable player controls** — input system, camera rigs, and movement primitives for building first-person, third-person, platformer, top-down, and other control styles
 - **Particle effects** — three.quarks-based VFX system
 - **Visual editor** — embedded studio at `/studio` for scene editing
 - **Asset optimization** — Draco compression, KTX2 textures, mesh optimization
-- **AI-powered development** — MCP server with 30+ tools for AI-assisted scene editing
+- **AI-powered development** — MCP server tools plus repo-specific engine skills for AI-assisted scene editing and game development workflows
 - **GPU instancing & LOD** — performance optimizations for large scenes
 - **Navigation meshes** — pathfinding via recast-navigation
+- **AI navigation** — navmesh-based pathfinding and movement for NPCs and agents
 - **Post-processing** — bloom, SSAO, tone mapping, and more
 
 ## Tech Stack
 
-| Category | Technology |
-|----------|-----------|
-| 3D Rendering | Three.js 0.170 |
-| Framework | Next.js 16 (App Router) |
-| UI | React 19 |
-| Physics | Rapier3D (WebAssembly) |
-| Animation | GSAP, @pixiv/three-vrm |
-| Particles | three.quarks |
-| Language | TypeScript 5 |
-| Build | Turborepo + pnpm workspaces |
+| Category     | Technology                  |
+| ------------ | --------------------------- |
+| 3D Rendering | Three.js 0.170              |
+| Framework    | Next.js 16 (App Router)     |
+| UI           | React 18 / 19               |
+| Physics      | Rapier3D (WebAssembly)      |
+| Navigation   | recast-navigation           |
+| Animation    | GSAP, @pixiv/three-vrm      |
+| Particles    | three.quarks                |
+| Language     | TypeScript 5                |
+| Build        | Turborepo + pnpm workspaces |
 
 ## Monorepo Structure
 
 ```
-awe-dev/
+awe/
 ├── packages/
 │   ├── engine/              # Core 3D game engine (@oncyberio/engine)
 │   ├── engine-edit/         # Visual editing tools (@oncyberio/engine-edit)
 │   ├── asset-optimizer/     # GLTF/texture optimization (@oncyberio/asset-optimizer)
 │   ├── mcp-server/          # MCP server for AI tools (@oncyberio/mcp-server)
+│   ├── studio/              # In-browser studio tools (@oncyberio/studio)
 │   └── create-oncyber-app/  # CLI project scaffolder
-├── apps/
-│   └── game/                # Standalone 3D game project
-├── examples/                # Example game projects (pep-collector, zombie-survival)
-├── scripts/                 # Utility scripts (animation baking, GLTF inspection)
-└── docs/                    # Usage guides and architecture docs
+├── examples/                # Example game projects (auth-multiplayer, football-demo, multiplayer, starter, zombie-survival)
+├── scripts/                 # Utility scripts (animation baking, GLTF inspection, collect-assets)
+└── ... (no root-level `apps/` or `docs/` directories in this checkout)
 ```
 
 ### Package Overview
 
-| Package | Description |
-|---------|-------------|
-| `@oncyberio/engine` | Core 3D game engine — components, physics, input, rendering |
-| `@oncyberio/engine-edit` | Editor utilities — gizmos, selection, transform controls, undo/redo |
-| `@oncyberio/asset-optimizer` | Asset pipeline — Draco, meshoptimizer, KTX2, Sharp, IPFS uploads |
-| `@oncyberio/mcp-server` | Model Context Protocol server for AI-assisted scene editing |
-| `create-oncyber-app` | Interactive CLI to scaffold new game projects from a template |
-| `@oncyberio/scripts` | CLI tools for animation baking and GLTF inspection |
+| Package                      | Description                                                         |
+| ---------------------------- | ------------------------------------------------------------------- |
+| `@oncyberio/engine`          | Core 3D game engine — components, physics, input, rendering         |
+| `@oncyberio/engine-edit`     | Editor utilities — gizmos, selection, transform controls, undo/redo |
+| `@oncyberio/asset-optimizer` | Asset pipeline — Draco, meshoptimizer, KTX2, Sharp, IPFS uploads    |
+| `@oncyberio/mcp-server`      | Model Context Protocol server for AI-assisted scene editing         |
+| `create-oncyber-app`         | Interactive CLI to scaffold new game projects from a template       |
+| `@oncyberio/scripts`         | CLI tools for animation baking and GLTF inspection                  |
+| `@oncyberio/studio`          | Embedded scene editing studio UI and tools                          |
 
 ## Quick Start
 
@@ -80,7 +82,7 @@ This scaffolds a full Next.js project with the oncyberio engine pre-configured, 
 ```bash
 # Clone and install
 git clone <repo-url>
-cd awe-dev
+cd awe
 pnpm install
 
 # Engine development
@@ -94,8 +96,8 @@ pnpm engine-edit:check    # Type-check engine-edit
 # Asset optimizer
 pnpm asset-optimizer:check
 
-# Run the template project
-pnpm template:dev
+# Run an example project
+pnpm --filter zombie-survival dev
 
 # Utility scripts
 pnpm bake-anim            # Bake VRM animations from Mixamo FBX files
@@ -104,80 +106,9 @@ pnpm inspect-gltf         # Inspect GLTF/GLB model files
 
 ## Documentation
 
-- **[Engine Usage Guide](docs/engine-usage/README.md)** — how to use the oncyberio engine for game development
-- **[Engine API](packages/engine/api/)** — generated TypeScript definitions for the public API (run `pnpm engine:build:api` first)
-- **[Engine Architecture](packages/engine/docs/)** — internal docs on the render pipeline, instancing, plugins, events, and component lifecycle
-- **[Studio Guide](docs/studio-guide.md)** — workflows for the visual editor and AI automation
-- **[Examples](docs/engine-usage/examples/)** — quick-reference examples for common patterns (collisions, input, spawning, control presets)
-
-## How It Works
-
-### Scene Definition
-
-Games are defined by a `static-scene.json` file — a declarative component tree with positions, rotations, scales, and configurations:
-
-```json
-{
-  "components": {
-    "env-01": {
-      "type": "environment",
-      "name": "Sky",
-      "position": [0, 0, 0]
-    },
-    "avatar-01": {
-      "type": "avatar",
-      "name": "Player",
-      "position": [0, 0, 0],
-      "script": { "identifier": "player" }
-    }
-  }
-}
-```
-
-### Game Scripts
-
-Game logic lives in a class with lifecycle methods — `init()` to set up the scene, `onUpdate` for the frame loop, and `dispose()` for cleanup:
-
-```tsx
-import { Engine, Camera, type Space, AvatarComponent } from "@oncyberio/engine";
-import { createGame } from "@/lib/utils";
-import { createThirdPerson } from "@/lib/control-presets";
-
-export class GameScript {
-  private space: Space | null = null;
-  private controls: ControlSystem | null = null;
-
-  async init() {
-    const { space, reveal } = await createGame({ baseUrl: "" });
-    this.space = space;
-
-    // Look up components by ID
-    const player = space.components.byId("player") as AvatarComponent;
-
-    // Setup controls
-    this.controls = createThirdPerson(space, player, Camera.current, {
-      speed: 10,
-      jumpHeight: 3,
-    });
-
-    await reveal();
-
-    // Register frame loop
-    this.space.use({
-      onUpdate: this.onUpdate,
-      onDispose: this.onDispose,
-    });
-  }
-
-  onUpdate = (dt: number) => {
-    // Called every frame
-  };
-
-  onDispose = () => {
-    // Cleanup
-  };
-}
-```
+- **[Create-oncyber-app README](packages/create-oncyber-app/README.md)** — scaffold workflow and generated game scaffold structure
+- **[Engine Package Exports](packages/engine/src/index.ts)** — core engine API entrypoint
+- **[Starter Example README](examples/starter/README.md)** — practical setup and control examples
 
 ### AI Integration
 
