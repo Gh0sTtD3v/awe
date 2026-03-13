@@ -58,6 +58,9 @@ export class RapierRigidBody implements RigidBody {
   private _currentRbQuaternion = new Quaternion();
   private _rbQuaternion = new Quaternion();
 
+  private _linearVelocity = new Vector3();
+  private _angularVelocity = new Vector3();
+
   constructor(
     private engine: RapierPhysicsEngine,
     private _component: Component3D,
@@ -136,6 +139,14 @@ export class RapierRigidBody implements RigidBody {
     );
 
     rigibodyDesc.setRotation(opts.quaternion);
+
+    if (opts.linearDamping != null) {
+      rigibodyDesc.setLinearDamping(opts.linearDamping);
+    }
+
+    if (opts.angularDamping != null) {
+      rigibodyDesc.setAngularDamping(opts.angularDamping);
+    }
 
     this._resetPosition(opts.position as any);
     this._resetQuaternion(opts.quaternion as any);
@@ -474,6 +485,22 @@ export class RapierRigidBody implements RigidBody {
     return this._rbQuaternion;
   }
 
+  /**
+   * Returns the linear velocity of the rigidbody
+   */
+  get linearVelocity(): Vector3 {
+    const vel = this._raw.linvel();
+    return this._linearVelocity.set(vel.x, vel.y, vel.z);
+  }
+
+  /**
+   * Returns the angular velocity of the rigidbody
+   */
+  get angularVelocity(): Vector3 {
+    const vel = this._raw.angvel();
+    return this._angularVelocity.set(vel.x, vel.y, vel.z);
+  }
+
   set position(pos: Vector3) {
     //
     if (this._wasDisposed) return;
@@ -614,6 +641,7 @@ export class RapierRigidBody implements RigidBody {
     //
     if (this._wasDisposed) return;
 
+    this._options.linearDamping = damping;
     this.raw.setLinearDamping(damping);
   }
 
@@ -621,6 +649,7 @@ export class RapierRigidBody implements RigidBody {
     //
     if (this._wasDisposed) return;
 
+    this._options.angularDamping = damping;
     this.raw.setAngularDamping(damping);
   }
 

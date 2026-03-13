@@ -152,17 +152,24 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 ### Avatars
 
 - Based on VRM models, animated with VRM animations
-- Forward direction is **-Z** (facing away from camera). When computing a facing angle, add `Math.PI`:
 - Use `useCpuAnimation: true` if calling `avatar.getBone(id)`
 - Built-in animations: `idle`, `walk`, `run`, `jump`, `fly`, `sitting`
 
 ```ts
 avatar.animation = "walk";
+```
 
-// Orient avatar to face a movement direction
-const angle = Math.atan2(dir.x, dir.z) + Math.PI;
+**Facing convention (-Z forward):** Avatars face **-Z** by default. When manually computing a facing angle from a direction vector, you must add `Math.PI` — this is the most common gotcha:
+
+```ts
+// dir = normalized movement direction (e.g. from input)
+const angle = Math.atan2(dir.x, dir.z) + Math.PI;  // +π required!
 avatar.rotation.y = angle;
 ```
+
+Why `+ Math.PI`? `atan2(x, z)` gives the angle from +Z, but the avatar faces -Z, which is π radians away. Forgetting this flips the avatar 180°.
+
+> **Tip:** If using a `Mover` with `facingMode: "movement"` or `"target"`, the engine handles this automatically — you only need manual rotation when controlling facing yourself (`facingMode: "none"`).
 
 **See:** [vrm-anims.md](./vrm-anims.md)
 
@@ -311,10 +318,13 @@ const cleanup = space.use({
     // Called when space.stop() is invoked
   },
   onUpdate: (dt, absTimer) => {
-    // Main game update - called each frame while game is running
+    // Variable timestep - called each frame while running
+    // Use for: AI logic, UI timers, visual smoothing, game state checks
   },
   onFixedUpdate: (dt, absTimer) => {
-    // Fixed timestep update - consistent dt, ideal for physics logic
+    // Fixed timestep - consistent dt every tick
+    // Use for: input polling, Mover physics, collisions, animation state machines
+    // Putting physics here prevents jitter from variable frame rates
   },
   onLateUpdate: (dt, absTimer) => {
     // Called after onUpdate - use for cameras, state sync, etc.
@@ -425,37 +435,154 @@ weapon.scale.set(0.15, 0.15, 0.15);
 
 ### Camera Rig
 
-When using a control preset, the camera rig is accessible via `controls.cameraRig`. It provides axis locking for fixed-camera gameplay styles:
+Camera rigs provide axis locking for fixed-camera gameplay styles:
 
 ```ts
 // Lock horizontal rotation — camera stays behind the player
-controls.cameraRig.setLockAxis({ x: true });
+cameraRig.setLockAxis({ x: true });
 
 // Lock vertical rotation — fixed pitch angle
-controls.cameraRig.setLockAxis({ y: true });
+cameraRig.setLockAxis({ y: true });
 
 // Lock both (fully fixed camera angle, e.g. top-down)
-controls.cameraRig.setLockAxis({ x: true, y: true });
+cameraRig.setLockAxis({ x: true, y: true });
 ```
 
 Use `requestPointerLock()` to enter pointer lock programmatically (e.g. on game start instead of waiting for a click):
 
 ```ts
-controls.cameraRig.requestPointerLock();
+cameraRig.requestPointerLock();
 ```
 
 ---
 
 ## Player Controls
 
-The `@oncyber/game-utils` package provides control presets (platformer, FPS, top-down, side-scroller, auto-runner) in `packages/game-utils/src/control-presets/`.
+Build player controls from engine primitives: `Mover` for movement, camera rigs for the camera, `AnimationStateMachine` for animation, and the input system for input. These give you full control over the game loop and are the recommended approach for any game with custom mechanics.
+
+### Mover
+
+`Mover` handles velocity, gravity, ground detection, collision response, and avatar rotation. Wire it into `onFixedUpdate` with input axes:
 
 ```ts
-import { createPlatformer } from "@oncyber/game-utils/control-presets";
+import { Mover, ThirdPersonCameraRig } from "@oncyber/engine/controls";
 
-const controls = createPlatformer(space, avatar, camera, { speed: 15 });
+const mover = new Mover({
+  body: avatar,                    // Component3D to move
+  target: Camera.current,          // Reference for target-relative movement
+  movement: { speed: 15, facingMode: "movement" },
+  jump: { height: 2, count: 2 },  // optional
+});
+
+// In onFixedUpdate:
+mover.move(inputX, inputZ);  // -1..1 axes from input
+mover.update(dt);
 ```
 
-**Important:** Treat these presets as **templates, not a framework**. Building truly reusable control abstractions is very hard — every game has unique feel requirements. Either a preset fits your game as-is, or use the preset source code as a starting point to build your own controls using the engine primitives (`Mover`, camera rigs, `AnimationStateMachine`, input system).
+### Mover facingMode
 
-**Source:** `packages/game-utils/src/control-presets/`
+Controls how the avatar's rotation is managed. This is the key property for different camera/gameplay styles:
+
+| Mode | Behavior | Use case |
+|---|---|---|
+| `"movement"` | Face travel direction while moving (default) | Platformer, top-down, sports games |
+| `"target"` | Face the target's (camera's) yaw direction, even while idle | Shift-lock, combat, strafing |
+| `"none"` | No automatic rotation — caller controls facing | FPS, auto-runner, cutscenes |
+
+```ts
+// Switch at runtime (e.g. toggle shift-lock)
+mover.facingMode = "target";
+
+// Combine with camera rig axis locking for common patterns:
+// Sports/strategy: locked camera + face movement direction
+mover.facingMode = "movement";
+cameraRig.setLockAxis({ x: true });
+
+// Exploration: free camera + no auto-facing
+mover.facingMode = "none";
+cameraRig.setLockAxis({ x: false });
+
+// Shift-lock/combat: face camera direction
+mover.facingMode = "target";
+```
+
+### Example: Inline Platformer Controls
+
+See `examples/starter/src/lib/game-script.ts` for a complete working example of wiring `Mover`, `ThirdPersonCameraRig`, `createMoverAnimStateMachine`, and the input system together in a class-based game script. The `examples/football-demo` shows a sports-game variant with custom `AnimationStateMachine` and camera axis locking.
+
+### Example: Inline FPS Controls
+
+See `examples/zombie-survival/src/lib/game-script.ts` for a complete working example of `Mover` + `FirstPersonCameraRig` with camera-relative movement (`mover.move(x, y, { forward, right, speed })`).
+
+---
+
+## Tips & Patterns
+
+### Fixed vs frame update
+
+Physics-sensitive code (movement, input polling, collisions, `Mover.update()`) belongs in `onFixedUpdate`. Visual-only code (AI logic, UI timers, camera smoothing) belongs in `onUpdate`. Getting this wrong causes jitter from variable frame rates.
+
+### Pre-allocate reusable objects
+
+Never create `new Vector3()`, `new Quaternion()`, etc. inside `onFixedUpdate` or `onUpdate` — these run every frame/tick and will create GC pressure. Pre-allocate at module or class scope and reuse:
+
+```ts
+// Good — allocate once, reuse every frame
+const _tmpVec = new Vector3();
+const _tmpDir = new Vector3();
+
+onFixedUpdate = (dt: number) => {
+  _tmpVec.set(x, y, z);
+  _tmpDir.set(0, 0, -1).applyQuaternion(cam.quaternion);
+};
+
+// Bad — allocates every frame, causes GC spikes
+onFixedUpdate = (dt: number) => {
+  const dir = new Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+};
+```
+
+### Separate pure game logic from engine code
+
+Keep AI decisions, scoring rules, state machines, and other game logic in plain functions/classes with zero engine imports. Pass data in, get data out. This makes logic testable, reusable, and easier to reason about — the game script just wires pure logic to engine calls.
+
+```ts
+// game-ai.ts — pure logic, no engine imports
+export function chooseTarget(enemies: { pos: Vec2; hp: number }[], playerPos: Vec2) {
+  return enemies
+    .filter(e => e.hp > 0)
+    .sort((a, b) => dist(a.pos, playerPos) - dist(b.pos, playerPos))[0];
+}
+
+// game-script.ts — thin glue
+onUpdate = (dt: number) => {
+  const target = chooseTarget(this.enemyData, this.playerData);
+  if (target) this.enemyMover.moveTo(target.pos);
+};
+```
+
+### Use a reactive store to bridge game state to UI
+
+Keep a small `Store` between the game loop and React. The game loop writes state via `store.update()`, React reads it via `useStore()` — no direct coupling. This avoids React re-renders driving game logic or vice versa. See `examples/starter/src/hooks/use-store.ts` for the `Store` class and `useStore` hook (backed by `useSyncExternalStore`).
+
+```ts
+// game-store.ts
+import { Store } from "@/hooks/use-store";
+
+interface GameState { score: number; hp: number }
+export const gameStore = new Store<GameState>({ score: 0, hp: 100 });
+
+// game-script.ts — game loop writes
+onUpdate = (dt: number) => {
+  gameStore.update({ score: this.score, hp: this.player.hp });
+};
+
+// hud.tsx — React reads
+import { useStore } from "@/hooks/use-store";
+import { gameStore } from "@/lib/game-store";
+
+function HUD() {
+  const { score, hp } = useStore(gameStore);
+  return <div>{score} pts — {hp} HP</div>;
+}
+```

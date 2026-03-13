@@ -92,4 +92,14 @@ export interface DynamicProps {
      * The density of the rigid body
      */
     density?: number;
+
+    /**
+     * The linear damping of the rigid body
+     */
+    linearDamping?: number;
+
+    /**
+     * The angular damping of the rigid body
+     */
+    angularDamping?: number;
 }

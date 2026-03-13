@@ -17,7 +17,11 @@ export class MainGameScript {
     this.space = space;
 
     // Components are immediately available after await
-    // Set up camera, controls, game state, etc. before revealing...
+    // Typical setup order before revealing:
+    // 1. Get player avatar: space.components.byId<AvatarComponent>("player")
+    // 2. Create mover: new Mover({ body: avatar, ... })
+    // 3. Set up camera rig: new ThirdPersonCameraRig(avatar, { ... })
+    // 4. Bind inputs: createInputs(inputDefinitions)
 
     // Reveal the scene (fades out the intro/loading screen)
     await reveal();
@@ -51,8 +55,8 @@ export class MainGameScript {
   };
 
   onUpdate = (dt: number, absTimer: number) => {
-    // Main game update - called each frame while game is running
-    // dt = delta time in seconds, absTimer = total elapsed time
+    // Variable timestep - called each frame while running
+    // Use for: AI logic, UI timers, visual smoothing, game state checks
   };
 
   onLateUpdate = (dt: number, absTimer: number) => {
@@ -60,7 +64,9 @@ export class MainGameScript {
   };
 
   onFixedUpdate = (dt: number, absTimer: number) => {
-    // Fixed timestep update - consistent dt, ideal for physics logic
+    // Fixed timestep - consistent dt every tick
+    // Use for: input polling, Mover physics, collisions, animation state machines
+    // Putting physics here prevents jitter from variable frame rates
   };
 
   onFrame = (dt: number, absTimer: number) => {

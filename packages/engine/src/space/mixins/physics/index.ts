@@ -292,6 +292,8 @@ export class ComponentPhysicsMixin implements ComponentMixin {
                 z: quaternion.z,
                 w: quaternion.w,
             },
+            linearDamping: opts.dynamicProps?.linearDamping,
+            angularDamping: opts.dynamicProps?.angularDamping,
             translationLock: opts.translationLock ?? [false, false, false],
             rotationLock: opts.rotationLock ?? [false, false, false],
             colliders: colliderOpts,

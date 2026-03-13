@@ -23,6 +23,7 @@ export type {
   MoverEvents,
   MoverState,
   JumpConfig,
+  MoverFacingMode,
   MovementConfig,
   MoveOptions,
 } from "./mover";
@@ -85,4 +86,3 @@ export type {
 // State management
 export { State, derived, createCounter, createHealthState } from "./state";
 export type { StateListener } from "./state";
-

@@ -4,6 +4,7 @@ export { ComponentManager } from "./components/index";
 export { Formats } from "./formats";
 export { SpaceEvents } from "./space-events";
 export type { SpaceEventHandlers, SpaceEventListeners } from "./space-events";
+export type { SpaceScheduleHandle } from "./space-scheduler";
 export { Component3D } from "./abstract/component-3d";
 export type { Component3DData } from "./abstract/component-3d-data";
 export type { ComponentFactory } from "./abstract/component-factory";

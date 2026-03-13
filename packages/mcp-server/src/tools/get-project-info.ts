@@ -56,17 +56,7 @@ export async function getProjectInfo(_args: Record<string, unknown>, projectDir:
     result.assets = null;
   }
 
-  const controlPresetsDir = resolveProjectPath(projectDir, "src", "lib", "control-presets");
-  if (await fileExists(controlPresetsDir)) {
-    const indexPath = join(controlPresetsDir, "index.ts");
-    if (await fileExists(indexPath)) {
-      const { readFile } = await import("node:fs/promises");
-      const content = await readFile(indexPath, "utf-8");
-      result.controlPreset = content;
-    }
-  } else {
-    result.controlPreset = null;
-  }
+  result.controlPreset = null;
 
   return makeSuccess(result);
 }

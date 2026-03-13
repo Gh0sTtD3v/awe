@@ -43,14 +43,24 @@ export async function setPhysics(args: Record<string, unknown>, projectDir: stri
 
   if ("isSensor" in args) collider.isSensor = args.isSensor;
 
-  if (rigidbodyType === "DYNAMIC") {
-    const dynamicProps: Record<string, unknown> = {};
+  const finalRigidbodyType = collider.rigidbodyType as string | undefined;
+
+  if (finalRigidbodyType === "DYNAMIC") {
+    const dynamicProps: Record<string, unknown> = {
+      ...((component.collider?.dynamicProps as Record<string, unknown> | undefined) ?? {}),
+    };
+
     if ("mass" in args) dynamicProps.mass = args.mass;
     if ("friction" in args) dynamicProps.friction = args.friction;
     if ("restitution" in args) dynamicProps.restitution = args.restitution;
+    if ("linearDamping" in args) dynamicProps.linearDamping = args.linearDamping;
+    if ("angularDamping" in args) dynamicProps.angularDamping = args.angularDamping;
+
     if (Object.keys(dynamicProps).length > 0) {
       collider.dynamicProps = dynamicProps;
     }
+  } else {
+    delete collider.dynamicProps;
   }
 
   component.collider = collider as typeof component.collider;

@@ -26,6 +26,8 @@ export function getDefaultColliderData(enabled = false): PhysicsData {
             mass: 1,
             friction: 0.5,
             restitution: 0,
+            linearDamping: 0,
+            angularDamping: 0,
         },
     };
 }
@@ -155,6 +157,28 @@ export function getColliderGUI(editor: Component3DEditor): GuiFolderDescriptor {
                         value: prop("dynamicProps.restitution"),
                         min: 0,
                         max: 1,
+                        step: 0.01,
+                    },
+                    linearDamping: {
+                        visible: () =>
+                            editor.data.collider.rigidbodyType ==
+                            RIGIDBODY_TYPES.DYNAMIC,
+                        type: "number",
+                        label: "Linear Damping",
+                        value: prop("dynamicProps.linearDamping"),
+                        min: 0,
+                        max: 100,
+                        step: 0.01,
+                    },
+                    angularDamping: {
+                        visible: () =>
+                            editor.data.collider.rigidbodyType ==
+                            RIGIDBODY_TYPES.DYNAMIC,
+                        type: "number",
+                        label: "Angular Damping",
+                        value: prop("dynamicProps.angularDamping"),
+                        min: 0,
+                        max: 100,
                         step: 0.01,
                     },
                     // density: {

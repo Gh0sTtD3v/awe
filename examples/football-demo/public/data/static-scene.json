@@ -699,7 +699,9 @@
         "dynamicProps": {
           "mass": 0.5,
           "friction": 0.4,
-          "restitution": 0.5
+          "restitution": 0.5,
+          "linearDamping": 1.5,
+          "angularDamping": 2
         }
       },
       "enableAnimation": false,

@@ -26,6 +26,8 @@ export interface ColliderConfig {
     mass?: number;
     friction?: number;
     restitution?: number;
+    linearDamping?: number;
+    angularDamping?: number;
   };
 }
 

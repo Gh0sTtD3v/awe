@@ -3,6 +3,7 @@ import {
   type Space,
   type AvatarComponent,
   type Component3D,
+  type SpaceScheduleHandle,
   createInputs,
   Keyboard,
   Gamepad,
@@ -40,8 +41,6 @@ const AI_KICK_RANGE = 2.5;
 const AI_KICK_COOLDOWN = 0.8;
 const GOALS_TO_WIN = 3;
 const AI_PLAYER_SEPARATION = 1.5; // minimum distance between AI and player
-const BALL_LINEAR_DAMPING = 1.5;
-const BALL_ANGULAR_DAMPING = 2.0;
 const GOAL_HALF_WIDTH = 1.8; // half-width of goal opening (posts ~3.6m apart)
 const PLAYER_SPEED = 12;
 
@@ -56,8 +55,6 @@ const FIELD_Z_MAX = 26;
 
 // Reusable objects
 const _zeroQuat = new Quaternion();
-const _shiftLockQuat = new Quaternion();
-const _up = new Vector3(0, 1, 0);
 const _playerFacingBallQuat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI);
 const _ballResetPos = new Vector3(0, 1, 0);
 const _playerResetPos = new Vector3(0, 0, -10);
@@ -130,6 +127,7 @@ export class GameScript {
   private aiKickCooldown = 0;
   private aiWasMoving = false;
   private aiHadBallControl = false;
+  private goalResetTask: SpaceScheduleHandle | null = null;
   private aiAnimMachine: AnimationStateMachine<{ speed: number; hasBallControl: boolean }> | null = null;
   private _shiftLockHandler: ((e: KeyboardEvent) => void) | null = null;
   private _shiftLockActive = false;
@@ -176,7 +174,7 @@ export class GameScript {
           y: !this._shiftLockActive,
         });
         if (this.mover) {
-          this.mover.autoRotate = !this._shiftLockActive;
+          this.mover.facingMode = this._shiftLockActive ? "target" : "movement";
         }
       }
     };
@@ -185,7 +183,7 @@ export class GameScript {
     this.mover = new Mover({
       body: this.player,
       target: Camera.current,
-      movement: { speed: PLAYER_SPEED, gravity: -9.81 },
+      movement: { speed: PLAYER_SPEED, gravity: -9.81, facingMode: "movement" },
       // Minimal jump config — effectively disabled
       jump: { height: 0, maxJumps: 0, duration: 0.01, coyoteTime: 0, maxFallSpeed: 20 },
     });
@@ -214,12 +212,6 @@ export class GameScript {
     this.inputs.Kick.onPerformed(() => this.playerKick());
 
     this.setControlsActive(false);
-
-    // Setup ball damping
-    if (this.ball?.rigidBody) {
-      this.ball.rigidBody.setLinearDamping(BALL_LINEAR_DAMPING);
-      this.ball.rigidBody.setAngularDamping(BALL_ANGULAR_DAMPING);
-    }
 
     // Setup goal sensors — only count if ball enters through the front
     this.goalSensorP?.onSensorEnter((event) => {
@@ -309,6 +301,8 @@ export class GameScript {
   }
 
   restart() {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = null;
     this.playerScore = 0;
     this.aiScore = 0;
     this.isResetting = false;
@@ -324,6 +318,8 @@ export class GameScript {
   }
 
   dispose() {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = null;
     this.cleanup?.();
     this.cleanup = null;
     this.inputs?.dispose();
@@ -361,7 +357,7 @@ export class GameScript {
     const ballX = this.ball.position.x;
     if (Math.abs(ballX) > GOAL_HALF_WIDTH) return false;
 
-    const vel = this.ball.rigidBody.raw.linvel();
+    const vel = this.ball.rigidBody.linearVelocity;
     // player-end goal is at -z, ball must be moving in -z direction
     // ai-end goal is at +z, ball must be moving in +z direction
     if (end === "player-end" && vel.z > 0) return false;
@@ -419,7 +415,9 @@ export class GameScript {
     setGoalScored(scorer);
 
     // After animation, check for game over or wait for kickoff
-    setTimeout(() => {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = this.space?.schedule(2.5, () => {
+      this.goalResetTask = null;
       clearGoalScored();
 
       if (this.playerScore >= GOALS_TO_WIN || this.aiScore >= GOALS_TO_WIN) {
@@ -430,7 +428,7 @@ export class GameScript {
 
       this.resetPositions();
       setWaitingForKickoff(true);
-    }, 2500);
+    }) ?? null;
   }
 
   private resetPositions() {
@@ -555,18 +553,6 @@ export class GameScript {
     if (this.playerAnimMachine) {
       this.playerAnimMachine.setContext({ speed: this.mover.speed });
       this.playerAnimMachine.update(dt);
-    }
-
-    // Shift-lock: rotate player to face camera forward direction
-    if (this._shiftLockActive && this.player) {
-      const camForward = this._tmpVec
-        .set(0, 0, -1)
-        .applyQuaternion(Camera.current.quaternion);
-      camForward.y = 0;
-      camForward.normalize();
-      const angle = Math.atan2(camForward.x, camForward.z) + Math.PI;
-      _shiftLockQuat.setFromAxisAngle(_up, angle);
-      this.player.quaternion.copy(_shiftLockQuat);
     }
   };
 

@@ -21,6 +21,13 @@ function smoothstep(min: number, max: number, value: number) {
   return Math.max(0, Math.min(1, (value - min) / (max - min)));
 }
 
+function getYawFromQuaternion(quaternion: Quaternion): number {
+  return Math.atan2(
+    2 * (quaternion.w * quaternion.y + quaternion.x * quaternion.z),
+    1 - 2 * (quaternion.y ** 2 + quaternion.x ** 2)
+  );
+}
+
 /**
  * Jump configuration for physics-based projectile motion
  */
@@ -46,6 +53,8 @@ export interface JumpConfig {
 /**
  * Movement configuration
  */
+export type MoverFacingMode = "movement" | "target" | "none";
+
 export interface MovementConfig {
   /** Ground movement speed in units per second (default: 15) */
   speed?: number;
@@ -57,7 +66,14 @@ export interface MovementConfig {
   airControl?: number;
   /** Gravity in units per second squared (negative = down) (default: -1.81) */
   gravity?: number;
-  /** Whether to automatically rotate to face movement direction (default: true) */
+  /**
+   * Facing behavior (default: "movement")
+   * - "movement": face travel direction while moving
+   * - "target": face the configured target/reference yaw, even while idle
+   * - "none": leave facing fully under caller control
+   */
+  facingMode?: MoverFacingMode;
+  /** @deprecated Use `facingMode` instead. `true` = "movement", `false` = "none". */
   autoRotate?: boolean;
 }
 
@@ -114,7 +130,7 @@ export interface MoverConfig {
   /** The body/component to move */
   body: Component3D;
 
-  /** Reference object for direction (typically camera) */
+  /** Reference object for target-relative movement/facing (typically camera) */
   target?: Object3D;
 
   /** Movement configuration */
@@ -141,6 +157,18 @@ export interface MoverEvents {
   jumped: (jumpCount: number) => void;
   movementStart: () => void;
   movementStop: () => void;
+}
+
+function resolveFacingMode(movement: MovementConfig): MoverFacingMode {
+  if (movement.facingMode !== undefined) {
+    return movement.facingMode;
+  }
+
+  if (movement.autoRotate !== undefined) {
+    return movement.autoRotate ? "movement" : "none";
+  }
+
+  return "movement";
 }
 
 /**
@@ -179,7 +207,7 @@ export class Mover {
   private _deceleration: number;
   private _airControl: number;
   private _maxFallSpeed: number;
-  private _autoRotate: boolean;
+  private _facingMode: MoverFacingMode;
   private _coyoteTimeDuration: number;
   private _track: { minX: number; maxX: number };
 
@@ -246,7 +274,7 @@ export class Mover {
     this._acceleration = movement.acceleration ?? 100;
     this._deceleration = movement.deceleration ?? 50;
     this._airControl = movement.airControl ?? 1;
-    this._autoRotate = movement.autoRotate ?? true;
+    this._facingMode = resolveFacingMode(movement);
 
     // Jump configuration with defaults
     this._maxFallSpeed = jump.maxFallSpeed ?? 20;
@@ -339,13 +367,27 @@ export class Mover {
     this._gravity = value;
   }
 
-  /** Auto-rotate setting */
+  /** Facing behavior */
+  get facingMode(): MoverFacingMode {
+    return this._facingMode;
+  }
+
+  set facingMode(value: MoverFacingMode) {
+    if (this._facingMode === value) {
+      return;
+    }
+
+    this._syncRotationState();
+    this._facingMode = value;
+  }
+
+  /** @deprecated Legacy alias for `facingMode === "movement"` */
   get autoRotate(): boolean {
-    return this._autoRotate;
+    return this._facingMode === "movement";
   }
 
   set autoRotate(value: boolean) {
-    this._autoRotate = value;
+    this.facingMode = value ? "movement" : "none";
   }
 
   /** Whether the mover is currently in a jump */
@@ -450,13 +492,7 @@ export class Mover {
       }
 
       // Align to target (camera) direction
-      const angle = Math.atan2(
-        2 *
-          (this._target.quaternion.w * this._target.quaternion.y +
-            this._target.quaternion.x * this._target.quaternion.z),
-        1 -
-          2 * (this._target.quaternion.y ** 2 + this._target.quaternion.x ** 2)
-      );
+      const angle = getYawFromQuaternion(this._target.quaternion);
       this._direction.applyAxisAngle(DIRECTION.UP, angle);
     }
 
@@ -797,7 +833,7 @@ export class Mover {
     this._applyImpulseDecay(dt);
 
     // Apply rotation
-    if (this._autoRotate) {
+    if (this._facingMode !== "none") {
       this._applyRotation(dt);
     }
 
@@ -992,12 +1028,25 @@ export class Mover {
     this._velocity.z = direction.z * dt * this._currentSpeed;
   }
 
-  private _applyRotation(dt: number): void {
-    if (!this._isMoving) return;
+  private _syncRotationState(): void {
+    this._currentQuaternion.copy(this._body.quaternion);
+    this._targetQuaternion.copy(this._body.quaternion);
+  }
 
-    this._targetRotation =
-      Math.atan2(this._direction.x, this._direction.z) +
-      (this._body.componentType === "model" ? 0 : Math.PI);
+  private _applyRotation(dt: number): void {
+    if (this._facingMode === "movement") {
+      if (!this._isMoving) return;
+
+      this._targetRotation =
+        Math.atan2(this._direction.x, this._direction.z) +
+        (this._body.componentType === "model" ? 0 : Math.PI);
+    } else if (this._facingMode === "target") {
+      this._targetRotation =
+        getYawFromQuaternion(this._target.quaternion) +
+        (this._body.componentType === "model" ? Math.PI : 0);
+    } else {
+      return;
+    }
 
     this._targetQuaternion.setFromAxisAngle(DIRECTION.UP, this._targetRotation);
 

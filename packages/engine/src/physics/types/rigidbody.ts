@@ -97,6 +97,16 @@ export interface RigidBody {
     resetVelocities(): void;
 
     /**
+     * Returns the linear velocity of the rigid body
+     */
+    readonly linearVelocity: Vector3;
+
+    /**
+     * Returns the angular velocity of the rigid body
+     */
+    readonly angularVelocity: Vector3;
+
+    /**
      * Set linear damping on the rigid body
      */
     setLinearDamping(damping: number): void;
