@@ -80,29 +80,12 @@ This scaffolds a full Next.js project with the oncyberio engine pre-configured, 
 ### Monorepo Development
 
 ```bash
-# Clone and install
 git clone <repo-url>
 cd awe
 pnpm install
-
-# Engine development
-pnpm engine:check         # Type-check the engine
-pnpm engine:build:api     # Generate public API type definitions
-pnpm --filter engine test # Run engine tests
-
-# Editor development
-pnpm engine-edit:check    # Type-check engine-edit
-
-# Asset optimizer
-pnpm asset-optimizer:check
-
-# Run an example project
-pnpm --filter zombie-survival dev
-
-# Utility scripts
-pnpm bake-anim            # Bake VRM animations from Mixamo FBX files
-pnpm inspect-gltf         # Inspect GLTF/GLB model files
 ```
+
+For development commands, code style, branching, and PR workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
@@ -113,10 +96,6 @@ pnpm inspect-gltf         # Inspect GLTF/GLB model files
 ### AI Integration
 
 The MCP server provides 30+ tools for AI assistants to manipulate scenes programmatically — adding components, configuring physics, managing assets, and more. Generated projects come pre-configured with Claude Code skills for engine usage, VFX creation, and asset inspection.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 ## License
 
