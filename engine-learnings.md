@@ -106,13 +106,16 @@ linearDamping?: number;
 angularDamping?: number;
 ```
 
-### Add game-aware timer / scheduler
+### ~~Add game-aware timer / scheduler~~ — FIXED
 
-Goal celebration uses `setTimeout` which doesn't respect pause/resume. Cooldowns, respawn delays, round timers all need game-time scheduling.
+`Space.schedule(delaySeconds, callback)` now provides game-time scheduling that advances only while the space is running, so it respects pause/stop and works in headless too. The football demo goal reset now uses `space.schedule(...)` instead of `setTimeout`.
 
 ```ts
-// Needed on Space
-space.schedule(2.5, () => { /* runs after 2.5 game-seconds */ });
+const handle = space.schedule(2.5, () => {
+  /* runs after 2.5 game-seconds */
+});
+
+handle.cancel();
 ```
 
 ### ~~Add metadata to sensor events~~ — NOT NEEDED
