@@ -490,8 +490,10 @@ export class ComponentManager extends AugmentedGroup {
   /**
    * Returns a component by its id.
    */
-  byId(id: string) {
-    return this._componentsByScriptId[id] ?? this._componentsById[id];
+  byId<T extends Component3D = Component3D>(id: string): T | undefined {
+    return (this._componentsByScriptId[id] ?? this._componentsById[id]) as
+      | T
+      | undefined;
   }
 
   /**

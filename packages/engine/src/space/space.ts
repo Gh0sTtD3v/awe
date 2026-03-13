@@ -12,6 +12,10 @@ import { ComponentsRegistry } from "./registry";
 import { deferred } from "../internal/utils/deferred";
 import { SpaceLifecycle } from "./space-lifecycle";
 import { SpaceEvents, type SpaceEventHandlers } from "./space-events";
+import {
+  SpaceScheduler,
+  type SpaceScheduleHandle,
+} from "./space-scheduler";
 
 /**
  * @public
@@ -34,6 +38,8 @@ export class Space extends AugmentedGroup {
   _readyDeferred = deferred<void>();
   /** @internal */
   _wasDisposed = false;
+  /** @internal */
+  _scheduler: SpaceScheduler;
 
   /**
    * @internal
@@ -46,6 +52,7 @@ export class Space extends AugmentedGroup {
     this.matrixAutoUpdate = false;
 
     globalThis["$space"] = this;
+    this._scheduler = new SpaceScheduler(this);
 
     emitter.once(EngineEvents.GAME_POST_READY, () => {
       //
@@ -132,6 +139,16 @@ export class Space extends AugmentedGroup {
   }
 
   /**
+   * Schedule a callback to run after the given number of game seconds.
+   *
+   * The timer advances only while the space is running, so it pauses when the
+   * game stops or the engine loop is paused.
+   */
+  schedule(delaySeconds: number, callback: () => void): SpaceScheduleHandle {
+    return this._scheduler.schedule(delaySeconds, callback);
+  }
+
+  /**
    * Takes a screenshot of the current frame. Returns a promise that resolves to the data URL of the screenshot.
    */
   captureFrame(
@@ -162,6 +179,7 @@ export class Space extends AugmentedGroup {
 
     this._wasDisposed = true;
 
+    this._scheduler.dispose();
     this.components = null;
 
     this.physics = null;

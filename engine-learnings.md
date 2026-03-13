@@ -62,6 +62,10 @@ Document: "In `onFixedUpdate` / `onUpdate`, never create `new Vector3()` — pre
 
 Physics-sensitive code (movement, input, collisions) in `onFixedUpdate`. Visual-only code (AI animation, camera smoothing) in `onUpdate`. Getting this wrong causes jitter.
 
+### Touch joystick reference implementation
+
+Add a drop-in `TouchJoystick` React component example to the engine guide. Should cover `sharedControlState.touch.setJoystick` integration, deadzone handling, and pointer capture. The football demo's `touch-joystick.tsx` can serve as the reference.
+
 ### Recommended patterns
 
 Document these proven patterns from the football demo:
@@ -111,37 +115,26 @@ Goal celebration uses `setTimeout` which doesn't respect pause/resume. Cooldowns
 space.schedule(2.5, () => { /* runs after 2.5 game-seconds */ });
 ```
 
-### Add metadata to sensor events
+### ~~Add metadata to sensor events~~ — NOT NEEDED
 
-`SensorEvent` only exposes `me`, `other`, `frame`. Goal validation requires reading velocity via `raw.linvel()` to check direction. Directional triggers are common (one-way doors, checkpoints, wind zones).
+`CollisionEnterEvent` already provides `contactPoints` with `normal`/`position`/`depth`. For sensors, velocity can now be read via `event.other.rigidBody.linearVelocity` (fixed by the velocity getter above). The football demo's goal direction check no longer needs any API addition.
 
-```ts
-// Needed on SensorEvent
-event.relativeVelocity: Vector3;
-event.entryNormal: Vector3;
-```
+### ~~Add React canvas lifecycle hook~~ — NOT NEEDED
 
-### Add React canvas lifecycle hook
+The `GameCanvas` component is ~35 lines of standard React-canvas boilerplate (mount, resize listener, cleanup). Not meaningfully different from any Three.js/Pixi React integration. The `setTimeout` defer is a standard single-tick layout wait, not a hack.
 
-Canvas mounting requires manual DOM manipulation + `engine.ready` + `setTimeout` resize hack. Every Next.js game hits this.
+### ~~Add generic overload to `byId()`~~ — FIXED
+
+`space.components.byId<T>()` now supports a generic return type, so callers can write `space.components.byId<AvatarComponent>("player")` instead of manually casting from `Component3D`.
 
 ```ts
-// Needed
-const canvasRef = useEngineCanvas(); // handles mount, resize, cleanup
-```
-
-### Add generic overload to `byId()`
-
-Returns untyped `Component3D`, requiring manual casts that AI assistants frequently get wrong.
-
-```ts
-// Needed
+// Now supported
 space.components.byId<AvatarComponent>("player")
 ```
 
-### Add built-in TouchJoystick component
+### ~~Add built-in TouchJoystick component~~ — MOVED TO DOCS
 
-`Touch.joystick()` bindings exist but building the actual joystick UI is ~150 lines of deadzone math, response curves, and cardinal assist. Every mobile game needs this.
+Reclassified as a documentation item. The engine already provides the integration point (`Touch.joystick()` bindings, `sharedControlState.touch.setJoystick`). The joystick UI itself is game-level code with game-specific tuning. A reference implementation in the engine guide is sufficient.
 
 ---
 

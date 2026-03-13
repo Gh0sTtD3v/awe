@@ -3,6 +3,7 @@ import {
   type Space,
   type AvatarComponent,
   type Component3D,
+  type SpaceScheduleHandle,
   createInputs,
   Keyboard,
   Gamepad,
@@ -128,6 +129,7 @@ export class GameScript {
   private aiKickCooldown = 0;
   private aiWasMoving = false;
   private aiHadBallControl = false;
+  private goalResetTask: SpaceScheduleHandle | null = null;
   private aiAnimMachine: AnimationStateMachine<{ speed: number; hasBallControl: boolean }> | null = null;
   private _shiftLockHandler: ((e: KeyboardEvent) => void) | null = null;
   private _shiftLockActive = false;
@@ -301,6 +303,8 @@ export class GameScript {
   }
 
   restart() {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = null;
     this.playerScore = 0;
     this.aiScore = 0;
     this.isResetting = false;
@@ -316,6 +320,8 @@ export class GameScript {
   }
 
   dispose() {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = null;
     this.cleanup?.();
     this.cleanup = null;
     this.inputs?.dispose();
@@ -411,7 +417,9 @@ export class GameScript {
     setGoalScored(scorer);
 
     // After animation, check for game over or wait for kickoff
-    setTimeout(() => {
+    this.goalResetTask?.cancel();
+    this.goalResetTask = this.space?.schedule(2.5, () => {
+      this.goalResetTask = null;
       clearGoalScored();
 
       if (this.playerScore >= GOALS_TO_WIN || this.aiScore >= GOALS_TO_WIN) {
@@ -422,7 +430,7 @@ export class GameScript {
 
       this.resetPositions();
       setWaitingForKickoff(true);
-    }, 2500);
+    }) ?? null;
   }
 
   private resetPositions() {
