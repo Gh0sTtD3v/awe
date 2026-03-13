@@ -55,8 +55,8 @@ export class MainGameScript {
   };
 
   onUpdate = (dt: number, absTimer: number) => {
-    // Main game update - called each frame while game is running
-    // dt = delta time in seconds, absTimer = total elapsed time
+    // Variable timestep - called each frame while running
+    // Use for: AI logic, UI timers, visual smoothing, game state checks
   };
 
   onLateUpdate = (dt: number, absTimer: number) => {
@@ -64,7 +64,9 @@ export class MainGameScript {
   };
 
   onFixedUpdate = (dt: number, absTimer: number) => {
-    // Fixed timestep update - consistent dt, ideal for physics logic
+    // Fixed timestep - consistent dt every tick
+    // Use for: input polling, Mover physics, collisions, animation state machines
+    // Putting physics here prevents jitter from variable frame rates
   };
 
   onFrame = (dt: number, absTimer: number) => {

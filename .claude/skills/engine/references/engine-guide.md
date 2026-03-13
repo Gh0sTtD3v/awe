@@ -318,10 +318,13 @@ const cleanup = space.use({
     // Called when space.stop() is invoked
   },
   onUpdate: (dt, absTimer) => {
-    // Main game update - called each frame while game is running
+    // Variable timestep - called each frame while running
+    // Use for: AI logic, UI timers, visual smoothing, game state checks
   },
   onFixedUpdate: (dt, absTimer) => {
-    // Fixed timestep update - consistent dt, ideal for physics logic
+    // Fixed timestep - consistent dt every tick
+    // Use for: input polling, Mover physics, collisions, animation state machines
+    // Putting physics here prevents jitter from variable frame rates
   },
   onLateUpdate: (dt, absTimer) => {
     // Called after onUpdate - use for cameras, state sync, etc.
@@ -510,3 +513,76 @@ See `examples/starter/src/lib/game-script.ts` for a complete working example of 
 ### Example: Inline FPS Controls
 
 See `examples/zombie-survival/src/lib/game-script.ts` for a complete working example of `Mover` + `FirstPersonCameraRig` with camera-relative movement (`mover.move(x, y, { forward, right, speed })`).
+
+---
+
+## Tips & Patterns
+
+### Fixed vs frame update
+
+Physics-sensitive code (movement, input polling, collisions, `Mover.update()`) belongs in `onFixedUpdate`. Visual-only code (AI logic, UI timers, camera smoothing) belongs in `onUpdate`. Getting this wrong causes jitter from variable frame rates.
+
+### Pre-allocate reusable objects
+
+Never create `new Vector3()`, `new Quaternion()`, etc. inside `onFixedUpdate` or `onUpdate` — these run every frame/tick and will create GC pressure. Pre-allocate at module or class scope and reuse:
+
+```ts
+// Good — allocate once, reuse every frame
+const _tmpVec = new Vector3();
+const _tmpDir = new Vector3();
+
+onFixedUpdate = (dt: number) => {
+  _tmpVec.set(x, y, z);
+  _tmpDir.set(0, 0, -1).applyQuaternion(cam.quaternion);
+};
+
+// Bad — allocates every frame, causes GC spikes
+onFixedUpdate = (dt: number) => {
+  const dir = new Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+};
+```
+
+### Separate pure game logic from engine code
+
+Keep AI decisions, scoring rules, state machines, and other game logic in plain functions/classes with zero engine imports. Pass data in, get data out. This makes logic testable, reusable, and easier to reason about — the game script just wires pure logic to engine calls.
+
+```ts
+// game-ai.ts — pure logic, no engine imports
+export function chooseTarget(enemies: { pos: Vec2; hp: number }[], playerPos: Vec2) {
+  return enemies
+    .filter(e => e.hp > 0)
+    .sort((a, b) => dist(a.pos, playerPos) - dist(b.pos, playerPos))[0];
+}
+
+// game-script.ts — thin glue
+onUpdate = (dt: number) => {
+  const target = chooseTarget(this.enemyData, this.playerData);
+  if (target) this.enemyMover.moveTo(target.pos);
+};
+```
+
+### Use a reactive store to bridge game state to UI
+
+Keep a small `Store` between the game loop and React. The game loop writes state via `store.update()`, React reads it via `useStore()` — no direct coupling. This avoids React re-renders driving game logic or vice versa. See `examples/starter/src/hooks/use-store.ts` for the `Store` class and `useStore` hook (backed by `useSyncExternalStore`).
+
+```ts
+// game-store.ts
+import { Store } from "@/hooks/use-store";
+
+interface GameState { score: number; hp: number }
+export const gameStore = new Store<GameState>({ score: 0, hp: 100 });
+
+// game-script.ts — game loop writes
+onUpdate = (dt: number) => {
+  gameStore.update({ score: this.score, hp: this.player.hp });
+};
+
+// hud.tsx — React reads
+import { useStore } from "@/hooks/use-store";
+import { gameStore } from "@/lib/game-store";
+
+function HUD() {
+  const { score, hp } = useStore(gameStore);
+  return <div>{score} pts — {hp} HP</div>;
+}
+```

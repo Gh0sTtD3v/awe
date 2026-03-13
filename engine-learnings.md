@@ -43,11 +43,11 @@ Document the `geometry` property with examples for each shape (box, sphere, cyli
 
 Full sequence: `createSpace` → `reveal()` → `space.use({ onFixedUpdate, onUpdate })` → `space.start()` → `cleanup()` → dispose. Now documented in engine skill `game-script-template.md` with complete class structure, callback descriptions, and typical setup order (avatar → Mover → camera rig → inputs).
 
-### Performance: object reuse
+### Performance: object reuse ✅
 
 Document: "In `onFixedUpdate` / `onUpdate`, never create `new Vector3()` — pre-allocate and reuse." The football demo allocates `_tmpVec` at module scope to avoid GC pressure.
 
-### Performance: fixed vs frame update
+### Performance: fixed vs frame update ✅
 
 Physics-sensitive code (movement, input, collisions) in `onFixedUpdate`. Visual-only code (AI animation, camera smoothing) in `onUpdate`. Getting this wrong causes jitter.
 
@@ -55,7 +55,7 @@ Physics-sensitive code (movement, input, collisions) in `onFixedUpdate`. Visual-
 
 Add a drop-in `TouchJoystick` React component example to the engine guide. Should cover `sharedControlState.touch.setJoystick` integration, deadzone handling, and pointer capture. The football demo's `touch-joystick.tsx` can serve as the reference.
 
-### Recommended patterns
+### Recommended patterns ✅
 
 Document these proven patterns from the football demo:
 - **Pure game logic** — AI/decision code with zero engine imports (plain data in, plain data out). Testable, portable across genres.
