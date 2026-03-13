@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@oncyberio/studio": "workspace:*",
-    "@oncyber/game-utils": "workspace:*",
     "@oncyberio/engine": "workspace:*",
     "@oncyberio/mcp-server": "workspace:*",
     "immer": "^10.0.3",

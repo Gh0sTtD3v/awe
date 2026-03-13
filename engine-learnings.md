@@ -8,9 +8,9 @@ Extracted from building the football-demo. General-purpose observations across g
 
 Things to add/clarify in the engine guide so AI assistants and developers get it right on the first try.
 
-### Avatar facing convention
+### ~~Avatar facing convention~~ — DOCUMENTED
 
-Avatars face **-Z** by default. Computing a facing angle requires `Math.atan2(dir.x, dir.z) + Math.PI` — the `+ Math.PI` is consistently missed. Document prominently with a code snippet.
+Avatars face **-Z** by default. Computing a facing angle requires `Math.atan2(dir.x, dir.z) + Math.PI` — the `+ Math.PI` is consistently missed. Now prominently documented in engine guide Avatars section with explanation of why `+ Math.PI` is needed and a tip about using `facingMode` to avoid manual rotation.
 
 ### RigidBody position setter behavior
 
@@ -39,12 +39,9 @@ Document `setLockAxis({ x?: boolean, y?: boolean })`:
 - `y: true` = lock vertical rotation (fixed pitch)
 - `requestPointerLock()` for entering pointer lock on game start
 
-### Mover + Camera integration patterns
+### ~~Mover + Camera integration patterns~~ — DOCUMENTED
 
-Document how `Mover.facingMode` interacts with camera rigs:
-- Locked camera (sports/strategy): `facingMode: "movement"`, locked axes
-- Free-look (exploration): `facingMode: "none"`, unlocked axes
-- Shift-lock (combat): `facingMode: "target"`
+`Mover.facingMode` and camera rig integration now documented in engine guide Player Controls section with a table of modes, code examples, and common camera rig combinations.
 
 ### Mesh geometry format by shape
 

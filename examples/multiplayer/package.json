@@ -9,7 +9,6 @@
     "test:watch": "vitest -c vitest.config.ts"
   },
   "dependencies": {
-    "@oncyber/game-utils": "workspace:*",
     "@oncyberio/engine": "workspace:*",
     "@oncyberio/engine-edit": "workspace:*",
     "@oncyberio/studio": "workspace:*",

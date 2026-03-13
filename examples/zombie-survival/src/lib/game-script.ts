@@ -6,7 +6,17 @@ import {
   ModelComponent,
   AvatarComponent,
   NavmeshComponent,
+  createInputs,
+  Keyboard,
+  Gamepad,
+  Mouse,
+  Touch,
+  Interactions,
 } from "@oncyberio/engine";
+import {
+  Mover,
+  FirstPersonCameraRig,
+} from "@oncyberio/engine/controls";
 import {
   Vector3,
   MeshBasicMaterial,
@@ -15,10 +25,6 @@ import {
   PointLight,
 } from "three";
 import { createGame } from "@/lib/utils";
-import {
-  createFPS,
-  type ControlSystem,
-} from "@oncyber/game-utils/control-presets";
 import { ZombieManager } from "@/lib/zombie-manager";
 import { GAME_CONFIG } from "@/lib/game-config";
 import {
@@ -38,6 +44,37 @@ import {
   resetGame,
 } from "@/lib/game-store";
 
+// --- FPS Input definitions ---
+const GAMEPLAY_INPUTS = {
+  Move: {
+    type: "vector2" as const,
+    bindings: [
+      Keyboard.wasd(),
+      Keyboard.arrows(),
+      Gamepad.leftStick(),
+      Gamepad.dpad(),
+      Touch.joystick(),
+    ],
+  },
+  Look: {
+    type: "vector2" as const,
+    bindings: [Mouse.pointerLockDelta(), Gamepad.rightStick()],
+  },
+  Jump: {
+    type: "button" as const,
+    bindings: [Keyboard.button("Space"), Gamepad.button("A")],
+    interactions: [Interactions.press()],
+  },
+  Sprint: {
+    type: "button" as const,
+    bindings: [
+      Keyboard.button("ShiftLeft"),
+      Keyboard.button("ShiftRight"),
+      Gamepad.button("LB"),
+    ],
+  },
+} as const;
+
 // Module-level reference for external control
 let scriptInstance: GameScript | null = null;
 
@@ -55,7 +92,11 @@ export function reload() {
 
 export class GameScript {
   private space: Space | null = null;
-  private controls: ControlSystem | null = null;
+  // Control primitives
+  private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
+  private cameraRig: FirstPersonCameraRig | null = null;
+  private mover: Mover | null = null;
+  private controlsActive = false;
   private engine = Engine.getInstance();
   private cleanup: (() => void) | null = null;
   private pistol: ModelComponent | null = null;
@@ -121,22 +162,50 @@ export class GameScript {
       return;
     }
 
-    this.controls = createFPS(this.space, this._player, Camera.current, {
-      movement: { speed: GAME_CONFIG.playerWalkSpeed, gravity: -30 },
-      jump: { height: GAME_CONFIG.playerJumpForce },
-      sprintMultiplier:
-        GAME_CONFIG.playerSprintSpeed / GAME_CONFIG.playerWalkSpeed,
+    // Input system
+    this.inputs = createInputs(GAMEPLAY_INPUTS);
+
+    // First-person camera rig
+    this.cameraRig = new FirstPersonCameraRig({
+      camera: Camera.current,
+      target: this._player,
+      height: 1.6,
       sensitivity: { x: 1, y: 1 },
       invertY: false,
     });
 
-    this.controls.mover.on("movementStart", this.onMovementStart);
-    this.controls.mover.on("movementStop", this.onMovementStop);
+    // Mover
+    this.mover = new Mover({
+      body: this._player,
+      target: Camera.current,
+      movement: {
+        speed: GAME_CONFIG.playerWalkSpeed,
+        gravity: -30,
+        acceleration: 200,
+        airControl: 1,
+        facingMode: "none",
+      },
+      jump: {
+        height: GAME_CONFIG.playerJumpForce,
+        maxJumps: 1,
+      },
+    });
+
+    // Wire jump input
+    this.inputs.Jump.onPerformed(() => {
+      this.mover?.startJump();
+    });
+
+    // Hide avatar for FPS view
+    this._player.visible = false;
+
+    this.mover.on("movementStart", this.onMovementStart);
+    this.mover.on("movementStop", this.onMovementStop);
 
     // @ts-ignore
     Camera.current.near = 0.01;
 
-    this.controls.active = false;
+    this.setActive(false);
 
     await reveal();
 
@@ -161,6 +230,7 @@ export class GameScript {
     );
 
     this.cleanup = this.space.use({
+      onFixedUpdate: this.onFixedUpdate,
       onUpdate: this.onUpdate,
       onDispose: this.onDispose,
     });
@@ -178,13 +248,20 @@ export class GameScript {
     document.removeEventListener("keydown", this.onKeyDown);
     document.removeEventListener("keyup", this.onKeyUp);
 
-    if (this.controls) {
-      this.controls.mover.off("movementStart", this.onMovementStart);
-      this.controls.mover.off("movementStop", this.onMovementStop);
+    if (this.mover) {
+      this.mover.off("movementStart", this.onMovementStart);
+      this.mover.off("movementStop", this.onMovementStop);
     }
 
-    this.controls?.dispose();
-    this.controls = null;
+    // Restore avatar visibility
+    if (this._player) this._player.visible = true;
+
+    this.mover?.dispose();
+    this.mover = null;
+    this.cameraRig?.dispose();
+    this.cameraRig = null;
+    this.inputs?.dispose();
+    this.inputs = null;
 
     if (this.muzzleFlash) {
       this.muzzleFlash.geometry.dispose();
@@ -210,6 +287,42 @@ export class GameScript {
     this.space = null;
     scriptInstance = null;
   }
+
+  private setActive(val: boolean) {
+    this.controlsActive = val;
+    if (val) {
+      this.inputs?.enable();
+      this.mover?.reset();
+    } else {
+      this.inputs?.disable();
+    }
+    if (this.cameraRig) this.cameraRig.active = val;
+  }
+
+  onFixedUpdate = (dt: number) => {
+    if (!this.controlsActive || !this.inputs || !this.mover || !this.cameraRig) return;
+
+    this.inputs.update(dt);
+
+    const moveDir = this.inputs.Move.readValue();
+    const lookDelta = this.inputs.Look.readValue();
+    const isSprinting = this.inputs.Sprint.isPressed;
+
+    if (lookDelta.x !== 0 || lookDelta.y !== 0) {
+      this.cameraRig.rotate(lookDelta.x, lookDelta.y);
+    }
+
+    const speed = isSprinting
+      ? GAME_CONFIG.playerSprintSpeed
+      : GAME_CONFIG.playerWalkSpeed;
+    this.mover.move(moveDir.x, moveDir.y, {
+      forward: this.cameraRig.forward,
+      right: this.cameraRig.right,
+      speed,
+    });
+
+    this.mover.update(dt);
+  };
 
   private async setupWeapon() {
     if (!this.space) return;
@@ -386,9 +499,7 @@ export class GameScript {
   start() {
     if (!this.space) return;
 
-    if (this.controls) {
-      this.controls.active = true;
-    }
+    this.setActive(true);
 
     this.isDrawingWeapon = true;
     this.pistol?.play(GAME_CONFIG.weaponAnimations.draw, {
@@ -450,9 +561,7 @@ export class GameScript {
 
   private endGame(result: "won" | "lost") {
     setGamePhase(result);
-    if (this.controls) {
-      this.controls.active = false;
-    }
+    this.setActive(false);
     disposeAllSounds();
     document.exitPointerLock();
   }
@@ -463,11 +572,9 @@ export class GameScript {
     const state = gameStore.state;
     if (state.gamePhase !== "playing") return;
 
-    if (this.controls) {
-      this.controls.active = !this.controls.active;
-    }
+    this.setActive(!this.controlsActive);
 
-    if (this.controls?.active) {
+    if (this.controlsActive) {
       this.space.start();
     } else {
       this.space.stop();
@@ -546,7 +653,7 @@ export class GameScript {
     if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
       if (!this.isSprinting) {
         this.isSprinting = true;
-        if (this.controls?.mover.isMoving) {
+        if (this.mover?.isMoving) {
           this.updateMovementSound();
           this.syncWeaponAnimation();
         }
@@ -558,7 +665,7 @@ export class GameScript {
     if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
       if (this.isSprinting) {
         this.isSprinting = false;
-        if (this.controls?.mover.isMoving) {
+        if (this.mover?.isMoving) {
           this.updateMovementSound();
           this.syncWeaponAnimation();
         }
@@ -578,7 +685,7 @@ export class GameScript {
   };
 
   private updateMovementSound() {
-    if (!this.controls?.mover.isMoving) return;
+    if (!this.mover?.isMoving) return;
     if (this.isSprinting) {
       stopSound("walking");
       playSound("running");
@@ -589,7 +696,7 @@ export class GameScript {
   }
 
   private syncWeaponAnimation() {
-    if (!this.controls || !this.pistol) return;
+    if (!this.mover || !this.pistol) return;
     if (
       this.isShooting ||
       this.isReloading ||
@@ -597,7 +704,7 @@ export class GameScript {
       this.isDrawingWeapon
     )
       return;
-    if (this.controls.mover.isMoving) {
+    if (this.mover.isMoving) {
       this.pistol.play(this.getMovementWeaponAnimation(), {
         loop: "repeat",
         stopAll: true,

@@ -77,9 +77,6 @@ importers:
       '@dimforge/rapier3d':
         specifier: 0.11.2
         version: 0.11.2
-      '@oncyber/game-utils':
-        specifier: workspace:*
-        version: link:../../packages/game-utils
       '@oncyberio/asset-optimizer':
         specifier: workspace:*
         version: link:../../packages/asset-optimizer
@@ -141,9 +138,6 @@ importers:
       '@colyseus/sdk':
         specifier: ^0.17
         version: 0.17.34(@colyseus/core@0.17.39)(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@oncyber/game-utils':
-        specifier: workspace:*
-        version: link:../../packages/game-utils
       '@oncyberio/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -202,9 +196,6 @@ importers:
       '@dimforge/rapier3d':
         specifier: 0.11.2
         version: 0.11.2
-      '@oncyber/game-utils':
-        specifier: workspace:*
-        version: link:../../packages/game-utils
       '@oncyberio/asset-optimizer':
         specifier: workspace:*
         version: link:../../packages/asset-optimizer
@@ -260,9 +251,6 @@ importers:
 
   examples/zombie-survival:
     dependencies:
-      '@oncyber/game-utils':
-        specifier: workspace:*
-        version: link:../../packages/game-utils
       '@oncyberio/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -490,22 +478,6 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@20.19.32)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.3)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/game-utils:
-    dependencies:
-      '@oncyberio/engine':
-        specifier: workspace:*
-        version: link:../engine
-      three:
-        specifier: ^0.170.0
-        version: 0.170.0
-    devDependencies:
-      '@types/three':
-        specifier: ^0.170.0
-        version: 0.170.0
-      typescript:
-        specifier: ^5
-        version: 5.9.3
 
   packages/mcp-server:
     dependencies:

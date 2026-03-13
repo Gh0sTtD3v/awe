@@ -1,6 +1,6 @@
 # NPC Animation with AnimationStateMachine
 
-The `AnimationStateMachine` from `@oncyberio/engine/controls` works standalone for NPC animation — no `Mover` or control preset needed.
+The `AnimationStateMachine` from `@oncyberio/engine/controls` works standalone for NPC animation — no `Mover` needed.
 
 ```typescript
 import { AnimationStateMachine } from "@oncyberio/engine/controls";
@@ -58,4 +58,4 @@ const anim = new AnimationStateMachine<{ moving: boolean; kicking: boolean }>({
 });
 ```
 
-> **Note**: `AnimationStateMachine` is the same system used internally by control presets for the player avatar. Using it directly gives you full control over NPC animation without the overhead of a full control system.
+> **Note**: `AnimationStateMachine` is the same system used for player avatar animation (see `examples/starter`). Using it directly gives you full control over NPC animation.
