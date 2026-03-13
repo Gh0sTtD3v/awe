@@ -23,6 +23,6 @@ export function getLibrary3DData(): unknown[] {
   return library3dData;
 }
 
-export function getVrmsData(): Record<string, unknown> {
+export function getVrmsData(): Record<string, unknown> | unknown[] {
   return vrmsData;
 }
