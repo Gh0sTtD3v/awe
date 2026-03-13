@@ -179,7 +179,7 @@ export function createAutoRunner(
       gravity,
       acceleration: 200,
       airControl: 1.0,
-      autoRotate: false,
+      facingMode: "none",
     },
     jump,
     track,

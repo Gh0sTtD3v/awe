@@ -41,10 +41,10 @@ Document `setLockAxis({ x?: boolean, y?: boolean })`:
 
 ### Mover + Camera integration patterns
 
-Document how `Mover.autoRotate` interacts with camera rigs:
-- Locked camera (sports/strategy): `autoRotate: true`, locked axes
-- Free-look (exploration): `autoRotate: false`, unlocked axes
-- Shift-lock (combat): toggle between the two
+Document how `Mover.facingMode` interacts with camera rigs:
+- Locked camera (sports/strategy): `facingMode: "movement"`, locked axes
+- Free-look (exploration): `facingMode: "none"`, unlocked axes
+- Shift-lock (combat): `facingMode: "target"`
 
 ### Mesh geometry format by shape
 
@@ -88,12 +88,12 @@ Code changes needed in the engine.
 
 ### Add shift-lock / free-look camera mode
 
-The football demo implements this in ~30 lines: toggling `setLockAxis()` + `mover.autoRotate` + computing player rotation from camera quaternion + raw DOM listener. This pattern is used in almost every third-person game.
+`Mover.facingMode` now covers the avatar-facing half of this problem (`"movement" | "target" | "none"`), so the remaining gap is mostly camera-rig ergonomics. A higher-level third-person mode toggle would still be useful because this pattern shows up in almost every third-person game.
 
 ```ts
 // Needed on ThirdPersonCameraRig
 cameraRig.setMode("orbit" | "shift-lock");
-// shift-lock auto-handles Mover.autoRotate coordination
+// shift-lock auto-handles Mover.facingMode = "target" coordination
 ```
 
 ### ~~Add damping to scene JSON / DynamicProps~~ — FIXED

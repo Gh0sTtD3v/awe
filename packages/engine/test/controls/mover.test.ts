@@ -1,7 +1,7 @@
 import { Quaternion, Vector3 } from "three";
-import { Mover } from "../../src/controls/mover";
+import { Mover, type MoverConfig } from "../../src/controls/mover";
 
-function createMoverHarness() {
+function createMoverHarness(config: Partial<Omit<MoverConfig, "body">> = {}) {
   const characterController = {
     update: vi.fn((body: any, velocity: Vector3) => {
       body.rigidBody.position = body.position.clone().add(velocity);
@@ -35,7 +35,10 @@ function createMoverHarness() {
     updateMatrixWorld: vi.fn(),
   };
 
-  const mover = new Mover({ body: body as any });
+  const mover = new Mover({
+    body: body as any,
+    ...config,
+  });
 
   return { mover, body, characterController };
 }
@@ -65,5 +68,41 @@ describe("Mover", () => {
 
     expect(state.direction.x).toBeCloseTo(0.196116, 5);
     expect(state.direction.z).toBeCloseTo(-0.980581, 5);
+  });
+
+  it("faces the target yaw while idle when facingMode is target", () => {
+    const target = {
+      position: new Vector3(),
+      quaternion: new Quaternion().setFromAxisAngle(
+        new Vector3(0, 1, 0),
+        Math.PI / 4,
+      ),
+    };
+    const { mover, body } = createMoverHarness({
+      target: target as any,
+      movement: { facingMode: "target" },
+    });
+    const expected = new Quaternion().setFromAxisAngle(
+      new Vector3(0, 1, 0),
+      Math.PI / 4,
+    );
+
+    mover.update(1);
+
+    expect(body.quaternion.angleTo(expected)).toBeCloseTo(0, 5);
+  });
+
+  it("keeps autoRotate as an alias for movement-facing rotation", () => {
+    const { mover } = createMoverHarness({
+      movement: { facingMode: "target" },
+    });
+
+    expect(mover.autoRotate).toBe(false);
+
+    mover.autoRotate = true;
+    expect(mover.facingMode).toBe("movement");
+
+    mover.autoRotate = false;
+    expect(mover.facingMode).toBe("none");
   });
 });

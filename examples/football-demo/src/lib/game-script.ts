@@ -55,8 +55,6 @@ const FIELD_Z_MAX = 26;
 
 // Reusable objects
 const _zeroQuat = new Quaternion();
-const _shiftLockQuat = new Quaternion();
-const _up = new Vector3(0, 1, 0);
 const _playerFacingBallQuat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI);
 const _ballResetPos = new Vector3(0, 1, 0);
 const _playerResetPos = new Vector3(0, 0, -10);
@@ -176,7 +174,7 @@ export class GameScript {
           y: !this._shiftLockActive,
         });
         if (this.mover) {
-          this.mover.autoRotate = !this._shiftLockActive;
+          this.mover.facingMode = this._shiftLockActive ? "target" : "movement";
         }
       }
     };
@@ -185,7 +183,7 @@ export class GameScript {
     this.mover = new Mover({
       body: this.player,
       target: Camera.current,
-      movement: { speed: PLAYER_SPEED, gravity: -9.81 },
+      movement: { speed: PLAYER_SPEED, gravity: -9.81, facingMode: "movement" },
       // Minimal jump config — effectively disabled
       jump: { height: 0, maxJumps: 0, duration: 0.01, coyoteTime: 0, maxFallSpeed: 20 },
     });
@@ -555,18 +553,6 @@ export class GameScript {
     if (this.playerAnimMachine) {
       this.playerAnimMachine.setContext({ speed: this.mover.speed });
       this.playerAnimMachine.update(dt);
-    }
-
-    // Shift-lock: rotate player to face camera forward direction
-    if (this._shiftLockActive && this.player) {
-      const camForward = this._tmpVec
-        .set(0, 0, -1)
-        .applyQuaternion(Camera.current.quaternion);
-      camForward.y = 0;
-      camForward.normalize();
-      const angle = Math.atan2(camForward.x, camForward.z) + Math.PI;
-      _shiftLockQuat.setFromAxisAngle(_up, angle);
-      this.player.quaternion.copy(_shiftLockQuat);
     }
   };
 

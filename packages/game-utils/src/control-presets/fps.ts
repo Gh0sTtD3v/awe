@@ -67,7 +67,7 @@ const DEFAULT_MOVEMENT: MovementConfig = {
   gravity: -1.81,
   acceleration: 200,
   airControl: 1,
-  autoRotate: false,
+  facingMode: "none",
 };
 
 const DEFAULT_JUMP: JumpConfig = {

@@ -46,6 +46,14 @@ export interface PlatformerAnimations {
   drop_sprinting_roll: string;
 }
 
+type ResolvedPlatformerMovementConfig = MovementConfig & {
+  speed: number;
+  gravity: number;
+  acceleration: number;
+  deceleration: number;
+  airControl: number;
+};
+
 /**
  * Platformer preset options
  */
@@ -160,13 +168,13 @@ function getLandingClip(
   }
 }
 
-const DEFAULT_MOVEMENT: Required<MovementConfig> = {
+const DEFAULT_MOVEMENT: ResolvedPlatformerMovementConfig = {
   speed: 15,
   gravity: -1.81,
   acceleration: 100,
   deceleration: 50,
   airControl: 1,
-  autoRotate: true,
+  facingMode: "movement",
 };
 
 const DEFAULT_JUMP: Required<JumpConfig> = {
@@ -198,7 +206,7 @@ export function createPlatformer(
   camera: Camera,
   options: PlatformerOptions = {},
 ) {
-  const movement: Required<MovementConfig> = {
+  const movement: ResolvedPlatformerMovementConfig = {
     ...DEFAULT_MOVEMENT,
     ...options.movement,
   };

@@ -65,7 +65,7 @@ export interface ResolvedNetPlatformerOptions {
   acceleration: number;
   deceleration: number;
   airControl: number;
-  autoRotate?: boolean;
+  facingMode?: MovementConfig["facingMode"];
   height: number;
   duration: number;
   maxJumps: number;
@@ -99,7 +99,13 @@ export function resolveNetPlatformerOptions(
     acceleration: options.acceleration ?? 100,
     deceleration: options.deceleration ?? 50,
     airControl: options.airControl ?? 1,
-    autoRotate: options.autoRotate,
+    facingMode:
+      options.facingMode ??
+      (options.autoRotate === undefined
+        ? undefined
+        : options.autoRotate
+          ? "movement"
+          : "none"),
     height: options.height ?? DEFAULT_JUMP.height,
     duration: options.duration ?? DEFAULT_JUMP.duration,
     maxJumps: options.maxJumps ?? DEFAULT_JUMP.maxJumps,

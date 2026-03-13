@@ -87,7 +87,7 @@ const DEFAULT_MOVEMENT: MovementConfig = {
   acceleration: 100,
   deceleration: 50,
   airControl: 1,
-  autoRotate: true,
+  facingMode: "movement",
 };
 
 /**
