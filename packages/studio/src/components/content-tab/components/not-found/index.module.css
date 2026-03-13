@@ -1,0 +1,23 @@
+.container {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 65px 29px 70px 29px;
+    text-align: center;
+
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 15px;
+}
+
+.message {
+    width: 235px;
+    max-width: 100%;
+}

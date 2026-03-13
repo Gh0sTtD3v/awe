@@ -1,0 +1,764 @@
+/* Studio UI Layout Styles - Converted from SCSS to CSS */
+/* This file contains all the layout and panel management styles for the studio editor */
+
+/* === Main Container === */
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.container.hideUi .uiClick,
+.container.isLeaving .uiClick {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.container.hideUi .uiClick *,
+.container.isLeaving .uiClick * {
+  pointer-events: none !important;
+}
+
+.container.visible .wrapper {
+  opacity: 1;
+}
+
+.container.isLeaving .studioCanvas {
+  opacity: 0.4;
+  pointer-events: none !important;
+}
+
+.container.isLeaving .studioCanvas * {
+  pointer-events: none !important;
+}
+
+/* === Wrapper === */
+.wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out-quad);
+  pointer-events: none;
+}
+
+/* === Navigation === */
+.bar {
+  margin-bottom: 8px;
+}
+
+.navs {
+  position: fixed;
+  top: 18px;
+  left: 14px;
+  z-index: var(--zIndex-nav);
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.nav_container {
+  position: fixed;
+  top: 17px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--zIndex-nav);
+}
+
+@media (min-width: 882px), (max-width: 882px) and (orientation: landscape) {
+  .nav_container {
+    top: 17px;
+    left: 17px;
+    transform: none;
+  }
+}
+
+.awe {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
+}
+
+.oncyber {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 12px !important;
+}
+
+/* === Sounds Button === */
+.sounds {
+  --left: 21px;
+  --bottom: 26px;
+  position: fixed;
+  z-index: 10;
+  left: var(--left);
+  bottom: var(--bottom);
+}
+
+@media (min-width: 1025px) {
+  .sounds {
+    --left: 25px;
+    --bottom: 28.5px;
+  }
+}
+
+@media (orientation: landscape) {
+  .sounds {
+    --left: 21px;
+    --bottom: 26px;
+  }
+}
+
+/* === Close Button === */
+.close {
+  --top: 29px;
+  --right: 16px;
+  position: fixed;
+  z-index: 10000;
+  top: var(--top);
+  right: var(--right);
+}
+
+@media (min-width: 1025px), (orientation: landscape) {
+  .close {
+    --top: 17px;
+    --right: 22px;
+  }
+}
+
+/* === Content Panel === */
+.content {
+  position: absolute;
+  top: 18px;
+  left: 116px;
+  margin-left: 1em;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  min-height: 420px;
+  max-height: 600px;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: #1a1a1a;
+  box-shadow: rgba(255, 255, 255, 0.25) 1.3px -0.5px 1px 0px;
+  padding: 20px;
+}
+
+.content > .header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  padding-bottom: 0.5em;
+}
+
+.content > .header > .close_btn {
+  border: none;
+  background: none;
+  color: white;
+  opacity: 0.5;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+/* === Tabs === */
+.tabs {
+  display: flex;
+  z-index: 2;
+  justify-content: flex-start;
+  align-items: flex-start;
+  /* overflow: hidden; */
+}
+
+.tabs.script {
+  width: 100%;
+  background-color: transparent;
+}
+
+.tabs.script .content-tab {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.widthGetter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  pointer-events: none;
+}
+
+/* === Action Buttons === */
+.btn_action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: absolute;
+  z-index: 100;
+}
+
+.collab {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.btn_action_left_bottom {
+  left: 24px;
+  bottom: 16px;
+}
+
+.btn_action_right_top {
+  top: 18px;
+  right: 22px;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.user_badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  bottom: -5px;
+  right: -10px;
+  width: 25px;
+  height: 25px;
+  background-color: #fff;
+  border-radius: 9999px;
+}
+
+/* === Small Screen Warning === */
+.smallScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background-color: #060606;
+  display: none;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 17px;
+}
+
+@media (max-width: 668px) {
+  .smallScreen {
+    display: flex;
+  }
+}
+
+@media (max-height: 590px) {
+  .smallScreen {
+    display: flex;
+  }
+}
+
+.smallScreen svg {
+  margin-bottom: 25px;
+}
+
+/* === Bottom Left Buttons === */
+.bottomLeftButtons {
+  position: absolute;
+  z-index: 10;
+  bottom: 18px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.bottomLeftButtons .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* === Publish Button === */
+.publish {
+  background: linear-gradient(194deg, #121212 6.96%, #010101 93.31%) !important;
+}
+
+.btn_action_editor {
+  overflow: initial !important;
+  height: auto;
+  position: relative;
+}
+
+.editorBtn {
+  width: 25px;
+  height: 25px;
+  position: absolute;
+  border-radius: 25px;
+  background: #fff;
+  bottom: -5px;
+  right: -7px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uiClick {
+  pointer-events: auto;
+  transition: opacity 0.1s var(--ease-out-quad);
+}
+
+.worldItemsWrapper {
+  display: flex;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+/* === Studio Canvas === */
+.studioCanvas {
+  position: absolute;
+  top: 64px;
+  left: 6px;
+  bottom: 6px;
+  right: 6px;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: opacity 0.3s var(--ease-out-quad);
+}
+
+.studioCanvas.onScript {
+  pointer-events: auto;
+}
+
+.onScriptSelector {
+  z-index: 0 !important;
+}
+
+/* === Studio Header === */
+.studioHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-left: 12px;
+  padding-right: 12px;
+  height: 64px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 101;
+}
+
+.studioHeaderBlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studioSpaceButton {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 29px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0 14px;
+  color: #fff;
+  text-shadow: 0px 2px 4px rgba(32, 32, 32, 0.2);
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 17px;
+}
+
+.studioSpaceButton svg {
+  fill: currentColor;
+  opacity: 0.4;
+  transition: opacity 0.2s var(--ease-out-quad);
+}
+
+.studioSpaceButton:hover svg,
+.studioSpaceButton:focus-within svg {
+  opacity: 1;
+}
+
+.studioAvatar {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  display: flex;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.studioAvatar img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.infoButton {
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: 1px solid white;
+  border-radius: 8px;
+  font-family: monospace;
+  opacity: 0.4;
+  margin-right: 11px;
+}
+
+.infoButton .icon {
+  fill: currentColor;
+}
+
+/* === Studio Editor (Main Layout Container) === */
+.studioEditor {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 64px - 18px);
+  pointer-events: none;
+  display: flex;
+  gap: 5px;
+}
+
+.sceneMenuWrapper {
+  position: relative;
+  min-width: 170px;
+}
+
+.sceneMenuWrapper .tipWrapper {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 48px;
+}
+
+.sceneMenu,
+.versioningMenu {
+  flex-direction: column;
+  display: flex;
+}
+
+.versioningMenu {
+  padding: 30px 20px;
+  max-width: 243px;
+}
+
+.studioLoader {
+  position: fixed;
+  top: calc(50% - 24px);
+  left: calc(50% - 24px);
+  width: 48px;
+  height: 48px;
+  z-index: 100;
+}
+
+.worldItemsButton {
+  pointer-events: auto;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.worldItemsButton:hover .icon {
+  color: rgba(255, 255, 255, 0.8);
+  fill: white;
+}
+
+/* === Right Panels === */
+.rightPanels {
+  margin-left: auto;
+  width: var(--rightPanelWidth);
+  flex-shrink: 0;
+  height: 100%;
+  gap: 7px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  z-index: 2;
+}
+
+.rightPanels.onlyButton {
+  max-width: 42px;
+}
+
+.studioPanelEditComponent {
+  width: 100% !important;
+}
+
+.rightPanelWrapper {
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
+}
+
+.rightPanelDragBar {
+  position: absolute;
+  top: 0;
+  left: -2px !important;
+  width: 5px;
+  height: 100%;
+  transform: none !important;
+  z-index: 10;
+  display: none;
+  cursor: col-resize !important;
+}
+
+.rightPanelDragBar:active {
+  cursor: grabbing !important;
+}
+
+.rightPanelDragBar.rightPanelDragBarVisible {
+  display: block;
+  pointer-events: auto;
+}
+
+.rightPanelBounds {
+  position: fixed;
+  top: 0;
+  right: calc(6px + 243px + 3px);
+  width: calc(50vw - 6px - 243px);
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+  max-width: 106px;
+}
+
+.rightPanelDivision {
+  border-radius: 14px;
+  background: #121212;
+  width: 100%;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.rightPanelDivision .divisionResizerUi {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  z-index: 6;
+}
+
+.rightPanelDivision.rightPanelItems .divisionResizerUi {
+  bottom: -1px;
+}
+
+.rightPanelDivision.rightPanelItems.hasDivider .scrollable-wrapper::after {
+  height: 10px;
+  width: 100%;
+  display: block;
+  flex-shrink: 0;
+  content: "";
+}
+
+.rightPanelDivision.rightPanelEdit .studioPanelEditComponent::before {
+  height: 10px;
+  width: 100%;
+  display: block;
+  flex-shrink: 0;
+  content: "";
+}
+
+.rightPanelDivision.rightPanelEdit .divisionResizerUi {
+  top: -1px;
+}
+
+.rightPanelDivision.rightPanelEdit .divisionResizerUi::before {
+  top: auto;
+  bottom: 2px;
+}
+
+.rightPanelItems.mouseIsDragging .singleWorldItemsResizer,
+.rightPanelItems.mouseIsDragging .divisionResizerUi,
+.rightPanelItems.mouseIsDragging .divisionResizer {
+  display: none !important;
+}
+
+.rightPanelItems.mouseIsDragging + .divisionResizer {
+  display: none !important;
+}
+
+.singleWorldItemsResizer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 9px;
+  z-index: 10 !important;
+  cursor: row-resize !important;
+  transform: none !important;
+}
+
+.divisionResizer {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  height: 23px;
+  width: 100%;
+  display: block;
+  z-index: 10 !important;
+  pointer-events: auto;
+  cursor: row-resize !important;
+}
+
+.divisionResizer:active {
+  cursor: grabbing !important;
+}
+
+.divisionResizerUi {
+  position: relative;
+  height: 10px;
+  width: 100%;
+  display: block;
+  background: #121212;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.divisionResizerUi::before {
+  position: absolute;
+  left: calc(50% - 11px);
+  top: 2px;
+  width: 22px;
+  height: 3px;
+  background-color: #4c4c4c;
+  border-radius: 3px;
+  content: "";
+}
+
+.rightPanelDivisionBounds {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  left: 0;
+  height: calc(100% - 200px);
+}
+
+.rightPanelDivisionBounds.singleWorldItems {
+  height: calc(100% - 100px);
+  top: 100px;
+  transform: none;
+}
+
+/* === Center Panel === */
+.centerPanel {
+  flex-grow: 1;
+  position: relative;
+  transform: none !important;
+}
+
+.centerPanel .divisionResizerUi {
+  pointer-events: none;
+  padding-top: 1px;
+}
+
+.centerResizeBar {
+  position: absolute;
+  top: calc(
+    var(--detached-edit-panel-top) + var(--detached-edit-panel-maxheight) - 11px
+  );
+  left: calc(100% - 243px + var(--detached-edit-panel-left));
+  height: 11px;
+  width: 243px;
+  pointer-events: auto;
+  z-index: 2 !important;
+}
+
+/* The bounds for the draggable area */
+.centerEditSizeYBounds {
+  position: absolute;
+  bottom: var(--detached-edit-panel-bottom);
+  left: 0;
+  width: 100%;
+  height: calc(
+    100% - var(--detached-edit-panel-top) - var(--detached-edit-panel-bottom) -
+      100px
+  );
+  pointer-events: none;
+}
+
+/* The resizable component */
+.centerEditComponent {
+  width: 243px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-radius: 14px;
+  background: #121212;
+  overflow: hidden;
+  pointer-events: auto;
+  max-height: var(--detached-edit-panel-maxheight);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1 !important;
+}
+
+/* Border gradient effect for centerEditComponent */
+.centerEditComponent::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0) 10.23%,
+    rgba(255, 255, 255, 0.2) 87.5%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.centerEditComponentDrag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* === Studio Edit Component === */
+.studioEditComponent {
+  /* Styles specific to edit component in detached mode */
+}

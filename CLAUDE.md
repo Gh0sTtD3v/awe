@@ -1,0 +1,16 @@
+# Project Overview
+
+This is a 3D game engine/framework built with Three.js and Next.js. The project uses a pnpm monorepo structure with workspaces.
+
+# Code Style Guide
+
+All files in this mono repo MUST use **kebab-case** naming (eg `editor-events.ts`, `constants.ts`)
+
+# Skills
+
+- `/engine` — oncyber engine API and usage patterns. Use before working on game code.
+- `/game-prd` — create a game spec / PRD before implementation. Use when planning a new game or scoping a game idea.
+
+# Examples
+
+Game examples live in /examples. Use these as reference when building games with the engine.

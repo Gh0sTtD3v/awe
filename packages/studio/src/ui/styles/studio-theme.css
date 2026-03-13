@@ -1,0 +1,998 @@
+@theme {
+  /* ========================================
+     Studio Module Design Tokens
+     Migrated from SCSS to Tailwind CSS v4
+     ======================================== */
+
+  /* === Breakpoints === */
+  --breakpoint-sm: 668px;
+  --breakpoint-lg: 1025px;
+  --breakpoint-desktop: 1025px; /* Legacy, kept for compatibility */
+
+  /* === Colors: Background === */
+  --color-studio-black: #060606;
+  --color-studio-darker: #121212;
+  --color-studio-dark: #202020;
+  --color-studio-gray-darker: #2c2c2c;
+  --color-studio-gray-dark: #353535;
+  --color-studio-gray: #4d4d4d;
+
+  /* === Colors: Text/Foreground === */
+  --color-studio-muted: rgb(255 255 255 / 0.6);
+  --color-studio-placeholder: rgb(255 255 255 / 0.4);
+  --color-studio-disabled: rgb(255 255 255 / 0.2);
+  --color-studio-subtle: rgb(255 255 255 / 0.1);
+  --color-studio-hover: rgb(255 255 255 / 0.08);
+
+  /* === Colors: Borders === */
+  --color-studio-border: #292929;
+  --color-studio-border-active: #898989;
+  --color-studio-border-focus: #a7a7a7;
+  --color-studio-border-hover: rgb(255 255 255 / 0.4);
+
+  /* === Colors: Brand/Accent === */
+  --color-studio-brand-start: #5564d7;
+  --color-studio-brand-end: #8c70ff;
+
+  /* === Colors: Semantic === */
+  --color-studio-error: #ff3838;
+  --color-studio-success: #28d348;
+  --color-studio-success-bright: #8af222;
+  --color-studio-success-dark: #3b9d29;
+  --color-studio-warning: #ffc123;
+  --color-studio-info: #a0c8ff;
+
+  /* === Colors: Additional Background Shades === */
+  --color-studio-darkest: #060606;
+  --color-studio-dark-alt: #1e1e1e;
+  --color-studio-dark-alt-2: #161616;
+  --color-studio-dark-alt-3: #2e2e2e;
+
+  /* === Colors: Additional Gray Shades === */
+  --color-studio-gray-medium: #5a5a5a;
+  --color-studio-gray-medium-alt: #4c4c4c;
+
+  /* === Colors: Light Mode === */
+  --color-studio-light-border: #ededed;
+  --color-studio-light-border-alt: #d9d9d9;
+  --color-studio-light-text: #666;
+  --color-studio-light-text-hover: #333;
+
+  /* === Typography: Font Sizes === */
+  --font-size-2xs: 11px;
+  --line-height-2xs: 13px;
+  --font-size-studio-body: 13px;
+  --line-height-studio-body: 15px;
+  --font-size-studio-button: 15px;
+  --line-height-studio-button: 17px;
+
+  /* === Border Radius === */
+  --radius-studio-sm: 4px;
+  --radius-studio-card: 6px;
+  --radius-studio-input: 8px;
+  --radius-studio-select: 10px;
+  --radius-studio: 12px;
+  --radius-studio-lg: 14px;
+  --radius-studio-button: 15px;
+  --radius-studio-round: 30px;
+
+  /* === Z-Index Layers === */
+  --zIndex-nav: 100;
+
+  /* === Easing Functions === */
+  /* Ease In */
+  --ease-in-quad: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --ease-in-cubic: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  --ease-in-quart: cubic-bezier(0.895, 0.03, 0.685, 0.22);
+  --ease-in-quint: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+  --ease-in-sine: cubic-bezier(0.47, 0, 0.745, 0.715);
+  --ease-in-expo: cubic-bezier(0.95, 0.05, 0.795, 0.035);
+  --ease-in-circ: cubic-bezier(0.6, 0.04, 0.98, 0.335);
+  --ease-in-back: cubic-bezier(0.6, -0.28, 0.735, 0.045);
+
+  /* Ease Out */
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-sine: cubic-bezier(0.39, 0.575, 0.565, 1);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-out-circ: cubic-bezier(0.075, 0.82, 0.165, 1);
+  --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Ease In-Out */
+  --ease-in-out-quad: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  --ease-in-out-cubic: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-in-out-quint: cubic-bezier(0.86, 0, 0.07, 1);
+  --ease-in-out-sine: cubic-bezier(0.445, 0, 0.55, 0.95);
+  --ease-in-out-expo: cubic-bezier(1, 0, 0, 1);
+  --ease-in-out-circ: cubic-bezier(0.785, 0.135, 0.15, 0.86);
+  --ease-in-out-back: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: hsl(0, 0%, 5%);
+  }
+  100% {
+    background-color: hsl(0, 0%, 1%);
+  }
+}
+
+/* Action button icon colors — SpriteIcon renders .icon class we can't add Tailwind to directly */
+.asset-card-action-btn .icon {
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s var(--ease-out-quad);
+}
+
+.asset-card-action-btn:hover .icon {
+  color: white;
+}
+
+/* Sibling .default button dimming when another action button is hovered */
+.asset-card-action-btn:hover ~ .asset-card-default-btn::before {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12.5px);
+}
+
+.asset-card-action-btn:hover ~ .asset-card-default-btn .icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Header icon color inheritance */
+.asset-card-header > .icon {
+  color: currentColor;
+  margin-right: 14px;
+}
+
+/* NoResult component — button-pill child styling */
+.no-result .button-pill {
+  width: 100%;
+}
+
+/* AddButton component — icon color */
+.add-button .icon {
+  color: white;
+}
+
+/* StudioButton component — border gradient effect */
+.studio-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 12px;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0) 10.23%,
+    rgba(255, 255, 255, 0.1) 87.5%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* FormItem component — folder spacing */
+.form-item + .folder {
+  margin-top: 10px;
+}
+
+.asset-card-header .icon--pencil {
+  display: none;
+}
+
+/* Contextual tip caret (::before) and interactive hover area (::after) */
+.contextual-tip::before {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid #353535;
+  border-left: 1px solid #353535;
+  background-color: #121212;
+  content: "";
+  margin-left: var(--caret-diff);
+}
+
+.contextual-tip.top::before {
+  top: calc(100% - 2px);
+  left: calc(50% - 3px);
+  transform: rotate(-135deg);
+}
+
+.contextual-tip.top.contextual-tip-interactive::after {
+  width: 100%;
+  top: 100%;
+}
+
+.contextual-tip.right::before {
+  right: calc(100% - 2px);
+  top: calc(50% - 3px);
+  transform: rotate(-45deg);
+}
+
+.contextual-tip.right.contextual-tip-interactive::after {
+  height: 100%;
+  left: 100%;
+}
+
+.contextual-tip.left::before {
+  left: calc(100% - 2px);
+  top: calc(50% - 3px);
+  transform: rotate(135deg);
+}
+
+.contextual-tip.left.contextual-tip-interactive::after {
+  height: 100%;
+  left: auto;
+  right: 100%;
+}
+
+.contextual-tip.bottom::before {
+  bottom: calc(100% - 2px);
+  left: calc(50% - 3px);
+  transform: rotate(45deg);
+}
+
+.contextual-tip.bottom.contextual-tip-interactive::after {
+  top: auto;
+  bottom: 100%;
+  width: 100%;
+}
+
+.contextual-tip-interactive::after {
+  position: absolute;
+  height: 8px;
+  width: 17px;
+  left: 0;
+  top: 0;
+  content: "";
+}
+
+@layer utilities {
+  .ellipsis {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/* InputCheckbox — toggle track pseudo-element & checked state */
+.input-checkbox-box::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  content: "";
+  background-color: rgba(18, 18, 18, 0.2);
+  border-radius: 6px;
+  transition:
+    transform 0.3s var(--ease-out-quad),
+    background-color 0.3s var(--ease-out-quad);
+}
+
+.input-checkbox-box--small::after {
+  display: none;
+}
+
+.input-checkbox-box .icon {
+  opacity: 0;
+  color: currentColor;
+  transition: opacity 0.3s var(--ease-out-quad);
+  transform: scale(1);
+}
+
+.input-checkbox-box--small .icon {
+  transform: scale(0.9);
+}
+
+.input-checkbox:hover .input-checkbox-box::after {
+  opacity: 1;
+}
+
+/* Checked state — toggle knob slides right */
+.input-checkbox input:checked ~ .input-checkbox-box::after {
+  background-color: currentColor;
+  transform: translateX(14px);
+}
+
+.input-checkbox input:checked ~ .input-checkbox-box .icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.input-checkbox input:checked ~ .input-checkbox-box--small .icon {
+  opacity: 1;
+  transform: scale(0.9);
+}
+
+/* Light theme overrides */
+.input-checkbox--light .input-checkbox-box {
+  background: #353535;
+}
+
+.input-checkbox--light .input-checkbox-box::after {
+  background: #4d4d4d;
+}
+
+.input-checkbox--light input:checked ~ .input-checkbox-box {
+  background: #4d4d4d;
+}
+
+.input-checkbox--light input:checked ~ .input-checkbox-box::after {
+  background: white;
+}
+
+/* Light + inline variant */
+.input-checkbox--light-inline {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.input-checkbox--light-inline .input-checkbox-box {
+  background-color: #202020 !important;
+}
+
+.input-checkbox--light-inline .input-checkbox-box .icon {
+  color: white;
+}
+
+@layer components {
+  .border-gradient {
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      padding: 2px;
+      border-radius: 12px;
+      background: linear-gradient(
+        to top,
+        rgba(255, 255, 255, 0.1) 19.23%,
+        rgba(255, 255, 255, 0) 76.5%
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+  }
+
+  .button-overlay {
+    padding: 4px;
+    display: flex;
+    position: relative;
+    align-items: center;
+    border-radius: 15px;
+    justify-content: center;
+
+    &::before {
+      content: "";
+      inset: 0;
+      pointer-events: none;
+      padding: 2px;
+      position: absolute;
+      border-radius: 15px;
+      background: linear-gradient(114.07deg, #5564d7 2.99%, #8c70ff 93.3%);
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+  }
+
+  .mask-border {
+    --b: 2px;
+    --r: 12px;
+
+    color: #ffffff;
+    padding: calc(var(--b) + 11px);
+    display: inline-block;
+    position: relative;
+    z-index: 0;
+
+    &:before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      pointer-events: none;
+      padding: var(--b);
+      border-radius: var(--r);
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.3) 20%,
+        rgba(255, 255, 255, 0) 20%
+      );
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+    }
+  }
+
+  .folder {
+    .group {
+      gap: 9px;
+    }
+  }
+
+  .folder-header {
+    .icon--chevron-right {
+      transform: rotate(90deg);
+      margin-right: 2px;
+
+      &:not(:last-child) {
+        margin-right: 8px;
+      }
+    }
+
+    .icon {
+      color: currentColor;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+  }
+
+  .folder.collapsed .folder-header .icon--chevron-right {
+    transform: rotate(0deg);
+  }
+
+  .ml-1.flex-shrink-0.w-8.h-8.block.relative.mr-\[9px\].rounded.overflow-hidden
+    + .icon {
+    position: absolute;
+    top: calc(50% - 4px);
+    right: 0;
+  }
+
+  .group + .group {
+    margin-top: 10px;
+  }
+
+  .group > .group + .group {
+    margin-top: 0;
+  }
+
+  .icon--chevron-bottom {
+    position: absolute;
+    top: 13px;
+    right: 9px;
+    color: white;
+    opacity: 0.4;
+  }
+
+  .slider-selector {
+    .splide__track {
+      overflow: visible !important;
+    }
+
+    .splide__slide.is-active span {
+      color: white;
+    }
+
+    & > div:first-child {
+      opacity: 0.2;
+    }
+
+    &.has-selected > div:first-child {
+      opacity: 1;
+    }
+
+    &.sliding-allowed {
+      mask-image: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0) 5%,
+        rgba(0, 0, 0, 1) 30%,
+        rgba(0, 0, 0, 1) 70%,
+        rgba(0, 0, 0, 0) 95%
+      );
+
+      &:active {
+        cursor: grabbing;
+      }
+
+      button {
+        cursor: inherit;
+      }
+    }
+  }
+
+  .upload-input {
+    .loading-spinner {
+      justify-content: flex-end;
+
+      > span {
+        width: 14px !important;
+        height: 14px !important;
+      }
+    }
+  }
+
+  .presets-carousel {
+    .splide__track {
+      overflow: visible;
+    }
+
+    &.has-selected > div:first-child {
+      opacity: 1;
+    }
+
+    &.sliding-allowed {
+      mask-image: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0) 5%,
+        rgba(0, 0, 0, 1) 30%,
+        rgba(0, 0, 0, 1) 70%,
+        rgba(0, 0, 0, 0) 95%
+      );
+
+      &:active {
+        cursor: grabbing;
+      }
+
+      button {
+        cursor: inherit;
+      }
+    }
+  }
+
+  .content-bar-active {
+    position: relative;
+
+    &::after {
+      width: 3px;
+      height: 22px;
+      content: "";
+      background-color: white;
+      position: absolute;
+      top: calc(50% - 11px);
+      right: calc(100% + 5px);
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
+  }
+
+  /* Upload input file type backgrounds */
+  .upload-input-file-fbx {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  .upload-input-file-mp4,
+  .upload-input-file-mov {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  .upload-input-file-jpg,
+  .upload-input-file-jpeg,
+  .upload-input-file-webp,
+  .upload-input-file-hdr,
+  .upload-input-file-svg,
+  .upload-input-file-png,
+  .upload-input-file-gif,
+  .upload-input-file-bmp {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  .upload-input-file-mp3,
+  .upload-input-file-wav {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  .upload-input-file-vrm,
+  .upload-input-file-gltf,
+  .upload-input-file-glb,
+  .upload-input-file-obj {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  /* Default file background when no extension match */
+  .upload-input-file-undefined,
+  .upload-input-file-null {
+    background-image: url("https://cyber.mypinata.cloud/ipfs/QmeHbpcFbaNChzbYFY8xvJRETCmQtWe4oUQrmFkG7hqt3w");
+  }
+
+  /* Upload input hover states for label > uploadIcon */
+  .upload-input:not(.h-7)
+    label:hover
+    .flex.items-center.justify-center.shrink-0 {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .upload-input:not(.h-7)
+    label:hover
+    .flex.items-center.justify-center.shrink-0
+    .icon {
+    color: rgba(255, 255, 255, 1);
+  }
+
+  /* Small variant hover for delete button */
+  .upload-input.h-7
+    label:not(:has(.loading-spinner)):hover
+    button[type="button"] {
+    opacity: 1;
+  }
+
+  .upload-input.h-7
+    label:not(:has(.loading-spinner)):hover
+    .flex.items-center.justify-center.shrink-0 {
+    background: transparent;
+  }
+
+  .upload-input.h-7
+    label:not(:has(.loading-spinner)):hover
+    .flex.items-center.justify-center.shrink-0
+    .icon {
+    color: rgba(255, 255, 255, 1);
+  }
+
+  /* Edit component styles */
+  .edit-layout {
+    .scrollable-section {
+      width: calc(100% + 32px);
+      margin-left: -16px;
+      margin-right: 0;
+    }
+
+    .scrollable-wrapper {
+      padding-left: 16px;
+      padding-right: 16px;
+      display: block;
+
+      > .group:first-child {
+        > .folder:first-child .folder-header {
+          border-top: 0;
+        }
+
+        > .group:not(:first-child) {
+          > .folder:first-child .folder-header {
+            border-top: 0;
+          }
+        }
+      }
+    }
+  }
+
+  .edit-layout.detached {
+    .group,
+    .edit-header button,
+    .edit-header label,
+    .edit-header .rename-field-double-clicked input,
+    .edit-actions button {
+      pointer-events: auto;
+    }
+  }
+
+  .resizer-wrapper {
+    > .group:first-child {
+      > .folder:first-child > .folder-header {
+        border-top: 0;
+      }
+
+      > .group:first-child {
+        > .folder:first-child .folder-header {
+          border-top: 0;
+        }
+      }
+    }
+  }
+
+  .edit-header {
+    .rename-field-label,
+    .rename-field-input {
+      font-size: inherit;
+      color: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+      font-style: inherit;
+    }
+
+    .rename-field-is-focused + .edit-header-icon {
+      display: none;
+    }
+
+    .rename-field {
+      position: relative;
+      min-width: 0;
+      order: 2;
+      margin-right: auto;
+
+      &:not(:focus-within) {
+        .rename-field-input {
+          color: transparent;
+        }
+      }
+
+      &:focus-within {
+        .rename-field-error {
+          display: block;
+        }
+
+        .rename-field-input {
+          border-radius: 8px;
+          background: #202020;
+        }
+
+        .rename-field-label {
+          color: transparent;
+        }
+      }
+    }
+
+    .rename-field-input {
+      position: absolute;
+      top: -4px;
+      left: -9px;
+      padding: 8px;
+      width: calc(100% + 20px);
+      height: 100%;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0);
+      background: transparent;
+      height: 29px;
+      outline: none;
+      color: white;
+
+      &:not(:focus) {
+        cursor: pointer;
+      }
+    }
+
+    .rename-field-error {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: -8px;
+      height: auto;
+      width: 100%;
+      background-color: #ff4d4b;
+      color: white;
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 400;
+      padding: 4px 12px 4px 12px;
+      line-height: 1.2;
+      display: none;
+    }
+
+    .rename-field-label {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      display: inline-block;
+      padding: 2px 0px;
+      min-width: 0;
+      min-height: 21px;
+      max-width: 100%;
+    }
+  }
+
+  .edit-actions {
+    button {
+      height: 26px;
+      width: 20%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.4);
+      transition: color 0.2s var(--ease-out-quad);
+
+      &[disabled] {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      &[enabled="true"] {
+        color: white;
+      }
+
+      &:not(:last-child) {
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      &:not([disabled]):hover {
+        color: white;
+      }
+    }
+  }
+
+  /* World settings toolbar */
+  .toolbar-button:not(.active):hover .toolbar-label {
+    transform: translateX(-50%);
+    opacity: 1;
+  }
+
+  .toolbar-toggle-lock.active {
+    .icon--lock-outline {
+      display: block;
+    }
+    .icon--unlock-outline {
+      display: none;
+    }
+  }
+
+  .toolbar-toggle-lock:not(.active) {
+    .icon--lock-outline {
+      display: none;
+    }
+    .icon--unlock-outline {
+      display: block;
+    }
+  }
+
+  /* Dialog modal variants */
+  .dialog-modal.info-modal {
+    .dialog-content-inner {
+      width: 266px;
+      background-color: rgba(18, 18, 18, 0.8);
+      padding: 32px 29px;
+    }
+
+    .dialog-close-icon {
+      color: rgba(255, 255, 255, 0.6);
+      top: 12px;
+      right: 12px;
+    }
+  }
+
+  /* Tab component — scroll gradients and border effects */
+  .tab-container::before,
+  .tab-container::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    width: 41px;
+    height: calc(100% + 2px);
+    background: linear-gradient(
+      -90deg,
+      rgba(18, 18, 18, 0) 0%,
+      rgba(18, 18, 18, 1) 80%
+    );
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-out-quad);
+  }
+
+  .tab-container::after {
+    right: -1px;
+    left: auto;
+    background: linear-gradient(
+      90deg,
+      rgba(18, 18, 18, 0) 0%,
+      rgba(18, 18, 18, 1) 80%
+    );
+  }
+
+  .tab-container.scroll-left::before,
+  .tab-container.scroll-both::before {
+    opacity: 1;
+  }
+
+  .tab-container.scroll-right::after,
+  .tab-container.scroll-both::after {
+    opacity: 1;
+  }
+
+  /* Tab item border gradient effect */
+  .tab-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    padding: 1px;
+    border-radius: 12px;
+    background: linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0) 10.23%,
+      rgba(255, 255, 255, 0.2) 87.5%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    top: -1px;
+    left: -1px;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    transition: opacity 0.3s var(--ease-out-quad);
+    opacity: 0.5;
+  }
+
+  .tab-item-active::before {
+    opacity: 1;
+  }
+
+  .tab-item[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .tab-item:not(.tab-item-active):hover {
+    color: white;
+    opacity: 0.6;
+  }
+
+  .tab-container.white {
+    .tab-item {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .tab-item-active {
+      background-color: white;
+      color: #121212;
+
+      &:hover {
+        background: white;
+        color: #121212;
+      }
+    }
+  }
+
+  .tab-container.s {
+    .tab-item {
+      font-size: 13px;
+      line-height: 15px;
+    }
+  }
+
+  .tab-container.justifyStart {
+    .tab-item {
+      padding: 0 14px;
+    }
+  }
+
+  .tab-container.justifyStart.s {
+    .tab-item {
+      padding: 0 9px;
+    }
+  }
+
+  /* Studio UI — nested state selectors */
+  .studio-container.hideUi .studio-ui-click,
+  .studio-container.isLeaving .studio-ui-click {
+    opacity: 0;
+    pointer-events: none;
+
+    * {
+      pointer-events: none !important;
+    }
+  }
+
+  .studio-container.visible .studio-wrapper {
+    opacity: 1;
+  }
+
+  .studio-container.isLeaving .studio-canvas {
+    opacity: 0.4;
+    pointer-events: none !important;
+
+    * {
+      pointer-events: none !important;
+    }
+  }
+
+  .studio-canvas.onScript {
+    pointer-events: auto;
+  }
+
+  /* World Items — import separate CSS file for complex drag/drop states */
+
+  /* Avatars — nested global selector for asset-card-nfts */
+  .owned_avatars .asset-card-nfts {
+    margin-top: 10px !important;
+  }
+}

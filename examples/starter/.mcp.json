@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "oncyberio-engine": {
+      "command": "node",
+      "args": ["node_modules/@oncyberio/mcp-server/dist/index.js", "--project-dir", "."]
+    }
+  }
+}

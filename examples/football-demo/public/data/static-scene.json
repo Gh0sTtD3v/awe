@@ -1,0 +1,816 @@
+{
+  "creatorId": "anon",
+  "editors": [
+    "anon"
+  ],
+  "id": "football-demo",
+  "components": {
+    "vrm-anims": {
+      "name": "VRM Animations",
+      "kit": "cyber",
+      "id": "vrm-anims",
+      "type": "vrm-anims",
+      "url": "https://cyber.mypinata.cloud/ipfs/QmSxBEzzgwqjmtTRBc6ywcJ2fDYE2ckNRTsKmA9JNETfgp?filename=1725904909-Ny3MlG6hsAlirYgsRqYO-vrm-anims-default.json",
+      "anims": {
+        "p_idle": {
+          "fileName": "idle.fbx",
+          "name": "p_idle",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/idle.json",
+          "hash": "084b681c2ffd7e810e8d5dd71d93484ac949a2ecd03d6d8a379f267434d1fa7f"
+        },
+        "p_walk": {
+          "fileName": "walk.fbx",
+          "name": "p_walk",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/walk.json",
+          "hash": "eb0107c1383e7de11898ecf695938919af9d471d88439db9a2afb988c2c0dd6d"
+        },
+        "p_run": {
+          "fileName": "run.fbx",
+          "name": "p_run",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/run.json",
+          "hash": "86173d3e9c2c436658a9e6828d99c6a6378b63b53e3c308749cf965d2b738269"
+        },
+        "sprint": {
+          "fileName": "sprint.fbx",
+          "name": "sprint",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/sprint.json",
+          "hash": "5eaac025cd7d756f7be6a06e7624535e647157ce904bcc09998ddae59fee7bba"
+        }
+      }
+    },
+    "lighting": {
+      "name": "Lighting",
+      "id": "lighting",
+      "type": "lighting",
+      "kit": "cyber",
+      "enabled": true,
+      "intensity": 0.2,
+      "lightDirection": {
+        "x": 0.5,
+        "y": -1,
+        "z": 0.5
+      },
+      "lightPosition": {
+        "x": 50,
+        "y": 100,
+        "z": 50
+      },
+      "size": 100,
+      "far": 200,
+      "bias": -0.001,
+      "near": 1,
+      "_version": 1773349924849
+    },
+    "background": {
+      "name": "Background",
+      "id": "background",
+      "type": "background",
+      "kit": "cyber",
+      "options": {
+        "type": "sky",
+        "color": "#87CEEB",
+        "skyOpts": {
+          "elevation": 10,
+          "turbidity": 4,
+          "mieCoefficient": 0.005,
+          "rayleigh": 2,
+          "azimuth": 180,
+          "mieDirectionalG": 0.07
+        }
+      }
+    },
+    "envmap": {
+      "name": "Environment Map",
+      "id": "envmap",
+      "type": "envmap",
+      "kit": "cyber",
+      "options": {
+        "type": "image",
+        "imageId": "studio",
+        "imageFormat": "hdr",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      }
+    },
+    "fog": {
+      "name": "Fog",
+      "id": "fog",
+      "type": "fog",
+      "kit": "cyber",
+      "enabled": true,
+      "fadeColor": "#87CEEB",
+      "near": 40,
+      "far": 150
+    },
+    "field-model": {
+      "name": "Soccer Field",
+      "id": "field-model",
+      "type": "model",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1.0101083374023436,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.12,
+        "y": 1.12,
+        "z": 1.12
+      },
+      "url": "/assets/soccer_field.glb",
+      "receiveShadow": true,
+      "castShadow": true
+    },
+    "pitch": {
+      "name": "Ground Collider",
+      "id": "pitch",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": -0.25,
+        "z": 0
+      },
+      "scale": {
+        "x": 400,
+        "y": 0.5,
+        "z": 400
+      },
+      "color": "#7f7a7a",
+      "display": true,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      },
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "image": "",
+      "opacity": 0.19,
+      "plugins": [],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "displayInEditor": true,
+      "_version": 1773346402131
+    },
+    "bounds-left": {
+      "name": "Bounds Left",
+      "id": "bounds-left",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": -16,
+        "y": 3,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 6,
+        "z": 56
+      },
+      "color": "#ff0000",
+      "opacity": 0.08,
+      "script": {
+        "identifier": "bounds-left",
+        "tag": "bounds"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      },
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "image": "",
+      "plugins": [],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "displayInEditor": true,
+      "_version": 1773345540299,
+      "display": false
+    },
+    "bounds-right": {
+      "name": "Bounds Right",
+      "id": "bounds-right",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 16,
+        "y": 3,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 6,
+        "z": 56
+      },
+      "color": "#ff0000",
+      "opacity": 0.08,
+      "script": {
+        "identifier": "bounds-right",
+        "tag": "bounds"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      },
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "image": "",
+      "plugins": [],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "displayInEditor": true,
+      "_version": 1773345553495,
+      "display": false
+    },
+    "bounds-end-p": {
+      "name": "Bounds End Player",
+      "id": "bounds-end-p",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "z": -28
+      },
+      "scale": {
+        "x": 34,
+        "y": 6,
+        "z": 1
+      },
+      "color": "#ff0000",
+      "opacity": 0.08,
+      "script": {
+        "identifier": "bounds-end-p",
+        "tag": "bounds"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      },
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "image": "",
+      "plugins": [],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": false,
+      "displayInEditor": true,
+      "_version": 1773345527875
+    },
+    "bounds-end-a": {
+      "name": "Bounds End AI",
+      "id": "bounds-end-a",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "z": 28
+      },
+      "scale": {
+        "x": 34,
+        "y": 6,
+        "z": 1
+      },
+      "color": "#ff0000",
+      "opacity": 0.08,
+      "script": {
+        "identifier": "bounds-end-a",
+        "tag": "bounds"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      },
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "image": "",
+      "plugins": [],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": false,
+      "displayInEditor": true,
+      "_version": 1773345565084
+    },
+    "goal-sensor-p": {
+      "name": "Goal Sensor Player",
+      "id": "goal-sensor-p",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1.1264878768007618,
+        "z": -25.4
+      },
+      "scale": {
+        "x": 3.942707568802665,
+        "y": 2.2529757536015227,
+        "z": 2.0276781782413704
+      },
+      "color": "#0000ff",
+      "display": false,
+      "script": {
+        "identifier": "goal-sensor-p",
+        "tag": "goal"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      }
+    },
+    "goal-sensor-a": {
+      "name": "Goal Sensor AI",
+      "id": "goal-sensor-a",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1.0906620242026026,
+        "z": 25.4
+      },
+      "scale": {
+        "x": 3.8173170847091074,
+        "y": 2.1813240484052043,
+        "z": 1.963191643564684
+      },
+      "color": "#ff0000",
+      "display": false,
+      "script": {
+        "identifier": "goal-sensor-a",
+        "tag": "goal"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": true
+      }
+    },
+    "goal-frame-p-left": {
+      "name": "Goal Frame P Left",
+      "id": "goal-frame-p-left",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": -1.97,
+        "y": 1.13,
+        "z": -25.4
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 2.25,
+        "z": 2.03
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-p-right": {
+      "name": "Goal Frame P Right",
+      "id": "goal-frame-p-right",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 1.97,
+        "y": 1.13,
+        "z": -25.4
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 2.25,
+        "z": 2.03
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-p-back": {
+      "name": "Goal Frame P Back",
+      "id": "goal-frame-p-back",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1.13,
+        "z": -26.42
+      },
+      "scale": {
+        "x": 4.14,
+        "y": 2.25,
+        "z": 0.2
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-p-top": {
+      "name": "Goal Frame P Top",
+      "id": "goal-frame-p-top",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 2.25,
+        "z": -25.4
+      },
+      "scale": {
+        "x": 4.14,
+        "y": 0.2,
+        "z": 2.03
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-a-left": {
+      "name": "Goal Frame A Left",
+      "id": "goal-frame-a-left",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": -1.91,
+        "y": 1.09,
+        "z": 25.4
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 2.18,
+        "z": 1.96
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-a-right": {
+      "name": "Goal Frame A Right",
+      "id": "goal-frame-a-right",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 1.91,
+        "y": 1.09,
+        "z": 25.4
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 2.18,
+        "z": 1.96
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-a-back": {
+      "name": "Goal Frame A Back",
+      "id": "goal-frame-a-back",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1.09,
+        "z": 26.38
+      },
+      "scale": {
+        "x": 4.02,
+        "y": 2.18,
+        "z": 0.2
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "goal-frame-a-top": {
+      "name": "Goal Frame A Top",
+      "id": "goal-frame-a-top",
+      "type": "mesh",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 2.18,
+        "z": 25.4
+      },
+      "scale": {
+        "x": 4.02,
+        "y": 0.2,
+        "z": 1.96
+      },
+      "color": "#ffffff",
+      "display": false,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "ball": {
+      "name": "Ball",
+      "id": "ball",
+      "type": "model",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 0.2641078829765322,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.25,
+        "y": 0.25,
+        "z": 0.25
+      },
+      "url": "/assets/soccer_ball.glb",
+      "script": {
+        "identifier": "ball",
+        "tag": "ball"
+      },
+      "castShadow": true,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "DYNAMIC",
+        "colliderType": "SPHERE",
+        "dynamicProps": {
+          "mass": 0.5,
+          "friction": 0.4,
+          "restitution": 0.5
+        }
+      },
+      "enableAnimation": false,
+      "optimized": {
+        "high": "",
+        "low": "",
+        "low_compressed": ""
+      },
+      "mime_type": "model/gltf-binary",
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": true,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1773349231690
+    },
+    "Player": {
+      "name": "Player",
+      "id": "Player",
+      "type": "avatar",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -10
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.14159,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.71,
+        "y": 0.71,
+        "z": 0.71
+      },
+      "useCpuAnimation": true,
+      "script": {
+        "_isPlayer": true,
+        "identifier": "player"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "PLAYER",
+        "colliderType": "CAPSULE"
+      },
+      "url": "https://cdn.oncyber.xyz/engine-assets/vrms/sunshine.glb",
+      "awaitAvatarLoading": true,
+      "animation": "IDLE",
+      "opacity": 1
+    },
+    "ai-player": {
+      "name": "AI Player",
+      "id": "ai-player",
+      "type": "avatar",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 10
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.71,
+        "y": 0.71,
+        "z": 0.71
+      },
+      "useCpuAnimation": true,
+      "script": {
+        "identifier": "ai-player",
+        "tag": "ai"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "KINEMATIC",
+        "colliderType": "CAPSULE",
+        "isSensor": true
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/Qmf7RQDNPffqdiC47reQ3iZeAFqMmP8thwfBqyj4eyfsWr?filename=pepe.glb",
+      "awaitAvatarLoading": true,
+      "animation": "IDLE",
+      "opacity": 1,
+      "picture": "",
+      "awaitPictureLoading": true,
+      "awaitLoaderThrottle": 0,
+      "text": "",
+      "nameDisplayWithPicture": true,
+      "plugins": [],
+      "renderMode": "default",
+      "ignoreLOD": false,
+      "_version": 1773344921074
+    }
+  },
+  "params": {},
+  "createdAt": 1741795200000,
+  "updatedAt": 1773349925359
+}

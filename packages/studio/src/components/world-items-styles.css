@@ -1,0 +1,631 @@
+/* World Items Component Styles - Converted from SCSS */
+
+.world-items-container {
+    position: relative;
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    width: 100%;
+    border-radius: 14px;
+    height: 100%;
+    max-height: calc(100%);
+    pointer-events: auto;
+}
+
+.world-items-container.isDragging .editLabel {
+    display: none;
+}
+
+.world-items-container.isDragging .worldItem.droppable > div > div > .world-item,
+.world-items-container.isDragging .worldItem.droppable > div > div > .world-item-button {
+    opacity: 0.5;
+}
+
+.world-items-container.isDragging .worldItem:not(.droppable) > div > div > .world-item,
+.world-items-container.isDragging .worldItem:not(.droppable) > div > div > .world-item-button {
+    opacity: 0.1;
+}
+
+.world-items-container.isDragging .rootDragIndicator:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.world-items-container.isDragging .resizer {
+    pointer-events: none;
+    opacity: 0.35;
+}
+
+.world-items-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 18px 0 18px;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    min-width: var(--rightPanelWidth);
+    overflow: hidden;
+}
+
+.world-items-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    color: #fff;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 17px;
+}
+
+.world-items-header .world-items-space {
+    flex: 1 0 0;
+}
+
+.world-items-count {
+    color: #fff;
+    text-align: center;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 13px;
+    letter-spacing: 0.22px;
+    border-radius: 6px;
+    background-color: #4c4c4c;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 6px;
+    margin-left: 6px;
+    padding-top: 1px;
+}
+
+.world-items-header-btn {
+    height: 28px;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 8px;
+    transition: color 0.3s var(--ease-out-quad), border-color 0.3s var(--ease-out-quad);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.world-items-header-btn.highlighted {
+    background: #202020;
+    color: white;
+    box-shadow: 0px -4px 12px 0px rgba(53, 53, 53, 0.4) inset, 0px 4px 12px 0px rgba(6, 6, 6, 0.3);
+}
+
+.world-items-header-btn .icon {
+    color: currentColor;
+}
+
+.world-items-header-btn:hover {
+    color: white;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.world-items-wrapper {
+    position: relative;
+    width: calc(100% + 36px);
+    margin-left: -18px;
+    padding: 0 8px;
+    min-height: 0;
+    display: flex;
+    flex-grow: 1;
+}
+
+.world-items-wrapper .scrollable-wrapper {
+    flex-direction: column;
+    min-height: 100%;
+    padding-right: 0;
+}
+
+.world-items-wrapper .scrollable-wrapper > .worldItem {
+    margin-left: -8px;
+    width: calc(100% + 8px);
+}
+
+/* World Item States */
+.worldItem {
+    width: 100%;
+    display: flex;
+    position: relative;
+    flex-direction: column;
+}
+
+.worldItem:not(.highlighted) > div > div > .world-item:hover,
+.worldItem:not(.highlighted) > div > div > .world-item-button:hover {
+    background-color: #202020;
+}
+
+.worldItem:not(.highlighted) > div > div > .world-item:hover::before,
+.worldItem:not(.highlighted) > div > div > .world-item-button:hover::before {
+    background-color: #202020;
+}
+
+.worldItem:not(.highlighted) > div > div > .world-item:hover .world-items-collapse-icon,
+.worldItem:not(.highlighted) > div > div > .world-item-button:hover .world-items-collapse-icon {
+    background: #202020;
+}
+
+.worldItem .world-item:hover::before,
+.worldItem .world-item-button:hover::before {
+    border-color: #4d4d4d;
+}
+
+.worldItem .world-item:hover .world-items-hover-btn,
+.worldItem .world-item-button:hover .world-items-hover-btn {
+    display: flex;
+}
+
+.worldItem .world-item:hover .world-items-item-actions,
+.worldItem .world-item-button:hover .world-items-item-actions {
+    pointer-events: auto;
+}
+
+.worldItem.isDraggedOver:not(.highlighted) > div > div > .world-item::before,
+.worldItem.isDraggedOver:not(.highlighted) > div > div > .world-item-button::before {
+    border-color: #4d4d4d;
+}
+
+.worldItem.isDraggedOver.droppable > div > div > .world-item,
+.worldItem.isDraggedOver.droppable > div > div > .world-item-button {
+    opacity: 1;
+}
+
+.worldItem.isDraggedOver.droppable .world-items-reorder-drop {
+    pointer-events: auto;
+}
+
+.worldItem.highlighted > .world-item .world-items-hover-btn {
+    display: flex;
+}
+
+.worldItem.highlighted > .world-item .world-items-item-actions {
+    pointer-events: auto;
+}
+
+.worldItem.highlighted > div > div > .world-item,
+.worldItem.highlighted > div > div > .world-item-button {
+    background-color: #353535;
+}
+
+.worldItem.highlighted .world-items-collapse-icon {
+    background: #353535;
+}
+
+.worldItem.highlighted .world-items-item-children > div > .worldItem .world-item,
+.worldItem.highlighted .world-items-item-children > div > .worldItem .world-item-button {
+    background-color: #202020;
+}
+
+.worldItem.highlighted .world-items-item-children > div > .worldItem .world-items-collapse-icon {
+    background-color: #202020;
+}
+
+.worldItem .world-items-drag-error > .world-item,
+.worldItem .world-items-drag-error > .world-item-button {
+    background-color: #380000 !important;
+}
+
+.worldItem .world-items-drag-error > .world-item::before,
+.worldItem .world-items-drag-error > .world-item-button::before {
+    background-color: #380000 !important;
+}
+
+.worldItem.isDragged .world-item {
+    background-color: #353535 !important;
+}
+
+.worldItem.isDragged .world-items-item-children {
+    background-color: #353535 !important;
+}
+
+/* Reorder Drop Indicator */
+.worldItem .world-items-reorder-drop {
+    position: absolute;
+    top: -1px;
+    right: 0;
+    width: var(--rightPanelWidth);
+    height: 10px;
+    z-index: 20;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.worldItem .world-items-reorder-drop.world-items-reorder-hovered::before {
+    content: "";
+}
+
+.worldItem .world-items-reorder-drop::before {
+    height: 2px;
+    width: 100%;
+    background-color: white;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.worldItem .world-items-reorder-drop:last-child {
+    bottom: 0;
+    top: auto;
+}
+
+.worldItem .world-items-reorder-drop:last-child::before {
+    bottom: -1px;
+    top: auto;
+}
+
+/* World Item Collapse */
+.world-item-collapse {
+    width: 100%;
+}
+
+.world-item-collapse > .world-items-item-children {
+    position: relative;
+    padding-left: 27px;
+}
+
+.world-item-collapse:not(.collapsed) > .world-item {
+    color: white;
+}
+
+.world-item-collapse.collapsed .icon--chevron-bottom {
+    transform: rotate(-90deg);
+}
+
+.world-item-collapse.collapsed > .world-item > .world-items-item-icon {
+    opacity: 0.6 !important;
+}
+
+.world-item-collapse.collapsed.hasChildren > .world-item > .icon--chevron-bottom {
+    opacity: 0.6 !important;
+}
+
+/* Item Base Styles */
+.world-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 34px;
+    padding: 0 24px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 15px;
+    min-width: 0;
+    transition: transform 0.25s var(--ease-out-quad);
+}
+
+.world-item::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: inherit;
+    width: var(--rightPanelWidth);
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    height: 100%;
+    pointer-events: none;
+    content: "";
+}
+
+.world-item > .icon--chevron-bottom {
+    color: white;
+    position: absolute;
+    top: calc(50% - 3px);
+    left: 10px;
+}
+
+/* Item Components */
+.world-items-item-image {
+    height: 30px;
+    width: 30px;
+    position: relative;
+    margin-right: 8px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.world-items-item-icon {
+    height: 30px;
+    width: 30px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    margin-right: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.world-items-item-icon .icon {
+    color: white;
+}
+
+.world-items-collapse-icon {
+    z-index: 0;
+    position: absolute;
+    left: 2px;
+    top: 7px;
+    height: 20px;
+    width: 20px;
+    background-color: #121212;
+}
+
+.world-items-item-label-container {
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    height: 26px;
+    min-width: 0;
+    position: relative;
+}
+
+.world-items-item-label-container > .icon {
+    flex-shrink: 0;
+}
+
+.world-items-item-label-container:focus-within {
+    flex-grow: 1;
+    width: 100%;
+}
+
+.world-items-item-label-container:focus-within ~ .world-items-item-actions {
+    display: none;
+}
+
+.world-items-rename-wrapper {
+    min-width: 0;
+}
+
+/* Rename Field Styles */
+.world-items-item-label-container .rename-field {
+    position: relative;
+    min-width: 0;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    color: currentColor;
+}
+
+.world-items-item-label-container .rename-field:not(:focus-within) .rename-field-input {
+    color: transparent;
+}
+
+.world-items-item-label-container .rename-field:focus-within .rename-field-error {
+    display: block;
+}
+
+.world-items-item-label-container .rename-field:focus-within .rename-field-input {
+    border-radius: 8px;
+    background: #202020;
+}
+
+.world-items-item-label-container .rename-field:focus-within .rename-field-label {
+    color: transparent;
+}
+
+.world-items-item-label-container .rename-field-input {
+    position: absolute;
+    top: -5px;
+    left: -9px;
+    padding: 8px;
+    width: calc(100% + 20px);
+    height: 29px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0);
+    background: transparent;
+    outline: none;
+    color: white;
+}
+
+.world-items-item-label-container .rename-field-input:not(:focus) {
+    cursor: pointer;
+}
+
+.world-items-item-label-container .rename-field-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: inline-block;
+    padding: 2px 0px;
+    min-width: 0;
+    min-height: 21px;
+    max-width: 100%;
+}
+
+/* Item Actions */
+.world-items-item-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: -11px;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.world-items-hover-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.world-items-hover-btn .icon {
+    color: white;
+}
+
+/* State Indicator - flex container with padding, not a circle */
+.world-items-state-indicator {
+    position: relative;
+    color: rgba(255, 255, 255, 0.2);
+    padding: 0 4px;
+    display: flex;
+    flex-shrink: 0;
+}
+
+.world-items-state-indicator:first-of-type {
+    padding-left: 8px;
+}
+
+.world-items-state-indicator:last-of-type {
+    padding-right: 0;
+}
+
+.world-items-state-indicator.world-items-behavior {
+    color: #5cc5ff;
+}
+
+/* Quick Actions - relative container with margin, not absolute dropdown */
+.world-items-quick-actions {
+    position: relative;
+    margin-left: 6px;
+}
+
+.world-items-quick-actions.world-items-show-menu::before {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 100%;
+    content: "";
+    height: 6px;
+}
+
+.world-items-quick-actions-buttons {
+    display: flex;
+    flex-direction: column;
+}
+
+.world-items-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 4px;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.3s var(--ease-out-quad);
+    position: relative;
+    z-index: 6;
+}
+
+.world-items-action-btn .icon {
+    pointer-events: none;
+    color: currentColor;
+}
+
+.world-items-action-btn:hover {
+    color: white;
+}
+
+.world-items-action-btn.world-items-active-btn {
+    display: flex;
+}
+
+/* Tree Visualization Lines */
+.world-items-tree-container {
+    --lineWidth: 1px;
+
+    position: absolute;
+    left: 12px;
+    top: 0;
+    height: 100%;
+    mix-blend-mode: screen;
+    pointer-events: none;
+}
+
+.world-items-tree-vertical-line {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--lineWidth);
+    height: 100%;
+    background-color: rgb(51, 51, 51);
+}
+
+.world-items-tree-horizontal-line {
+    position: absolute;
+    top: 50%;
+    left: var(--lineWidth);
+    transform: translateY(-50%);
+    width: 7px;
+    height: var(--lineWidth);
+    background-color: rgb(51, 51, 51);
+}
+
+.world-items-tree-vertical-collapse {
+    display: none;
+    position: absolute;
+    left: 27px;
+    top: calc(50% + 5px);
+    width: var(--lineWidth);
+    height: calc(50% - 5px);
+    background-color: rgb(51, 51, 51);
+}
+
+/* Last child tree line adjustments */
+.world-items-child-marker:last-child > div > div > div > div > div > .world-items-tree-vertical-line {
+    height: 50%;
+}
+
+.world-items-child-marker:last-child > div > div > div > div > div > .world-items-tree-horizontal-line {
+    left: 0;
+}
+
+.world-items-child-marker:last-child .world-item-collapse > div:nth-child(2) > div > .world-items-tree-vertical-line {
+    display: none;
+}
+
+/* Show Menu State */
+.world-items-container.world-items-show-menu .world-items-item-actions {
+    pointer-events: auto;
+}
+
+.world-items-container.world-items-show-menu .world-items-hover-btn {
+    display: flex;
+}
+
+/* Button Item Actions */
+.world-items-btn-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    position: relative;
+    pointer-events: all;
+}
+
+.world-items-btn-item-actions-icon {
+    width: 10px;
+    height: 2px;
+}

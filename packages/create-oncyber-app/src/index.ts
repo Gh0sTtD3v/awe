@@ -1,0 +1,552 @@
+#!/usr/bin/env node
+
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import { input, select } from "@inquirer/prompts";
+import pc from "picocolors";
+import { detectPackageManager } from "./detect-package-manager";
+import { createSpinner } from "./spinner";
+
+const REPO_URL =
+  process.env.AWE_REPO_URL || "https://github.com/runthefun/awe-dev.git";
+const REPO_BRANCH = process.env.AWE_REPO_BRANCH || "main";
+
+const TEMPLATES = [
+  { name: "starter", description: "Minimal game setup with player controls" },
+  { name: "multiplayer", description: "Multiplayer game with Colyseus networking" },
+] as const;
+
+type TemplateName = (typeof TEMPLATES)[number]["name"];
+
+const DEFAULT_TEMPLATE: TemplateName = "starter";
+
+const TEMPLATE_NAMES = TEMPLATES.map((t) => t.name) as string[];
+
+export type PackageManager = "npm" | "pnpm" | "yarn";
+
+export interface CliOptions {
+  projectName?: string;
+  template?: string;
+  packageManager?: PackageManager;
+  skipInstall: boolean;
+  skipGit: boolean;
+}
+
+export function toKebabCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .toLowerCase();
+}
+
+function readJson(filePath: string): Record<string, any> {
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+}
+
+function writeJson(filePath: string, data: Record<string, any>) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
+}
+
+function sparseClone(repoUrl: string, dest: string, template: string) {
+  execSync(
+    `git clone --depth 1 --filter=blob:none --sparse --branch "${REPO_BRANCH}" "${repoUrl}" "${dest}"`,
+    { stdio: "pipe" },
+  );
+  const dirs = ["packages", "scripts", ".claude", `examples/${template}`];
+  execSync(
+    `git -C "${dest}" sparse-checkout set ${dirs.join(" ")}`,
+    { stdio: "pipe" },
+  );
+}
+
+function cleanupScaffold(
+  projectDir: string,
+  projectName: string,
+  template: string,
+) {
+  // Remove .git from the clone
+  const gitDir = path.join(projectDir, ".git");
+  if (fs.existsSync(gitDir)) {
+    fs.rmSync(gitDir, { recursive: true, force: true });
+  }
+
+  // Remove the CLI package itself from the scaffolded project
+  const cliDir = path.join(projectDir, "packages/create-oncyber-app");
+  if (fs.existsSync(cliDir)) {
+    fs.rmSync(cliDir, { recursive: true, force: true });
+  }
+
+  // Copy selected template to apps/game/
+  const templateDir = path.join(projectDir, "examples", template);
+  const gameDir = path.join(projectDir, "apps/game");
+  fs.mkdirSync(path.join(projectDir, "apps"), { recursive: true });
+  copyDirSync(templateDir, gameDir);
+
+  // Remove examples/ directory
+  const examplesDir = path.join(projectDir, "examples");
+  if (fs.existsSync(examplesDir)) {
+    fs.rmSync(examplesDir, { recursive: true, force: true });
+  }
+
+  // Update apps/game/package.json — set name to project name
+  const gamePkgPath = path.join(gameDir, "package.json");
+  if (fs.existsSync(gamePkgPath)) {
+    const gamePkg = readJson(gamePkgPath);
+    gamePkg.name = projectName;
+    writeJson(gamePkgPath, gamePkg);
+  }
+
+  // Update root package.json — set name
+  const rootPkgPath = path.join(projectDir, "package.json");
+  if (fs.existsSync(rootPkgPath)) {
+    const rootPkg = readJson(rootPkgPath);
+    rootPkg.name = projectName;
+    writeJson(rootPkgPath, rootPkg);
+  }
+
+  // Update pnpm-workspace.yaml — remove "examples/*", ensure "apps/*"
+  const workspacePath = path.join(projectDir, "pnpm-workspace.yaml");
+  if (fs.existsSync(workspacePath)) {
+    let content = fs.readFileSync(workspacePath, "utf-8");
+    content = content
+      .split("\n")
+      .filter((line) => !line.includes('"examples/*"'))
+      .join("\n");
+    if (!content.includes('"apps/*"')) {
+      content = content.trimEnd() + '\n  - "apps/*"\n';
+    }
+    fs.writeFileSync(workspacePath, content);
+  }
+}
+
+function printHelp() {
+  const templateList = TEMPLATES.map(
+    (t) => `    ${t.name.padEnd(16)} ${t.description}`,
+  ).join("\n");
+
+  console.log(`
+${pc.bold("create-oncyber-app")} — Scaffold a new 3D game powered by the AWE Engine.
+
+Clones the AWE monorepo and sets up a ready-to-use game project.
+
+${pc.bold("Usage:")}
+  create-oncyber-app [project-name] [options]
+  create-oncyber-app update [options]
+
+${pc.bold("Commands:")}
+  update           Update packages/ and scripts/ from the latest upstream
+
+${pc.bold("Options:")}
+  --template NAME  Choose a project template (default: ${DEFAULT_TEMPLATE})
+  --use-npm        Use npm for dependency installation
+  --use-pnpm       Use pnpm for dependency installation (default)
+  --use-yarn       Use yarn for dependency installation
+  --skip-install   Skip automatic dependency installation
+  --skip-git       Skip git repository initialization
+  --help           Show this help message
+  --version        Show the CLI version
+
+${pc.bold("Templates:")}
+${templateList}
+
+${pc.bold("Examples:")}
+  ${pc.dim("# Interactive mode — prompts for name, template, and package manager")}
+  npx create-oncyber-app
+
+  ${pc.dim("# Create a project with a specific name")}
+  npx create-oncyber-app my-game
+
+  ${pc.dim("# Create a multiplayer project")}
+  npx create-oncyber-app my-game --template multiplayer
+
+  ${pc.dim("# Use pnpm and skip git init")}
+  npx create-oncyber-app my-game --use-pnpm --skip-git
+
+  ${pc.dim("# Update an existing project's engine and packages")}
+  cd my-game && npx create-oncyber-app update
+
+${pc.bold("What's included:")}
+  - pnpm monorepo with the AWE engine, studio, and game app
+  - Next.js app with the AWE 3D game engine pre-configured
+  - Embedded studio at /studio for visual scene editing
+  - Claude skills for engine usage, VFX creation, and GLTF inspection
+  - MCP tools for AI-assisted scene editing
+  - Sample scene with a default environment and avatar
+`);
+}
+
+function printVersion() {
+  const pkgPath = path.join(__dirname, "../package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+  console.log(pkg.version);
+}
+
+export function parseArgs(argv: string[]): CliOptions {
+  const args = argv.slice(2);
+  const options: CliOptions = {
+    skipInstall: false,
+    skipGit: false,
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    switch (arg) {
+      case "--template":
+        if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+          options.template = args[++i];
+        }
+        break;
+      case "--use-npm":
+        options.packageManager = "npm";
+        break;
+      case "--use-pnpm":
+        options.packageManager = "pnpm";
+        break;
+      case "--use-yarn":
+        options.packageManager = "yarn";
+        break;
+      case "--skip-install":
+        options.skipInstall = true;
+        break;
+      case "--skip-git":
+        options.skipGit = true;
+        break;
+      case "--help":
+        printHelp();
+        process.exit(0);
+        break;
+      case "--version":
+        printVersion();
+        process.exit(0);
+        break;
+      default:
+        if (!arg.startsWith("-") && !options.projectName) {
+          options.projectName = arg;
+        }
+        break;
+    }
+  }
+
+  return options;
+}
+
+async function promptProjectName(): Promise<string> {
+  const name = await input({
+    message: "What is your project named?",
+    default: "my-app",
+    validate(value) {
+      const kebab = toKebabCase(value || "my-app");
+      const dir = path.resolve(process.cwd(), kebab);
+      if (fs.existsSync(dir)) {
+        return `Directory already exists: ${dir}`;
+      }
+      return true;
+    },
+  });
+  return toKebabCase(name || "my-app");
+}
+
+function copyDirSync(src: string, dest: string) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isSymbolicLink()) {
+      const target = fs.readlinkSync(srcPath);
+      fs.symlinkSync(target, destPath);
+    } else if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+async function update(options: CliOptions) {
+  const projectDir = process.cwd();
+
+  // Verify we're in a scaffolded project
+  const hasWorkspace = fs.existsSync(
+    path.join(projectDir, "pnpm-workspace.yaml"),
+  );
+  const hasApps = fs.existsSync(path.join(projectDir, "apps"));
+  if (!hasWorkspace || !hasApps) {
+    console.error(
+      "Error: Not in a scaffolded project. Run this from a project created by create-oncyber-app.",
+    );
+    process.exit(1);
+  }
+
+  // Warn user
+  const confirm = await select<boolean>({
+    message:
+      "This will overwrite packages/, scripts/, and root config files. Your apps/ directory will NOT be modified. Continue?",
+    choices: [
+      { name: "Yes", value: true },
+      { name: "No", value: false },
+    ],
+    default: false,
+  });
+
+  if (!confirm) {
+    console.log("Update cancelled.");
+    process.exit(0);
+  }
+
+  const tmpDir = fs.mkdtempSync(path.join(require("os").tmpdir(), "awe-update-"));
+
+  try {
+    // Clone to temp dir (sparse — only packages, scripts, root configs)
+    const cloneSpinner = createSpinner("Cloning latest repository...");
+    cloneSpinner.start();
+    try {
+      sparseClone(REPO_URL, path.join(tmpDir, "repo"), DEFAULT_TEMPLATE);
+      cloneSpinner.stop("Cloned latest repository.");
+    } catch (err: any) {
+      cloneSpinner.stop();
+      console.error("Failed to clone repository. Make sure git is installed and you have access.");
+      if (err.stderr) console.error(err.stderr.toString());
+      process.exit(1);
+    }
+
+    const repoDir = path.join(tmpDir, "repo");
+
+    // Replace packages/ and scripts/
+    const updateSpinner = createSpinner("Updating packages...");
+    updateSpinner.start();
+
+    const dirsToUpdate = ["packages", "scripts"];
+    for (const dir of dirsToUpdate) {
+      const destDir = path.join(projectDir, dir);
+      const srcDir = path.join(repoDir, dir);
+      if (fs.existsSync(srcDir)) {
+        if (fs.existsSync(destDir)) {
+          fs.rmSync(destDir, { recursive: true, force: true });
+        }
+        copyDirSync(srcDir, destDir);
+      }
+    }
+
+    // Remove create-oncyber-app from the copied packages
+    const cliPkgDir = path.join(projectDir, "packages/create-oncyber-app");
+    if (fs.existsSync(cliPkgDir)) {
+      fs.rmSync(cliPkgDir, { recursive: true, force: true });
+    }
+
+    // Update root configs
+    const configFiles = ["tsconfig.json", "turbo.json", ".editorconfig"];
+    for (const file of configFiles) {
+      const srcFile = path.join(repoDir, file);
+      const destFile = path.join(projectDir, file);
+      if (fs.existsSync(srcFile)) {
+        fs.copyFileSync(srcFile, destFile);
+      }
+    }
+
+    // Update root package.json — preserve name, clean up scripts
+    const currentRootPkg = readJson(path.join(projectDir, "package.json"));
+    const newRootPkg = readJson(path.join(repoDir, "package.json"));
+    newRootPkg.name = currentRootPkg.name;
+    writeJson(path.join(projectDir, "package.json"), newRootPkg);
+
+    // Update pnpm-workspace.yaml — remove examples/* line, ensure apps/*
+    const srcWorkspace = path.join(repoDir, "pnpm-workspace.yaml");
+    if (fs.existsSync(srcWorkspace)) {
+      let content = fs.readFileSync(srcWorkspace, "utf-8");
+      content = content
+        .split("\n")
+        .filter((line) => !line.includes('"examples/*"'))
+        .join("\n");
+      if (!content.includes('"apps/*"')) {
+        content = content.trimEnd() + '\n  - "apps/*"\n';
+      }
+      fs.writeFileSync(path.join(projectDir, "pnpm-workspace.yaml"), content);
+    }
+
+    updateSpinner.stop("Packages updated.");
+
+    // Install deps
+    const packageManager = options.packageManager || "pnpm";
+    if (!options.skipInstall) {
+      const installSpinner = createSpinner("Installing dependencies...");
+      installSpinner.start();
+      try {
+        execSync(`${packageManager} install`, {
+          cwd: projectDir,
+          stdio: "pipe",
+        });
+        installSpinner.stop("Dependencies installed.");
+      } catch (err: any) {
+        installSpinner.stop();
+        console.error("Failed to install dependencies:");
+        if (err.stderr) console.error(err.stderr.toString());
+        process.exit(1);
+      }
+    }
+
+    console.log();
+    console.log(
+      pc.green(pc.bold("Success!")) +
+        " Project updated to latest engine and packages.",
+    );
+    console.log();
+  } finally {
+    // Clean up temp dir
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+async function scaffold(options: CliOptions) {
+  let projectName: string;
+  if (options.projectName) {
+    projectName = toKebabCase(options.projectName);
+    const dir = path.resolve(process.cwd(), projectName);
+    if (fs.existsSync(dir)) {
+      console.error(`Error: Directory already exists: ${dir}`);
+      process.exit(1);
+    }
+  } else {
+    projectName = await promptProjectName();
+  }
+
+  // Resolve template
+  let template: string;
+  if (options.template) {
+    if (!TEMPLATE_NAMES.includes(options.template)) {
+      console.error(
+        `Error: Unknown template "${options.template}". Available templates: ${TEMPLATE_NAMES.join(", ")}`,
+      );
+      process.exit(1);
+    }
+    template = options.template;
+  } else {
+    template = await select<string>({
+      message: "Which template would you like to use?",
+      choices: TEMPLATES.map((t) => ({
+        name: `${t.name} — ${t.description}`,
+        value: t.name,
+      })),
+      default: DEFAULT_TEMPLATE,
+    });
+  }
+
+  let packageManager: PackageManager;
+  if (options.packageManager) {
+    packageManager = options.packageManager;
+  } else {
+    const detected = detectPackageManager();
+    packageManager = await select<PackageManager>({
+      message: "Which package manager would you like to use?",
+      choices: [
+        { name: "npm", value: "npm" as const },
+        { name: "pnpm", value: "pnpm" as const },
+        { name: "yarn", value: "yarn" as const },
+      ],
+      default: detected,
+    });
+  }
+
+  const projectDir = path.resolve(process.cwd(), projectName);
+
+  // Register SIGINT handler to clean up partial project directory
+  const cleanup = () => {
+    if (fs.existsSync(projectDir)) {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    }
+    process.exit(1);
+  };
+  process.on("SIGINT", cleanup);
+
+  // Clone repository (sparse checkout — only fetches needed dirs + template)
+  const cloneSpinner = createSpinner("Cloning repository...");
+  cloneSpinner.start();
+  try {
+    sparseClone(REPO_URL, projectDir, template);
+    cloneSpinner.stop("Cloned repository.");
+  } catch (err: any) {
+    cloneSpinner.stop();
+    console.error(
+      "Failed to clone repository. Make sure git is installed and you have access to the repo.",
+    );
+    if (err.stderr) {
+      console.error(err.stderr.toString());
+    }
+    cleanup();
+    return;
+  }
+
+  // Set up project
+  const setupSpinner = createSpinner("Setting up project...");
+  setupSpinner.start();
+  cleanupScaffold(projectDir, projectName, template);
+  setupSpinner.stop("Project set up.");
+
+  // Git initialization
+  if (!options.skipGit) {
+    const gitSpinner = createSpinner("Initializing git repository...");
+    gitSpinner.start();
+    try {
+      execSync("git init", { cwd: projectDir, stdio: "pipe" });
+      execSync("git add -A", { cwd: projectDir, stdio: "pipe" });
+      execSync(
+        'git commit -m "Initial commit from create-oncyber-app"',
+        { cwd: projectDir, stdio: "pipe" },
+      );
+      gitSpinner.stop("Initialized git repository.");
+    } catch {
+      // git not installed or failed — skip silently
+      gitSpinner.stop();
+    }
+  }
+
+  // Dependency installation
+  let depsInstalled = false;
+  if (!options.skipInstall) {
+    const installSpinner = createSpinner("Installing dependencies...");
+    installSpinner.start();
+    try {
+      execSync(`${packageManager} install`, {
+        cwd: projectDir,
+        stdio: "pipe",
+      });
+      installSpinner.stop("Dependencies installed.");
+      depsInstalled = true;
+    } catch (err: any) {
+      installSpinner.stop();
+      console.error("Failed to install dependencies:");
+      if (err.stderr) {
+        console.error(err.stderr.toString());
+      }
+      process.exit(1);
+    }
+  }
+
+  // Remove SIGINT handler after successful creation
+  process.removeListener("SIGINT", cleanup);
+
+  // Styled success output
+  console.log();
+  console.log(pc.green(pc.bold(`Success!`)) + ` Created ${pc.bold(projectName)} at ${projectDir}`);
+  console.log();
+  console.log("Next steps:");
+  console.log(`  ${pc.cyan(`cd ${projectName}`)}`);
+  if (!depsInstalled) {
+    console.log(`  ${pc.cyan(`${packageManager} install`)}`);
+  }
+  console.log(`  ${pc.cyan(`${packageManager} dev`)}`);
+  console.log();
+}
+
+async function main() {
+  const options = parseArgs(process.argv);
+
+  if (options.projectName === "update") {
+    options.projectName = undefined;
+    await update(options);
+  } else {
+    await scaffold(options);
+  }
+}
+
+main();

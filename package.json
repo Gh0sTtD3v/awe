@@ -1,0 +1,35 @@
+{
+  "name": "awe",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/ensure-mcp-build.mjs",
+    "bake-anim": "pnpm --filter @oncyberio/scripts bake-anim",
+    "inspect-gltf": "pnpm --filter @oncyberio/scripts inspect-gltf",
+    "collect-assets": "pnpm --filter @oncyberio/scripts collect-assets",
+    "mcp:ensure-build": "node scripts/ensure-mcp-build.mjs",
+    "engine:check": "pnpm --filter engine check",
+    "engine:test": "pnpm --filter engine test",
+    "engine:build:api": "pnpm --filter engine build:api",
+    "engine-edit:check": "pnpm --filter engine-edit check",
+    "asset-optimizer:check": "pnpm --filter asset-optimizer check",
+    "studio:check": "pnpm --filter @oncyberio/studio check"
+  },
+  "pnpm": {
+    "overrides": {
+      "sharp": "^0.33.0"
+    },
+    "ignoredBuiltDependencies": [
+      "@parcel/watcher",
+      "@taquito/taquito",
+      "cpu-features",
+      "esbuild",
+      "keccak",
+      "unrs-resolver",
+      "utf-8-validate"
+    ],
+    "onlyBuiltDependencies": [
+      "bufferutil",
+      "sharp"
+    ]
+  }
+}

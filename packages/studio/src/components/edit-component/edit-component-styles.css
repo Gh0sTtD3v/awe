@@ -1,0 +1,153 @@
+/* Edit Component Styles - Converted from SCSS */
+
+/* === Detached mode: re-enable pointer-events on interactive children === */
+.edit-layout.detached .group,
+.edit-layout.detached .edit-header button,
+.edit-layout.detached .edit-header label,
+.edit-layout.detached .edit-header .rename-field-double-clicked input,
+.edit-layout.detached .edit-actions button {
+    pointer-events: auto;
+}
+
+/* === Scrollable section: expand to fill padded container === */
+.edit-layout .scrollable-section {
+    width: calc(100% + 32px);
+    margin-left: -16px;
+    margin-right: 0;
+}
+
+/* === Scrollable wrapper: restore padding and remove first folder borders === */
+.edit-layout .scrollable-wrapper {
+    padding-left: 16px;
+    padding-right: 16px;
+    display: block;
+}
+
+.edit-layout .scrollable-wrapper > .group:first-child > .folder:first-child .folder-header {
+    border-top: 0;
+}
+
+.edit-layout .scrollable-wrapper > .group:first-child > .group:not(:first-child) > .folder:first-child .folder-header {
+    border-top: 0;
+}
+
+/* === Resizer wrapper: remove first folder borders === */
+.resizer-wrapper > .group:first-child > .folder:first-child > .folder-header {
+    border-top: 0;
+}
+
+.resizer-wrapper > .group:first-child > .group:first-child > .folder:first-child .folder-header {
+    border-top: 0;
+}
+
+/* === Edit actions: button styles === */
+.edit-actions button {
+    height: 26px;
+    width: 20%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.2s var(--ease-out-quad);
+}
+
+.edit-actions button[disabled] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.edit-actions button[enabled="true"] {
+    color: white;
+}
+
+.edit-actions button:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.edit-actions button:not([disabled]):hover {
+    color: white;
+}
+
+/* === Edit header: rename field styles === */
+.edit-header .rename-field-label,
+.edit-header .rename-field-input {
+    font-size: inherit;
+    color: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    font-style: inherit;
+}
+
+.edit-header .rename-field-is-focused + .edit-header-icon {
+    display: none;
+}
+
+.edit-header .rename-field {
+    position: relative;
+    min-width: 0;
+    order: 2;
+    margin-right: auto;
+}
+
+.edit-header .rename-field:not(:focus-within) .rename-field-input {
+    color: transparent;
+}
+
+.edit-header .rename-field:focus-within .rename-field-error {
+    display: block;
+}
+
+.edit-header .rename-field:focus-within .rename-field-input {
+    border-radius: 8px;
+    background: #202020;
+}
+
+.edit-header .rename-field:focus-within .rename-field-label {
+    color: transparent;
+}
+
+.edit-header .rename-field-input {
+    position: absolute;
+    top: -4px;
+    left: -9px;
+    padding: 8px;
+    width: calc(100% + 20px);
+    height: 29px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0);
+    background: transparent;
+    outline: none;
+    color: white;
+}
+
+.edit-header .rename-field-input:not(:focus) {
+    cursor: pointer;
+}
+
+.edit-header .rename-field-error {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: -8px;
+    height: auto;
+    width: 100%;
+    background-color: #ff4d4b;
+    color: white;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 400;
+    padding: 4px 12px;
+    line-height: 1.2;
+    display: none;
+}
+
+.edit-header .rename-field-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: inline-block;
+    padding: 2px 0px;
+    min-width: 0;
+    min-height: 21px;
+    max-width: 100%;
+}

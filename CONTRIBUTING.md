@@ -1,0 +1,153 @@
+# Contributing to oncyberio Engine
+
+Thanks for your interest in contributing to oncyberio! This guide will help you get set up and familiar with the project's conventions.
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18 or later
+- [pnpm](https://pnpm.io/) v8 or later
+- [Git](https://git-scm.com/)
+
+### Setup
+
+```bash
+git clone <repo-url>
+cd awe-dev
+pnpm install
+```
+
+### Verify Your Setup
+
+```bash
+pnpm engine:check          # Type-check the engine
+pnpm --filter engine test  # Run engine tests
+pnpm engine-edit:check     # Type-check engine-edit
+```
+
+## Project Structure
+
+This is a pnpm monorepo managed with Turborepo. See the [README](README.md) for a full breakdown of packages. The key areas you'll work in:
+
+| Area | Path | Description |
+|------|------|-------------|
+| Engine | `packages/engine/` | Core 3D engine (components, physics, rendering) |
+| Editor | `packages/engine-edit/` | Visual editing tools (gizmos, selection, undo/redo) |
+| Asset Optimizer | `packages/asset-optimizer/` | GLTF/texture optimization pipeline |
+| MCP Server | `packages/mcp-server/` | AI tool server for scene manipulation |
+| CLI | `packages/create-oncyber-app/` | Project scaffolding tool |
+| Scripts | `scripts/` | Animation baking, GLTF inspection |
+| Docs | `docs/` | Usage guides and architecture documentation |
+
+## Code Style
+
+### File Naming
+
+All files **must** use kebab-case:
+
+```
+game-script.tsx        # correct
+editor-events.ts       # correct
+GameScript.tsx         # incorrect
+editorEvents.ts        # incorrect
+```
+
+### TypeScript
+
+- The project uses TypeScript throughout
+- Run type checks before submitting changes:
+  ```bash
+  pnpm engine:check
+  pnpm engine-edit:check
+  pnpm asset-optimizer:check
+  ```
+
+### General Guidelines
+
+- Keep changes focused — one concern per PR
+- Prefer editing existing files over creating new ones
+- Avoid over-engineering; solve the problem at hand
+- Don't add comments for self-explanatory code
+
+## Development Workflow
+
+### Branching
+
+- `main` is the primary branch
+- Create feature branches from `main` with descriptive names:
+  ```bash
+  git checkout -b feat/add-water-shader
+  git checkout -b fix/avatar-collision-offset
+  ```
+
+### Making Changes
+
+1. **Engine changes** — work in `packages/engine/src/`. Run `pnpm engine:check` and `pnpm --filter engine test` to verify.
+2. **Editor changes** — work in `packages/engine-edit/src/`. Run `pnpm engine-edit:check` to verify.
+3. **API changes** — if you modify the engine's public API, regenerate type definitions with `pnpm engine:build:api`.
+4. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`. Run `pnpm template:dev` to test.
+
+### Testing
+
+```bash
+# Engine tests
+pnpm --filter engine test
+
+# MCP server tests
+pnpm --filter mcp-server test
+
+# CLI tests
+pnpm --filter create-oncyber-app test
+```
+
+Write tests for new functionality when applicable. Tests use [Vitest](https://vitest.dev/).
+
+### Documentation
+
+- **Engine usage** — update `docs/engine-usage/` for changes that affect how developers use the engine
+- **Engine internals** — update `packages/engine/docs/` for architectural changes
+- **API docs** — regenerate with `pnpm engine:build:api` after public API changes
+
+## Commit Messages
+
+Use clear, descriptive commit messages with a conventional prefix:
+
+```
+feat(engine): add water shader component
+fix(engine-edit): correct gizmo alignment on rotated objects
+docs: update physics configuration examples
+chore: update three.js to 0.171
+refactor(mcp-server): simplify component schema resolution
+test(engine): add collision detection edge case tests
+```
+
+Format: `type(scope): description`
+
+**Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`
+
+**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `mcp-server`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
+
+## Pull Requests
+
+1. Make sure all type checks pass
+2. Make sure all tests pass
+3. Write a clear description of what changed and why
+4. Keep PRs focused — split unrelated changes into separate PRs
+5. Link related issues if applicable
+
+## Architecture Notes
+
+Before diving into engine internals, read the architecture docs in `packages/engine/docs/`:
+
+- **[engine-pipeline.md](packages/engine/docs/engine-pipeline.md)** — render pipeline, shader compilation, multi-pass rendering
+- **[engine-instancing.md](packages/engine/docs/engine-instancing.md)** — GPU instanced mesh system, buffer management, LOD
+- **[plugins-guide.md](packages/engine/docs/plugins-guide.md)** — visual plugin system (shader hooks, registry)
+- **[event-system.md](packages/engine/docs/event-system.md)** — event architecture, frame loop, lifecycle hooks
+- **[component-lifecycle.md](packages/engine/docs/component-lifecycle.md)** — component system, factories, data model
+
+For engine usage patterns (game development), see `docs/engine-usage/`.
+
+## Getting Help
+
+If you're unsure about something or need guidance, open an issue to discuss your approach before starting work on large changes.

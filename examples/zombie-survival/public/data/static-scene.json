@@ -1,0 +1,1411 @@
+{
+  "id": "platformer-demo",
+  "creatorId": "anon",
+  "editors": ["anon"],
+  "components": {
+    "vrm-anims": {
+      "name": "VRM Animations",
+      "kit": "cyber",
+      "id": "vrm-anims",
+      "type": "vrm-anims",
+      "_version": 1725904926656,
+      "url": "https://cyber.mypinata.cloud/ipfs/QmSxBEzzgwqjmtTRBc6ywcJ2fDYE2ckNRTsKmA9JNETfgp?filename=1725904909-Ny3MlG6hsAlirYgsRqYO-vrm-anims-default.json",
+      "anims": {
+        "jump_idle": {
+          "fileName": "jump_idle.fbx",
+          "name": "jump_idle",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/jump_idle.json",
+          "hash": "947ed5b6b6b4b5d1de662006f9f56a15e26fbe81add2c18a3b3c3a0880b5bc92"
+        },
+        "jump_running": {
+          "fileName": "jump_running.fbx",
+          "name": "jump_running",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/jump_running.json",
+          "hash": "f97f989f11065d6ef16953997b376bbe52ec6579ffe8cac65fec545670812ea1"
+        },
+        "jump_sprinting": {
+          "fileName": "jump_sprinting.fbx",
+          "name": "jump_sprinting",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/jump_sprinting.json",
+          "hash": "676f434bbfa9a2dd21fd0e1e3f4e2cc56d41b3d137c0d44a3c83ba6c07f6a3c4"
+        },
+        "jump_walking": {
+          "fileName": "jump_walking.fbx",
+          "name": "jump_walking",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/jump_walking.json",
+          "hash": "5770376de5a698598b5e976bdc8522561b177134c5829bb8c8b3f2c2422f6dd9"
+        },
+        "sprint": {
+          "fileName": "sprint.fbx",
+          "name": "sprint",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/sprint.json",
+          "hash": "5eaac025cd7d756f7be6a06e7624535e647157ce904bcc09998ddae59fee7bba"
+        },
+        "drop_running_roll": {
+          "fileName": "drop_running_roll.fbx",
+          "name": "drop_running_roll",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_running_roll.json",
+          "hash": "d8284031e7d9767c5b17a96f747813fcd0dadca8bc52eb1563530c2eb6aaa413"
+        },
+        "drop_running": {
+          "fileName": "drop_running.fbx",
+          "name": "drop_running",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_running.json",
+          "hash": "06c2913f25622fd029d5bf4fdf4a0594c872df3315c23f695811977ce612aa28"
+        },
+        "drop_sprinting_roll": {
+          "fileName": "drop_sprinting_roll.fbx",
+          "name": "drop_sprinting_roll",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_sprinting_roll.json",
+          "hash": "e955f9806042a1047ce31feb2efdac82200abca13892ae2b8967409c36a35bb4"
+        },
+        "drop_sprinting": {
+          "fileName": "drop_sprinting.fbx",
+          "name": "drop_sprinting",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_sprinting.json",
+          "hash": "13311a9edda27e16b37451836117973a00f88da498b6c5d520a869e62ad2c405"
+        },
+        "drop_walking_roll": {
+          "fileName": "drop_walking_roll.fbx",
+          "name": "drop_walking_roll",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_walking_roll.json",
+          "hash": "663caf738a20b4176827161b4b88233be04375bccdbaabd1963882a0d1406026"
+        },
+        "drop_walking": {
+          "fileName": "drop_walking.fbx",
+          "name": "drop_walking",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/drop_walking.json",
+          "hash": "eaba01df01a46722df3980a2587791187dd1e2e868b9bdc820e5965e98a2f221"
+        },
+        "falling": {
+          "fileName": "falling.fbx",
+          "name": "falling",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/falling.json",
+          "hash": "ee8f320e6efae9f3513ed06b38ff04ee4ddd7a4f09da611aa5cf928ef44c00b7"
+        },
+        "jump_double": {
+          "fileName": "jump_double.fbx",
+          "name": "jump_double",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/jump_double.json",
+          "hash": "a0c74c836a855eae4a5eced9f4c018e986f59400438859f2f260802f01868d42"
+        },
+        "p_idle": {
+          "fileName": "idle.fbx",
+          "name": "p_idle",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/idle.json",
+          "hash": "084b681c2ffd7e810e8d5dd71d93484ac949a2ecd03d6d8a379f267434d1fa7f"
+        },
+        "p_run": {
+          "fileName": "run.fbx",
+          "name": "p_run",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/run.json",
+          "hash": "86173d3e9c2c436658a9e6828d99c6a6378b63b53e3c308749cf965d2b738269"
+        },
+        "p_walk": {
+          "fileName": "walk.fbx",
+          "name": "p_walk",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/walk.json",
+          "hash": "eb0107c1383e7de11898ecf695938919af9d471d88439db9a2afb988c2c0dd6d"
+        },
+        "drop_idle": {
+          "fileName": "drop_idle.fbx",
+          "name": "drop_idle",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "hash": "e4a82d190538a0106255faaffffc4d3863f0726b5190ef91d2024691ac02bd41",
+          "url": "/assets/anims/drop_idle.json"
+        },
+        "zombie_idle": {
+          "fileName": "zombie_idle.json",
+          "name": "zombie_idle",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie_idle.json"
+        },
+        "zombie_running": {
+          "fileName": "zombie_running.json",
+          "name": "zombie_running",
+          "loop": true,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie_running.json"
+        },
+        "zombie_dying": {
+          "fileName": "zombie_dying.json",
+          "name": "zombie_dying",
+          "loop": false,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie_dying.json"
+        },
+        "zombie_attack": {
+          "fileName": "zombie_attack.json",
+          "name": "zombie_attack",
+          "loop": false,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie_attack.json"
+        },
+        "zombie_reaction_hit": {
+          "fileName": "zombie_reaction_hit.json",
+          "name": "zombie_reaction_hit",
+          "loop": false,
+          "sync": false,
+          "timeScale": 1.5,
+          "url": "/assets/anims/zombie_reaction_hit.json"
+        },
+        "zombie_death": {
+          "fileName": "zombie_death.json",
+          "name": "zombie_death",
+          "loop": false,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie_death.json"
+        },
+        "zombie-reaction-hit": {
+          "fileName": "zombie-reaction-hit.json",
+          "name": "zombie-reaction-hit",
+          "loop": false,
+          "sync": false,
+          "timeScale": 1,
+          "url": "/assets/anims/zombie-reaction-hit.json"
+        }
+      }
+    },
+    "fog": {
+      "name": "Fog",
+      "id": "fog",
+      "fadeColor": "#c6dcfb",
+      "kit": "cyber",
+      "near": 0,
+      "type": "fog",
+      "enabled": true,
+      "far": 292,
+      "_version": 1772726828267,
+      "color": "#1a1008"
+    },
+    "background": {
+      "name": "Background",
+      "id": "background",
+      "kit": "cyber",
+      "type": "background",
+      "options": {
+        "type": "sky",
+        "color": "#1a1008",
+        "skyOpts": {
+          "turbidity": 4,
+          "rayleigh": 3,
+          "mieCoefficient": 0.005,
+          "mieDirectionalG": 0.07,
+          "azimuth": 180,
+          "elevation": 2
+        },
+        "imageId": "night"
+      },
+      "_version": 1772725433749
+    },
+    "envmap": {
+      "name": "Environment Map",
+      "id": "envmap",
+      "kit": "cyber",
+      "type": "envmap",
+      "options": {
+        "type": "image",
+        "imageId": "studio",
+        "imageFormat": "hdr",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      },
+      "_version": 1769528679378
+    },
+    "lighting": {
+      "name": "Lighting",
+      "id": "lighting",
+      "intensity": 1,
+      "lightDirection": {
+        "x": 0.5,
+        "y": -1,
+        "z": 0.5
+      },
+      "lightPosition": {
+        "x": 50,
+        "y": 100,
+        "z": 50
+      },
+      "size": 100,
+      "far": 200,
+      "kit": "cyber",
+      "bias": -0.001,
+      "near": 1,
+      "type": "lighting",
+      "_version": 1769775851149,
+      "enabled": true
+    },
+    "Player": {
+      "name": "Player",
+      "id": "Player",
+      "type": "avatar",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.71,
+        "y": 0.71,
+        "z": 0.71
+      },
+      "plugins": [],
+      "renderMode": "toon",
+      "useCpuAnimation": true,
+      "script": {
+        "_isPlayer": true,
+        "identifier": "player"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "PLAYER",
+        "colliderType": "CAPSULE"
+      },
+      "_version": 1771503101597,
+      "url": "https://cdn.oncyber.xyz/engine-assets/vrms/sunshine.glb",
+      "picture": "",
+      "awaitAvatarLoading": true,
+      "awaitPictureLoading": false,
+      "awaitLoaderThrottle": 0,
+      "text": "",
+      "nameDisplayWithPicture": true,
+      "animation": "IDLE",
+      "opacity": 1,
+      "ignoreLOD": false
+    },
+    "postprocessing": {
+      "name": "Post Processing",
+      "type": "postprocessing",
+      "id": "postprocessing",
+      "kit": "cyber",
+      "enabled": true,
+      "postProType": "LookUpTable",
+      "bloomOpts": {
+        "threshold": 0.75,
+        "smoothing": 0.29,
+        "intensity": 0.6,
+        "radius": 0.7,
+        "color": "#ffffff"
+      },
+      "_version": 1772726954331,
+      "lutOpts": {
+        "image": {
+          "id": "sunset",
+          "name": "sunset",
+          "image": "https://cdn.oncyber.xyz/engine-assets/lutmaps/sunsetImg.png",
+          "path": "https://cdn.oncyber.xyz/engine-assets/lutmaps/sunset.png"
+        }
+      },
+      "tvOpts": {
+        "amount": 1,
+        "strength": 1,
+        "glitchRatio": 0.2,
+        "speed": 1,
+        "vignetteFallOff": 0,
+        "vignetteStrength": 1
+      },
+      "trippyOpts": {
+        "speed": 0.1
+      }
+    },
+    "terrain-1769954061436": {
+      "type": "terrain",
+      "id": "terrain-1769954061436",
+      "kit": "cyber",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 200,
+        "y": 1,
+        "z": 200
+      },
+      "color": "#3a3a2e",
+      "noiseEnabled": true,
+      "definition": 92,
+      "seed": 4321,
+      "noiseDomain": 5,
+      "smoothCenter": 0.32,
+      "smoothLength": 0.1,
+      "islandSmooth": 1,
+      "islandLength": 0.1,
+      "innerRadius": 0,
+      "textureOpts": {
+        "id": "rust",
+        "name": "Rust",
+        "image": "https://cdn.oncyber.xyz/engine-assets/terrain/rustImg-v2.png",
+        "path": "https://cdn.oncyber.xyz/engine-assets/terrain/rust.jpg",
+        "format": ".jpg"
+      },
+      "tiles": 66.5,
+      "mode": "shader",
+      "shader": "grid",
+      "shape": "plane",
+      "griddiv": 180,
+      "lineWidth": 0.5,
+      "gridColor": "#2a2a1e",
+      "edgeTransition": 5,
+      "noTileDisplacement": 1,
+      "smoothAngle": 0.7,
+      "visibleOnOcclusion": true,
+      "textureSideOpts": {
+        "id": "sand",
+        "name": "Sand",
+        "image": "https://cdn.oncyber.xyz/engine-assets/terrain/sandImg-v2.png",
+        "path": "https://cdn.oncyber.xyz/engine-assets/terrain/sand.jpg",
+        "format": ".jpg"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      },
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1772726171084,
+      "receiveShadow": true,
+      "castShadow": false
+    },
+    "20d54fa7-cafc-44d0-880a-997ebedac5fd": {
+      "id": "20d54fa7-cafc-44d0-880a-997ebedac5fd",
+      "name": "Environment Sound",
+      "type": "audio",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "url": "/assets/sounds/env/env-sound.mp3",
+      "volume": 0.4,
+      "loop": true,
+      "spatial": false
+    },
+    "9b7d2a5f-8714-465b-8562-70ec2e0abd18": {
+      "id": "9b7d2a5f-8714-465b-8562-70ec2e0abd18",
+      "name": "Building 01 NW",
+      "type": "model",
+      "position": {
+        "x": -40,
+        "y": 9.61857105023548,
+        "z": -40
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmXZqaPdX7bJjSDwPgMMNEJV2ipgofdembvZgfB4Yxe1bd?filename=building01.glb",
+      "hash": "683cb240a95a35c1680eff67920f75205485c8c21653078aca1f4d407745a1cd",
+      "collider": {
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "a7aacb82-2812-41cc-ae3c-528c81267996": {
+      "id": "a7aacb82-2812-41cc-ae3c-528c81267996",
+      "name": "Building 02 SE",
+      "type": "model",
+      "position": {
+        "x": 62.12316306820327,
+        "y": 12.009569426364212,
+        "z": 40
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmXio5FmYCWQA9mG2nYAwVZkaMQdEBpf3F1sTcE3YsUfQF?filename=building02.glb",
+      "hash": "84d818a1e9c908ba58ba49d1f3496079745ea405e0f35865fcb816ef512c8196",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "7b334175-5b85-495f-961c-069636bbc912": {
+      "id": "7b334175-5b85-495f-961c-069636bbc912",
+      "name": "Container West",
+      "type": "model",
+      "position": {
+        "x": -25,
+        "y": 2.733173718210323,
+        "z": 8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbNe5B8noUkCUxVXxTZ1QRFuuoN7DtDHst6SJ61i8BQSb?filename=container.glb",
+      "hash": "b8cfaaaa82e9a7cacfcd248122d2560ffb3517c2a40641d39cff790e24e55d76",
+      "script": {
+        "tag": "explosive-container",
+        "identifier": "container-west"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "d856af59-eb16-47bb-9934-35b771da27b7": {
+      "id": "d856af59-eb16-47bb-9934-35b771da27b7",
+      "name": "Container East",
+      "type": "model",
+      "position": {
+        "x": 30,
+        "y": 2.7831713748118583,
+        "z": -13
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.57,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbNe5B8noUkCUxVXxTZ1QRFuuoN7DtDHst6SJ61i8BQSb?filename=container.glb",
+      "hash": "b8cfaaaa82e9a7cacfcd248122d2560ffb3517c2a40641d39cff790e24e55d76",
+      "script": {
+        "tag": "explosive-container",
+        "identifier": "container-east"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "66780a5e-2069-4216-b58d-0ae06c886051": {
+      "id": "66780a5e-2069-4216-b58d-0ae06c886051",
+      "name": "Crate NE 1",
+      "type": "model",
+      "position": {
+        "x": 16,
+        "y": 2.266553579588245,
+        "z": -25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.5,
+        "y": 2.5,
+        "z": 2.5
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmTtiruySAnGSXnvzUyVSgS2SsmUtMyvJBiENbwW7wsfvE?filename=crate.glb",
+      "hash": "90bfb16706c85f3780a546b38848e3eb3b0d8a28df4c82e625f0901bf47ef8db",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "43cffae3-8cd1-465e-8a04-ec2abef92988": {
+      "id": "43cffae3-8cd1-465e-8a04-ec2abef92988",
+      "name": "Crate NE 2",
+      "type": "model",
+      "position": {
+        "x": 17.3824242177845,
+        "y": 7.0658299356846825,
+        "z": -23
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.5,
+        "y": 2.5,
+        "z": 2.5
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmTtiruySAnGSXnvzUyVSgS2SsmUtMyvJBiENbwW7wsfvE?filename=crate.glb",
+      "hash": "90bfb16706c85f3780a546b38848e3eb3b0d8a28df4c82e625f0901bf47ef8db",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "7bf1b9d6-5f97-4101-8e19-19afc9d042e2": {
+      "id": "7bf1b9d6-5f97-4101-8e19-19afc9d042e2",
+      "name": "Barricade North",
+      "type": "model",
+      "position": {
+        "x": -8,
+        "y": 4.242177629172945,
+        "z": -35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmXgGxjS71ffKAp2ESbro6AjsDu1RPJ6wFd4itMv2k4MzS?filename=barriere.glb",
+      "hash": "a1f5418d826162206c83b98697233a88385ba1bedbbc77db868fcc99f3111ff0",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "15a8e00f-a49c-4225-a189-8a0e71833476": {
+      "id": "15a8e00f-a49c-4225-a189-8a0e71833476",
+      "name": "Barricade South",
+      "type": "model",
+      "position": {
+        "x": 13,
+        "y": 4.150341635718838,
+        "z": 30
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.8,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmXgGxjS71ffKAp2ESbro6AjsDu1RPJ6wFd4itMv2k4MzS?filename=barriere.glb",
+      "hash": "a1f5418d826162206c83b98697233a88385ba1bedbbc77db868fcc99f3111ff0",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "7681ab95-50b9-4d21-bd12-a77f452cae70": {
+      "id": "7681ab95-50b9-4d21-bd12-a77f452cae70",
+      "name": "Tower Center",
+      "type": "model",
+      "position": {
+        "x": 0,
+        "y": 13.537393856004911,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmfCkM12omtSZ7GinSHRS3umAxSCKdyJnC17yHVNXd2nS9?filename=tower.glb",
+      "hash": "70c10c4409662df966872674a7adb88ed1ca53ae901c85a05412d0a2a8a090b4",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "35e2d220-349f-49f4-b8f7-d0db402e49ed": {
+      "id": "35e2d220-349f-49f4-b8f7-d0db402e49ed",
+      "name": "Garbage SW",
+      "type": "model",
+      "position": {
+        "x": -34,
+        "y": 2.4561540824781503,
+        "z": 26
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmX3tuEbXamKCj5sAcPeZgL8rEq6xQ2gABAd2cFYZjbeqq?filename=garbage.glb",
+      "hash": "7b458ee793e53609c593618122553ae0e53c8561b8257639d6fa9c1f0e788217",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      },
+      "enableAnimation": false,
+      "optimized": {
+        "high": "",
+        "low": "",
+        "low_compressed": ""
+      },
+      "mime_type": "model/gltf-binary",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1771437240392
+    },
+    "5ac64fd3-70eb-49ae-9152-bf1417c69a42": {
+      "id": "5ac64fd3-70eb-49ae-9152-bf1417c69a42",
+      "name": "Planche Mid West",
+      "type": "model",
+      "position": {
+        "x": -16,
+        "y": 0.1970381966577257,
+        "z": -16
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmYqSn8YFfJJ6MyjQw76yHrygMmjVKLPLuQnSHEpctDyyU?filename=planche.glb",
+      "hash": "70aaf651c27ceba8f61862b63fdb03d3056a1657c3b4b27dd7fe4076a4c01f8b",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "4efcf394-0bcf-4b51-9274-17df10cc1d3d": {
+      "id": "4efcf394-0bcf-4b51-9274-17df10cc1d3d",
+      "name": "Bloc South West",
+      "type": "model",
+      "position": {
+        "x": -36,
+        "y": 1.3164358916783971,
+        "z": 42
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmZH6s1JUHxjQd6ovkNv4d3LkKFxMsS9wquseNq911DFsS?filename=bloc.glb",
+      "hash": "fce9fabdd99ffa7c6f7af4b63d345deb08306209283b6f9e42614c56a8aab67f",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE"
+      }
+    },
+    "7c5c8927-c9a2-42a5-a0bb-18613edbd12c": {
+      "id": "7c5c8927-c9a2-42a5-a0bb-18613edbd12c",
+      "name": "Arche East",
+      "type": "model",
+      "position": {
+        "x": 46,
+        "y": 6.162286908088007,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmZoF8LJeEVS13oR4CDeujHAfwhNm46baZ7qXNW43gR2Ep?filename=arche.glb",
+      "hash": "abe20ecadafdcfb152a4e765af11427b40c9f17be542f5c4f2e98c1951cecc19",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "e561fa44-e40b-424a-a59d-fba3ff0dadee": {
+      "id": "e561fa44-e40b-424a-a59d-fba3ff0dadee",
+      "name": "Obelisk Center",
+      "type": "model",
+      "position": {
+        "x": 8,
+        "y": 7.709661393643982,
+        "z": 16
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmWVvcusc5Zs7qMmjhSD5WUUkBsziCiqoWqDrqC9jw7B9c?filename=obelisque.glb",
+      "hash": "c5c4ef22f40196117dcd6240bcc9d8be3f69558e4edeb45a2213e12f000d15ff",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      }
+    },
+    "2fdec768-d8a7-4730-849f-9f5c1b6fe816": {
+      "id": "2fdec768-d8a7-4730-849f-9f5c1b6fe816",
+      "name": "Street Light NW",
+      "type": "model",
+      "position": {
+        "x": -30,
+        "y": 7.8606407279381845,
+        "z": -22.789848852430353
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmQKefxmUVQnthnAsCfkQ5v3H8MiCE8VBUujLJMVJME6At?filename=street light.glb",
+      "hash": "b76ee80bf6aaaa54b0f3bb8c2fa27347c03b48e85ebd162c0b26c65743d5afbe",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "42971201-a0f1-43b3-a29c-c2e2c91fe426": {
+      "id": "42971201-a0f1-43b3-a29c-c2e2c91fe426",
+      "name": "Street Light SE",
+      "type": "model",
+      "position": {
+        "x": 25,
+        "y": 8.148184571067688,
+        "z": 33
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmQKefxmUVQnthnAsCfkQ5v3H8MiCE8VBUujLJMVJME6At?filename=street light.glb",
+      "hash": "b76ee80bf6aaaa54b0f3bb8c2fa27347c03b48e85ebd162c0b26c65743d5afbe",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "b47c33bb-bae6-43c3-8a83-4f5187906a62": {
+      "id": "b47c33bb-bae6-43c3-8a83-4f5187906a62",
+      "name": "Platform Mid East",
+      "type": "model",
+      "position": {
+        "x": 15.227838244834608,
+        "y": -1.9557846986337992,
+        "z": 64.17583387622668
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+      "hash": "8efaaf5622f9b893daef7c070c0b4885dfc0957fdcb6e213310354ad17f63a40",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "MESH"
+      },
+      "enableAnimation": false,
+      "optimized": {
+        "high": "",
+        "low": "",
+        "low_compressed": ""
+      },
+      "mime_type": "model/gltf-binary",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1771437304459
+    },
+    "e76e644a-00ce-40bc-b4bc-57c40e04cf30": {
+      "id": "e76e644a-00ce-40bc-b4bc-57c40e04cf30",
+      "name": "Tree West",
+      "type": "model",
+      "position": {
+        "x": -50,
+        "y": 7.997110523701554,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2.5
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmW6BimogR4gSzXxEtAT3EUQibXeW5bfoW9wwxVQXuLgte?filename=sapin.glb",
+      "hash": "617c0ca551466719c2ac776241b3c8c8688235ece743cf86812d3201f7aaa816",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      },
+      "enableAnimation": false,
+      "optimized": {
+        "high": "",
+        "low": "",
+        "low_compressed": ""
+      },
+      "mime_type": "model/gltf-binary",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1771437411111
+    },
+    "0eeec3eb-9105-423b-899f-9113fac13a84": {
+      "id": "0eeec3eb-9105-423b-899f-9113fac13a84",
+      "name": "Barrel 1",
+      "type": "model",
+      "position": {
+        "x": -13,
+        "y": 1.3365999999999998,
+        "z": -8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbwUFzCRGNJaNRksWngm269qFPQBHbWQZEBB7MJqaVB7q?filename=baril.glb",
+      "hash": "b99ffd466c798dce69b8ec503bbc9475377f9965f396bf1ec6aee9be32cbd975",
+      "script": {
+        "tag": "barrel",
+        "identifier": "barrel-1"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      },
+      "enableAnimation": false,
+      "optimized": {
+        "high": "",
+        "low": "",
+        "low_compressed": ""
+      },
+      "mime_type": "model/gltf-binary",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1771511151778
+    },
+    "637ead20-43a8-450b-92f3-ae3f7bd9df5b": {
+      "id": "637ead20-43a8-450b-92f3-ae3f7bd9df5b",
+      "name": "Barrel 2",
+      "type": "model",
+      "position": {
+        "x": 20,
+        "y": 1.298635032832354,
+        "z": 13
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbwUFzCRGNJaNRksWngm269qFPQBHbWQZEBB7MJqaVB7q?filename=baril.glb",
+      "hash": "b99ffd466c798dce69b8ec503bbc9475377f9965f396bf1ec6aee9be32cbd975",
+      "script": {
+        "tag": "barrel",
+        "identifier": "barrel-2"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "256de54b-2040-40ab-8504-7484afe141e7": {
+      "id": "256de54b-2040-40ab-8504-7484afe141e7",
+      "name": "Barrel 3",
+      "type": "model",
+      "position": {
+        "x": -33,
+        "y": 1.4316032231918137,
+        "z": 33
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbwUFzCRGNJaNRksWngm269qFPQBHbWQZEBB7MJqaVB7q?filename=baril.glb",
+      "hash": "b99ffd466c798dce69b8ec503bbc9475377f9965f396bf1ec6aee9be32cbd975",
+      "script": {
+        "tag": "barrel",
+        "identifier": "barrel-3"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "59529d87-6aba-4f10-b39a-68949765e5d2": {
+      "id": "59529d87-6aba-4f10-b39a-68949765e5d2",
+      "name": "Barrel 4",
+      "type": "model",
+      "position": {
+        "x": 36,
+        "y": 0.8,
+        "z": -30
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbwUFzCRGNJaNRksWngm269qFPQBHbWQZEBB7MJqaVB7q?filename=baril.glb",
+      "hash": "b99ffd466c798dce69b8ec503bbc9475377f9965f396bf1ec6aee9be32cbd975",
+      "script": {
+        "tag": "barrel",
+        "identifier": "barrel-4"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "98d56454-cd75-494c-b54b-cea472d3af76": {
+      "id": "98d56454-cd75-494c-b54b-cea472d3af76",
+      "name": "Barrel 5",
+      "type": "model",
+      "position": {
+        "x": -8,
+        "y": 1.3046086605696268,
+        "z": 25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 2,
+        "z": 2
+      },
+      "url": "https://cyber.mypinata.cloud/ipfs/QmbwUFzCRGNJaNRksWngm269qFPQBHbWQZEBB7MJqaVB7q?filename=baril.glb",
+      "hash": "b99ffd466c798dce69b8ec503bbc9475377f9965f396bf1ec6aee9be32cbd975",
+      "script": {
+        "tag": "barrel",
+        "identifier": "barrel-5"
+      },
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CYLINDER"
+      }
+    },
+    "fc843859-97fd-42ac-81c5-02b49e1003fc": {
+      "id": "navmesh",
+      "name": "Navmesh",
+      "type": "navmesh",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 100,
+        "y": 20,
+        "z": 100
+      }
+    },
+    "model-mqh1JomOTSniUCmfQ1WGk": {
+      "id": "model-mqh1JomOTSniUCmfQ1WGk",
+      "name": "plateform01",
+      "mime_type": "model/gltf-binary",
+      "type": "model",
+      "url": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+      "optimized": {
+        "high": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+        "low": "https://cyber.mypinata.cloud/ipfs/QmPKXNngwdNGGwGXSrp5tyYhMBEwFnFZ4EjZC81BejNWwx?filename=plateform01.glb",
+        "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmR3DxShuhYYGypg7wjAktkAm4sXGzAGL5gAu2QhbqPzPL?filename=plateform01.glb"
+      },
+      "collider": {
+        "enabled": true,
+        "colliderType": "MESH",
+        "rigidbodyType": "FIXED"
+      },
+      "position": {
+        "x": 1.7677922673033777,
+        "y": 14.96024310028219,
+        "z": 124.92527530907289
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000670347595434027,
+        "z": 0
+      },
+      "scale": {
+        "x": 7,
+        "y": 3,
+        "z": 2.2
+      },
+      "enableAnimation": false,
+      "kit": "cyber",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true,
+      "_version": 1772726717866
+    },
+    "model_rSyXyK4pefvHhXR_kr_an": {
+      "id": "model_rSyXyK4pefvHhXR_kr_an",
+      "name": "plateform01",
+      "mime_type": "model/gltf-binary",
+      "type": "model",
+      "url": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+      "optimized": {
+        "high": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+        "low": "https://cyber.mypinata.cloud/ipfs/QmPKXNngwdNGGwGXSrp5tyYhMBEwFnFZ4EjZC81BejNWwx?filename=plateform01.glb",
+        "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmR3DxShuhYYGypg7wjAktkAm4sXGzAGL5gAu2QhbqPzPL?filename=plateform01.glb"
+      },
+      "collider": {
+        "enabled": true,
+        "colliderType": "MESH",
+        "rigidbodyType": "FIXED"
+      },
+      "position": {
+        "x": 1.9395095976196892,
+        "y": 14.96024310028219,
+        "z": -131.23631274559227
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.000670347595434027,
+        "z": 0
+      },
+      "scale": {
+        "x": 7,
+        "y": 3,
+        "z": 2.2
+      },
+      "enableAnimation": false,
+      "kit": "cyber",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true
+    },
+    "model__rQyWvX5VvEDGc-bEcMZQ": {
+      "id": "model__rQyWvX5VvEDGc-bEcMZQ",
+      "name": "plateform01",
+      "mime_type": "model/gltf-binary",
+      "type": "model",
+      "url": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+      "optimized": {
+        "high": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+        "low": "https://cyber.mypinata.cloud/ipfs/QmPKXNngwdNGGwGXSrp5tyYhMBEwFnFZ4EjZC81BejNWwx?filename=plateform01.glb",
+        "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmR3DxShuhYYGypg7wjAktkAm4sXGzAGL5gAu2QhbqPzPL?filename=plateform01.glb"
+      },
+      "collider": {
+        "enabled": true,
+        "colliderType": "MESH",
+        "rigidbodyType": "FIXED"
+      },
+      "position": {
+        "x": -124.50124749263959,
+        "y": 14.96024310028219,
+        "z": -11.83728275091805
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707384666470618,
+        "z": 0
+      },
+      "scale": {
+        "x": 7,
+        "y": 3,
+        "z": 2.2
+      },
+      "enableAnimation": false,
+      "kit": "cyber",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true
+    },
+    "model_M_7OuV9YVsQs19Em58elr": {
+      "id": "model_M_7OuV9YVsQs19Em58elr",
+      "name": "plateform01",
+      "mime_type": "model/gltf-binary",
+      "type": "model",
+      "url": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+      "optimized": {
+        "high": "https://cyber.mypinata.cloud/ipfs/QmPwZuUKsu3X4UsdTa12faAHPKaVvi9RHKxP3RcDZharxD?filename=plateform01.glb",
+        "low": "https://cyber.mypinata.cloud/ipfs/QmPKXNngwdNGGwGXSrp5tyYhMBEwFnFZ4EjZC81BejNWwx?filename=plateform01.glb",
+        "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmR3DxShuhYYGypg7wjAktkAm4sXGzAGL5gAu2QhbqPzPL?filename=plateform01.glb"
+      },
+      "collider": {
+        "enabled": true,
+        "colliderType": "MESH",
+        "rigidbodyType": "FIXED"
+      },
+      "position": {
+        "x": 129.63762905786976,
+        "y": 14.96024310028219,
+        "z": 3.317389927132906
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707384666470618,
+        "z": 0
+      },
+      "scale": {
+        "x": 7,
+        "y": 3,
+        "z": 2.2
+      },
+      "enableAnimation": false,
+      "kit": "cyber",
+      "envmap": "scene",
+      "envmapIntensity": 1,
+      "animations": {},
+      "meta": {
+        "addedBy": "",
+        "placeholder": ""
+      },
+      "renderMode": "default",
+      "plugins": [],
+      "opacity": 1,
+      "enableRealTimeShadow": false,
+      "useTransparency": false,
+      "center": true
+    }
+  },
+  "params": {},
+  "createdAt": 1768925468915,
+  "updatedAt": 1772726954914
+}

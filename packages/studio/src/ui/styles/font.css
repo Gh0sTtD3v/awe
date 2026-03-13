@@ -1,0 +1,50 @@
+/* Google Fonts (Changa One) loaded via <link> in studio layout */
+
+@font-face {
+    font-family: "Aeonik";
+    src:
+        url("./fonts/Aeonik-Medium.woff2") format("woff2"),
+        url("./fonts/Aeonik-Medium.woff") format("woff");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Aeonik";
+    src:
+        url("./fonts/Aeonik-Regular.woff2") format("woff2"),
+        url("./fonts/Aeonik-Regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Aeonik";
+    src:
+        url("./fonts/Aeonik-Bold.woff2") format("woff2"),
+        url("./fonts/Aeonik-Bold.woff") format("woff");
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Press Start 2P";
+    src:
+        url("./fonts/PressStart2P-Regular.woff2") format("woff2"),
+        url("./fonts/PressStart2P-Regular.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --font-aeonik: "Aeonik", sans-serif;
+    --font-pixel: "Press Start 2P", sans-serif;
+}
+
+body {
+    font-family: var(--font-aeonik);
+}
