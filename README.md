@@ -99,4 +99,4 @@ The MCP server provides 30+ tools for AI assistants to manipulate scenes program
 
 ## License
 
-All rights reserved.
+This project is licensed under the [MIT License](LICENSE).
