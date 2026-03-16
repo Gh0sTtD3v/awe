@@ -93,16 +93,19 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 
 | Type     | Description                                         |
 | -------- | --------------------------------------------------- |
-| `mesh`   | Basic shapes (box, sphere, cylinder, plane)         |
-| `model`  | 3D models (GLB/GLTF)                                |
-| `avatar` | VRM avatars (see `public/vrms.json`)                |
-| `text`   | 3D text                                             |
-| `image`  | 2D images in 3D space                               |
-| `video`  | Video planes                                        |
-| `audio`  | Spatial/ambient audio                               |
-| `iframe` | Embedded web content (YouTube, websites)            |
-| `group`  | Container for child components                      |
-| `object` | Escape hatch to wrap Three.js objects as components |
+| `mesh`          | Basic shapes (box, sphere, cylinder, plane)         |
+| `model`         | 3D models (GLB/GLTF)                                |
+| `avatar`        | VRM avatars (see `public/vrms.json`)                |
+| `text`          | 3D text                                             |
+| `image`         | 2D images in 3D space                               |
+| `video`         | Video planes                                        |
+| `audio`         | Spatial/ambient audio                               |
+| `iframe`        | Embedded web content (YouTube, websites)            |
+| `group`         | Container for child components                      |
+| `object`        | Escape hatch to wrap Three.js objects as components |
+| `batch`         | Batched/merged meshes for performance               |
+| `instancedmesh` | GPU-instanced meshes for repeated objects           |
+| `particles`     | Particle system                                     |
 
 ### Environment
 
@@ -116,7 +119,7 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 | `background` | Sky/background settings                |
 | `envmap`     | Environment map / reflections          |
 | `reflector`  | Mirror/reflective surfaces             |
-| `postpro`    | Post-processing effects                |
+| `postprocessing` | Post-processing effects            |
 
 ### Effects & Particles
 
@@ -135,7 +138,6 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 
 | Type        | Description                              |
 | ----------- | ---------------------------------------- |
-| `spawn`     | Player spawn point (required for player) |
 | `vrm-anims` | VRM animation definitions                |
 | `camera`    | Camera component                         |
 | `navmesh`   | Navigation mesh for pathfinding          |
