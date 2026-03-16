@@ -372,7 +372,7 @@ async function update(options: CliOptions) {
     }
 
     // Update root configs
-    const configFiles = ["tsconfig.json", "turbo.json", ".editorconfig"];
+    const configFiles = ["tsconfig.json", ".editorconfig"];
     for (const file of configFiles) {
       const srcFile = path.join(repoDir, file);
       const destFile = path.join(projectDir, file);

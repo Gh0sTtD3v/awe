@@ -2,8 +2,8 @@
   "name": "auth-multiplayer",
   "private": true,
   "scripts": {
-    "dev": "tsx watch server/index.ts & next dev --port 3001",
-    "dev:client": "next dev --port 3001",
+    "dev": "tsx watch server/index.ts & next dev --turbopack --port 3001",
+    "dev:client": "next dev --turbopack --port 3001",
     "dev:server": "tsx watch server/index.ts",
     "test": "vitest run -c vitest.config.ts",
     "test:watch": "vitest -c vitest.config.ts"
@@ -15,9 +15,9 @@
     "@colyseus/schema": "^4",
     "colyseus": "^0.17",
     "@colyseus/sdk": "^0.17",
-    "next": "16.1.2",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "three": "^0.170.0"
   },
   "devDependencies": {

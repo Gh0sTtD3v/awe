@@ -6,7 +6,7 @@ Thanks for your interest in contributing to oncyberio! This guide will help you 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or later
+- [Node.js](https://nodejs.org/) v20.9 or later
 - [pnpm](https://pnpm.io/) v8 or later
 - [Git](https://git-scm.com/)
 
@@ -28,7 +28,7 @@ pnpm engine-edit:check     # Type-check engine-edit
 
 ## Project Structure
 
-This is a pnpm monorepo managed with Turborepo. See the [README](README.md) for a full breakdown of packages. The key areas you'll work in:
+This is a pnpm workspace monorepo. See the [README](README.md) for a full breakdown of packages. The key areas you'll work in:
 
 | Area            | Path                             | Description                              |
 | --------------- | -------------------------------- | ---------------------------------------- |

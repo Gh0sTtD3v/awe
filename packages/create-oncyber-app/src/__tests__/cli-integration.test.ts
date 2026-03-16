@@ -7,6 +7,12 @@ import { execSync } from "child_process";
 const CLI_PATH = path.resolve(__dirname, "../index.ts");
 // Use the local monorepo root for testing instead of cloning from GitHub
 const MONOREPO_ROOT = path.resolve(__dirname, "../../../..");
+const MONOREPO_BRANCH = execSync("git rev-parse --abbrev-ref HEAD", {
+  cwd: MONOREPO_ROOT,
+  stdio: "pipe",
+})
+  .toString()
+  .trim();
 
 function runCli(
   args: string,
@@ -21,7 +27,7 @@ function runCli(
         ...process.env,
         NO_COLOR: "1",
         AWE_REPO_URL: MONOREPO_ROOT,
-        AWE_REPO_BRANCH: "dev-3",
+        AWE_REPO_BRANCH: MONOREPO_BRANCH,
         ...env,
       },
       timeout: 120000,
@@ -393,7 +399,7 @@ describe.skipIf(!process.env.TEST_REAL_CLONE)(
       const { stdout, exitCode } = runCli(
         "real-clone-test --template starter --use-pnpm --skip-install --skip-git",
         tmpDir,
-        { AWE_REPO_URL: "", AWE_REPO_BRANCH: "dev-3" }, // clear override to use real URL
+        { AWE_REPO_URL: "", AWE_REPO_BRANCH: "main" }, // clear override to use real URL
       );
 
       const elapsed = ((performance.now() - start) / 1000).toFixed(1);
