@@ -49,6 +49,26 @@ function writeJson(filePath: string, data: Record<string, any>) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
+const SCAFFOLD_EXCLUDED_DIR_NAMES = new Set([
+  ".git",
+  ".next",
+  ".turbo",
+  ".vercel",
+  ".cache",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+]);
+
+const SCAFFOLD_EXCLUDED_FILE_NAMES = new Set([
+  ".DS_Store",
+]);
+
+const SCAFFOLD_EXCLUDED_FILE_SUFFIXES = [
+  ".tsbuildinfo",
+];
+
 /**
  * Walk up from `startDir` looking for the monorepo root
  * (identified by having both pnpm-workspace.yaml and packages/engine/).
@@ -110,7 +130,9 @@ function cleanupScaffold(
   const templateDir = path.join(projectDir, "examples", template);
   const gameDir = path.join(projectDir, "apps/game");
   fs.mkdirSync(path.join(projectDir, "apps"), { recursive: true });
-  copyDirSync(templateDir, gameDir);
+  copyDirSync(templateDir, gameDir, {
+    shouldSkip: shouldSkipScaffoldEntry,
+  });
 
   // Remove examples/ directory
   const examplesDir = path.join(projectDir, "examples");
@@ -284,16 +306,39 @@ async function promptProjectName(): Promise<string> {
   return toKebabCase(name || "my-app");
 }
 
-function copyDirSync(src: string, dest: string) {
+function shouldSkipScaffoldEntry(entry: fs.Dirent) {
+  if (SCAFFOLD_EXCLUDED_DIR_NAMES.has(entry.name)) {
+    return true;
+  }
+
+  if (SCAFFOLD_EXCLUDED_FILE_NAMES.has(entry.name)) {
+    return true;
+  }
+
+  return SCAFFOLD_EXCLUDED_FILE_SUFFIXES.some((suffix) =>
+    entry.name.endsWith(suffix),
+  );
+}
+
+function copyDirSync(
+  src: string,
+  dest: string,
+  options?: {
+    shouldSkip?: (entry: fs.Dirent) => boolean;
+  },
+) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (options?.shouldSkip?.(entry)) {
+      continue;
+    }
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isSymbolicLink()) {
       const target = fs.readlinkSync(srcPath);
       fs.symlinkSync(target, destPath);
     } else if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
+      copyDirSync(srcPath, destPath, options);
     } else {
       fs.copyFileSync(srcPath, destPath);
     }
@@ -527,7 +572,9 @@ async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
     // Copy template
     steps.startStep();
     fs.mkdirSync(path.join(monorepoRoot, "apps"), { recursive: true });
-    copyDirSync(templateDir, appDir);
+    copyDirSync(templateDir, appDir, {
+      shouldSkip: shouldSkipScaffoldEntry,
+    });
 
     // Update package.json name
     const pkgPath = path.join(appDir, "package.json");

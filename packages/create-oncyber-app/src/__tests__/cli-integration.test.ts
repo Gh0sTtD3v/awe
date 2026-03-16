@@ -298,6 +298,42 @@ describe("CLI local mode", { timeout: 30000 }, () => {
     expect(fs.existsSync(path.join(appDir, "src/index.ts"))).toBe(true);
   });
 
+  it("skips generated template artifacts in local mode", () => {
+    const starterDir = path.join(tmpDir, "examples/starter");
+    fs.mkdirSync(path.join(starterDir, ".next/static"), { recursive: true });
+    fs.mkdirSync(path.join(starterDir, "node_modules/fake-package"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(starterDir, "dist"), { recursive: true });
+    fs.writeFileSync(
+      path.join(starterDir, ".next/static/chunk.js"),
+      "compiled output",
+    );
+    fs.writeFileSync(
+      path.join(starterDir, "node_modules/fake-package/index.js"),
+      "module.exports = {};",
+    );
+    fs.writeFileSync(path.join(starterDir, "dist/output.js"), "compiled output");
+    fs.writeFileSync(
+      path.join(starterDir, "tsconfig.tsbuildinfo"),
+      "typescript cache",
+    );
+
+    const { exitCode } = runCli(
+      "clean-game --local --template starter --skip-install",
+      tmpDir,
+    );
+
+    expect(exitCode).toBe(0);
+
+    const appDir = path.join(tmpDir, "apps/clean-game");
+    expect(fs.existsSync(path.join(appDir, ".next"))).toBe(false);
+    expect(fs.existsSync(path.join(appDir, "node_modules"))).toBe(false);
+    expect(fs.existsSync(path.join(appDir, "dist"))).toBe(false);
+    expect(fs.existsSync(path.join(appDir, "tsconfig.tsbuildinfo"))).toBe(false);
+    expect(fs.existsSync(path.join(appDir, "src/index.ts"))).toBe(true);
+  });
+
   it("sets app name in package.json", () => {
     runCli("cool-game --local --template starter --skip-install", tmpDir);
 
