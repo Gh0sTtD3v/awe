@@ -8,13 +8,16 @@ import { uploadAsset } from "./upload/upload-asset.js";
 import { bakeAnimation } from "./bake/bake-animation.js";
 import { inspectGltf } from "./inspect/inspect-gltf.js";
 import { OptimizeService } from "./optimize-service.js";
-import { fileExists, resolveProjectPath } from "./file-utils/index.js";
+import { fileExists, resolveProjectPath, readJsonFile, writeJsonFile, getUploadedAssetsPath, getUploadedAvatarsPath } from "./file-utils/index.js";
 import type { OOAsset } from "./types.js";
+import type { UploadedAsset } from "./upload/upload-asset.js";
 
 function printUsage() {
   console.error(`Usage: asset-optimizer <command> [options]
 
 Commands:
+  add-model <path>          Upload, optimize, and register a 3D model (GLB/GLTF)
+  add-avatar <path>         Upload, optimize, and register a VRM avatar
   optimize-model <path>     Optimize a 3D model (GLB/GLTF)
   optimize-vrm <path>       Optimize a VRM avatar file
   bake-anim <fbx-path>      Bake a Mixamo FBX animation to JSON
@@ -32,6 +35,15 @@ optimize-model options:
 
 bake-anim options:
   <name>                    Optional animation name (2nd positional arg)
+
+add-model options:
+  --name=NAME               Override asset name
+  --no-draco                Disable Draco compression
+  --no-meshopt              Disable MeshOptimizer simplification
+  --no-weld                 Disable vertex welding
+
+add-avatar options:
+  --name=NAME               Override avatar name
 
 upload-asset options:
   --name=NAME               Override asset name`);
@@ -81,6 +93,114 @@ async function main() {
   }
 
   switch (command) {
+    case "add-model": {
+      const sourcePath = positional[1];
+      if (!sourcePath) fail("Missing required argument: <path>");
+
+      const ext = extname(sourcePath).toLowerCase();
+      if (ext !== ".glb" && ext !== ".gltf") {
+        fail(`Unsupported file type: ${ext}. Supported: .glb, .gltf`);
+      }
+
+      try {
+        // Step 1: Upload (hash, copy, register)
+        const uploaded = await uploadAsset({
+          sourcePath,
+          projectDir,
+          name: flags["name"] as string | undefined,
+        });
+
+        // Step 2: Optimize
+        const publicDir = resolveProjectPath(projectDir, "public");
+        const asset: OOAsset = {
+          type: "model",
+          url: uploaded.url,
+          mime_type: ext === ".glb" ? "model/gltf-binary" : "model/gltf+json",
+        };
+        const compressionOptions = {
+          useWeld: flags["weld"] !== false,
+          useDraco: flags["draco"] !== false,
+          useMeshOpt: flags["meshopt"] !== false,
+        };
+        const optimized = await OptimizeService.optimizeAsset(asset, compressionOptions, { publicDir });
+
+        // Step 3: Update uploaded_assets.json with optimized URLs
+        const assetsPath = getUploadedAssetsPath(projectDir);
+        if (await fileExists(assetsPath)) {
+          const assets = await readJsonFile<UploadedAsset[]>(assetsPath);
+          const entry = assets.find((a) => a.hash === uploaded.hash);
+          if (entry) {
+            entry.d_optimized_files = optimized.optimized;
+            await writeJsonFile(assetsPath, assets);
+          }
+        }
+
+        outputJson({
+          url: uploaded.url,
+          optimized: optimized.optimized,
+          name: uploaded.name,
+          mimeType: uploaded.mimeType,
+        });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "add-avatar": {
+      const sourcePath = positional[1];
+      if (!sourcePath) fail("Missing required argument: <path>");
+
+      const ext = extname(sourcePath).toLowerCase();
+      if (ext !== ".vrm") {
+        fail(`Unsupported file type: ${ext}. Supported: .vrm`);
+      }
+
+      try {
+        // Step 1: Upload (hash, copy, register in uploaded_assets.json)
+        const uploaded = await uploadAsset({
+          sourcePath,
+          projectDir,
+          name: flags["name"] as string | undefined,
+        });
+
+        // Step 2: Optimize VRM
+        const publicDir = resolveProjectPath(projectDir, "public");
+        const relativePath = uploaded.url.replace(/^\/+/, "");
+        const resolvedPath = resolveProjectPath(projectDir, "public", relativePath);
+        const buffer = await readFile(resolvedPath);
+        const urlCompressed = await OptimizeService.optimizeVRM(buffer, basename(uploaded.url), publicDir);
+
+        // Step 3: Register in uploaded_avatars.json
+        const avatarsPath = getUploadedAvatarsPath(projectDir);
+        let avatars: any[] = [];
+        if (await fileExists(avatarsPath)) {
+          avatars = await readJsonFile<any[]>(avatarsPath);
+        }
+        const existingAvatar = avatars.find((a: any) => a.fileHash === uploaded.hash);
+        if (!existingAvatar) {
+          avatars.push({
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            fileHash: uploaded.hash,
+            url: uploaded.url,
+            urlCompressed,
+            name: uploaded.name,
+            createdAt: Date.now(),
+          });
+          await writeJsonFile(avatarsPath, avatars);
+        }
+
+        outputJson({
+          url: uploaded.url,
+          urlCompressed,
+          name: uploaded.name,
+        });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
     case "optimize-model": {
       const assetPath = positional[1];
       if (!assetPath) fail("Missing required argument: <path>");

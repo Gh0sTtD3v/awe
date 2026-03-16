@@ -5,6 +5,8 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "add-model": "tsx packages/asset-optimizer/src/cli.ts add-model",
+    "add-avatar": "tsx packages/asset-optimizer/src/cli.ts add-avatar",
     "bake-anim": "tsx packages/asset-optimizer/src/cli.ts bake-anim",
     "optimize-model": "tsx packages/asset-optimizer/src/cli.ts optimize-model",
     "optimize-vrm": "tsx packages/asset-optimizer/src/cli.ts optimize-vrm",

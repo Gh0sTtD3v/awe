@@ -39,3 +39,7 @@ export function getScenePath(projectDir: string): string {
 export function getUploadedAssetsPath(projectDir: string): string {
   return resolveProjectPath(projectDir, "public", "data", "uploaded_assets.json");
 }
+
+export function getUploadedAvatarsPath(projectDir: string): string {
+  return resolveProjectPath(projectDir, "public", "data", "uploaded_avatars.json");
+}

@@ -51,4 +51,4 @@ export { inspectGltf } from "./inspect/inspect-gltf";
 export type { InspectionResult } from "./inspect/inspect-gltf";
 
 // File Utilities
-export { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getScenePath, getUploadedAssetsPath } from "./file-utils";
+export { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getScenePath, getUploadedAssetsPath, getUploadedAvatarsPath } from "./file-utils";

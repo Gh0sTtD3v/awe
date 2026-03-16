@@ -16,12 +16,7 @@ description: |
 
 Edit `public/data/static-scene.json` directly for all scene CRUD operations (adding, updating, deleting components, managing assets, physics, lighting).
 
-For compute-heavy tasks, use the CLI:
-- `pnpm optimize-model <path>` — optimize a 3D model
-- `pnpm optimize-vrm <path>` — optimize a VRM avatar
-- `pnpm bake-anim <fbx-path> [name]` — bake a Mixamo FBX animation
-- `pnpm upload-asset <source-path>` — upload a local asset
-- `pnpm validate-scene` — validate the scene file
+For adding assets (models, avatars, animations, media), see [references/assets-guide.md](references/assets-guide.md).
 
 ### static-scene.json Overview
 
@@ -34,8 +29,6 @@ The scene file maps component IDs to component data. Each component has `id`, `n
 For detailed information, read these docs as needed:
 
 - **[references/engine-guide.md](references/engine-guide.md)** - Core API (components, physics, game loop, interactions)
-- **[references/assets-guide.md](references/assets-guide.md)** - Loading and managing 3D assets (models, avatars, uploads)
-- **[references/vrm-anims.md](references/vrm-anims.md)** - VRM animation system
 
 When working with a component, check its `*-data.ts` file for the data interface (e.g., `MeshComponentData`, `ModelComponentData`).
 
@@ -54,6 +47,4 @@ Quick-reference examples in `references/examples/`:
 | `input-system.md`               | Declarative input system (keyboard, gamepad, touch)  |
 | `interaction-lookat.md`         | Interaction prompts                                  |
 | `spawn-collectibles.md`         | Spawning items via template duplication              |
-| `adding-model-from-library.md`  | Load 3D model from library3D.json                    |
-| `adding-avatar-from-library.md` | Load avatar from vrms.json                           |
 | `npc-animation.md`             | NPC animation with AnimationStateMachine             |
