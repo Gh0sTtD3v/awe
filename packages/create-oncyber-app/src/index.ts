@@ -6,7 +6,7 @@ import { execSync } from "child_process";
 import { input, select } from "@inquirer/prompts";
 import pc from "picocolors";
 import { detectPackageManager } from "./detect-package-manager";
-import { createSpinner } from "./spinner";
+import { createSpinner, createSteps } from "./spinner";
 
 const REPO_URL =
   process.env.AWE_REPO_URL || "https://github.com/runthefun/awe-dev.git";
@@ -484,36 +484,48 @@ async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
 
   let templateDir = path.join(monorepoRoot, "examples", template);
   let tmpTemplateRoot: string | null = null;
-  if (!fs.existsSync(templateDir)) {
-    tmpTemplateRoot = fs.mkdtempSync(
-      path.join(require("os").tmpdir(), "awe-local-template-"),
-    );
-    const repoDir = path.join(tmpTemplateRoot, "repo");
-    const fetchSpinner = createSpinner(
-      "Template not found locally, fetching from upstream...",
-    );
-    fetchSpinner.start();
-    try {
-      sparseCloneDirs(REPO_URL, repoDir, [`examples/${template}`]);
-      templateDir = path.join(repoDir, "examples", template);
-      if (!fs.existsSync(templateDir)) {
-        throw new Error(`Template directory not found: examples/${template}`);
-      }
-      fetchSpinner.stop("Fetched template from upstream.");
-    } catch (err: any) {
-      fetchSpinner.stop();
-      fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
-      console.error("Failed to fetch template from upstream.");
-      if (err.stderr) console.error(err.stderr.toString());
-      else if (err.message) console.error(err.message);
-      process.exit(1);
-    }
-  }
+  const needsFetch = !fs.existsSync(templateDir);
 
-  const setupSpinner = createSpinner("Creating app...");
-  setupSpinner.start();
+  // Build step labels
+  const stepLabels: string[] = [];
+  if (needsFetch) stepLabels.push("Fetching template from upstream");
+  stepLabels.push("Copying template");
+  if (!options.skipInstall) stepLabels.push("Installing dependencies");
+
+  // Visual separator after prompts
+  console.log();
+
+  const steps = createSteps(stepLabels);
+  steps.start();
 
   try {
+    // Fetch template from upstream if not available locally
+    if (needsFetch) {
+      steps.startStep();
+      tmpTemplateRoot = fs.mkdtempSync(
+        path.join(require("os").tmpdir(), "awe-local-template-"),
+      );
+      const repoDir = path.join(tmpTemplateRoot, "repo");
+      try {
+        sparseCloneDirs(REPO_URL, repoDir, [`examples/${template}`]);
+        templateDir = path.join(repoDir, "examples", template);
+        if (!fs.existsSync(templateDir)) {
+          throw new Error(
+            `Template directory not found: examples/${template}`,
+          );
+        }
+        steps.completeStep();
+      } catch (err: any) {
+        fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
+        console.error("\nFailed to fetch template from upstream.");
+        if (err.stderr) console.error(err.stderr.toString());
+        else if (err.message) console.error(err.message);
+        process.exit(1);
+      }
+    }
+
+    // Copy template
+    steps.startStep();
     fs.mkdirSync(path.join(monorepoRoot, "apps"), { recursive: true });
     copyDirSync(templateDir, appDir);
 
@@ -524,43 +536,35 @@ async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
       pkg.name = appName;
       writeJson(pkgPath, pkg);
     }
-
-    setupSpinner.stop("App created.");
+    steps.completeStep();
 
     // Install deps
     if (!options.skipInstall) {
-      const installSpinner = createSpinner("Installing dependencies...");
-      installSpinner.start();
+      steps.startStep();
       try {
         execSync("pnpm install", {
           cwd: monorepoRoot,
           stdio: "pipe",
         });
-        installSpinner.stop("Dependencies installed.");
+        steps.completeStep();
       } catch (err: any) {
-        installSpinner.stop();
-        console.error("Failed to install dependencies:");
+        console.error("\nFailed to install dependencies:");
         if (err.stderr) console.error(err.stderr.toString());
         process.exit(1);
       }
     }
 
     // Success
-    const relPath = path.relative(process.cwd(), appDir);
     console.log();
     console.log(
-      pc.green(pc.bold("Success!")) +
-        ` Created ${pc.bold(appName)} at ${relPath}`,
+      `🎮 ${pc.green(pc.bold("Success!"))} Created ${pc.bold(appName)} at ${pc.cyan(`apps/${appName}`)}`,
     );
     console.log();
     console.log("Next steps:");
-    console.log(`  ${pc.cyan(`cd ${relPath}`)}`);
     if (options.skipInstall) {
-      console.log(
-        `  ${pc.cyan("pnpm install")}  ${pc.dim("(from monorepo root)")}`,
-      );
+      console.log(`  ${pc.cyan("pnpm install")}`);
     }
-    console.log(`  ${pc.cyan("pnpm dev")}`);
+    console.log(`  ${pc.cyan(`pnpm --filter ${appName} dev`)}`);
     console.log();
   } finally {
     if (tmpTemplateRoot) {

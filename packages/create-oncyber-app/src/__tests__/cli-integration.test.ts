@@ -367,7 +367,7 @@ describe("CLI local mode", { timeout: 30000 }, () => {
     );
 
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("Fetched template from upstream.");
+    expect(stdout).toContain("Fetching template from upstream");
     expect(stdout).toContain("Success!");
     expect(fs.existsSync(path.join(tmpDir, "apps/fallback-game"))).toBe(true);
   });

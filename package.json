@@ -1,6 +1,10 @@
 {
   "name": "awe",
   "private": true,
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
+  },
   "scripts": {
     "postinstall": "node scripts/ensure-mcp-build.mjs",
     "bake-anim": "pnpm --filter @oncyberio/scripts bake-anim",
