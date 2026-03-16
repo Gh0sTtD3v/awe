@@ -31,6 +31,7 @@ export interface CliOptions {
   packageManager?: PackageManager;
   skipInstall: boolean;
   skipGit: boolean;
+  local: boolean;
 }
 
 export function toKebabCase(str: string): string {
@@ -48,16 +49,44 @@ function writeJson(filePath: string, data: Record<string, any>) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
-function sparseClone(repoUrl: string, dest: string, template: string) {
+/**
+ * Walk up from `startDir` looking for the monorepo root
+ * (identified by having both pnpm-workspace.yaml and packages/engine/).
+ * Returns the root path or null.
+ */
+function findMonorepoRoot(startDir: string): string | null {
+  let dir = startDir;
+  while (true) {
+    if (
+      fs.existsSync(path.join(dir, "pnpm-workspace.yaml")) &&
+      fs.existsSync(path.join(dir, "packages/engine"))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function sparseCloneDirs(repoUrl: string, dest: string, dirs: string[]) {
   execSync(
     `git clone --depth 1 --filter=blob:none --sparse --branch "${REPO_BRANCH}" "${repoUrl}" "${dest}"`,
     { stdio: "pipe" },
   );
-  const dirs = ["packages", "scripts", ".claude", `examples/${template}`];
   execSync(
     `git -C "${dest}" sparse-checkout set ${dirs.join(" ")}`,
     { stdio: "pipe" },
   );
+}
+
+function sparseClone(repoUrl: string, dest: string, template: string) {
+  sparseCloneDirs(repoUrl, dest, [
+    "packages",
+    "scripts",
+    ".claude",
+    `examples/${template}`,
+  ]);
 }
 
 function cleanupScaffold(
@@ -144,6 +173,7 @@ ${pc.bold("Options:")}
   --use-yarn       Use yarn for dependency installation
   --skip-install   Skip automatic dependency installation
   --skip-git       Skip git repository initialization
+  --local          Create app inside the monorepo's apps/ directory
   --help           Show this help message
   --version        Show the CLI version
 
@@ -162,6 +192,9 @@ ${pc.bold("Examples:")}
 
   ${pc.dim("# Use pnpm and skip git init")}
   npx create-oncyber-app my-game --use-pnpm --skip-git
+
+  ${pc.dim("# Create an app inside the monorepo")}
+  create-oncyber-app my-game --local
 
   ${pc.dim("# Update an existing project's engine and packages")}
   cd my-game && npx create-oncyber-app update
@@ -187,6 +220,7 @@ export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
     skipInstall: false,
     skipGit: false,
+    local: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -211,6 +245,9 @@ export function parseArgs(argv: string[]): CliOptions {
         break;
       case "--skip-git":
         options.skipGit = true;
+        break;
+      case "--local":
+        options.local = true;
         break;
       case "--help":
         printHelp();
@@ -397,6 +434,141 @@ async function update(options: CliOptions) {
   }
 }
 
+async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
+  // Resolve app name
+  let appName: string;
+  if (options.projectName) {
+    appName = toKebabCase(options.projectName);
+  } else {
+    appName = await input({
+      message: "What is your app named?",
+      default: "my-game",
+      validate(value) {
+        const name = toKebabCase(value || "my-game");
+        const dir = path.join(monorepoRoot, "apps", name);
+        if (fs.existsSync(dir)) {
+          return `App already exists: apps/${name}`;
+        }
+        return true;
+      },
+    });
+    appName = toKebabCase(appName || "my-game");
+  }
+
+  const appDir = path.join(monorepoRoot, "apps", appName);
+  if (fs.existsSync(appDir)) {
+    console.error(`Error: App already exists: apps/${appName}`);
+    process.exit(1);
+  }
+
+  // Resolve template
+  let template: string;
+  if (options.template) {
+    if (!TEMPLATE_NAMES.includes(options.template)) {
+      console.error(
+        `Error: Unknown template "${options.template}". Available templates: ${TEMPLATE_NAMES.join(", ")}`,
+      );
+      process.exit(1);
+    }
+    template = options.template;
+  } else {
+    template = await select<string>({
+      message: "Which template would you like to use?",
+      choices: TEMPLATES.map((t) => ({
+        name: `${t.name} — ${t.description}`,
+        value: t.name,
+      })),
+      default: DEFAULT_TEMPLATE,
+    });
+  }
+
+  let templateDir = path.join(monorepoRoot, "examples", template);
+  let tmpTemplateRoot: string | null = null;
+  if (!fs.existsSync(templateDir)) {
+    tmpTemplateRoot = fs.mkdtempSync(
+      path.join(require("os").tmpdir(), "awe-local-template-"),
+    );
+    const repoDir = path.join(tmpTemplateRoot, "repo");
+    const fetchSpinner = createSpinner(
+      "Template not found locally, fetching from upstream...",
+    );
+    fetchSpinner.start();
+    try {
+      sparseCloneDirs(REPO_URL, repoDir, [`examples/${template}`]);
+      templateDir = path.join(repoDir, "examples", template);
+      if (!fs.existsSync(templateDir)) {
+        throw new Error(`Template directory not found: examples/${template}`);
+      }
+      fetchSpinner.stop("Fetched template from upstream.");
+    } catch (err: any) {
+      fetchSpinner.stop();
+      fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
+      console.error("Failed to fetch template from upstream.");
+      if (err.stderr) console.error(err.stderr.toString());
+      else if (err.message) console.error(err.message);
+      process.exit(1);
+    }
+  }
+
+  const setupSpinner = createSpinner("Creating app...");
+  setupSpinner.start();
+
+  try {
+    fs.mkdirSync(path.join(monorepoRoot, "apps"), { recursive: true });
+    copyDirSync(templateDir, appDir);
+
+    // Update package.json name
+    const pkgPath = path.join(appDir, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = readJson(pkgPath);
+      pkg.name = appName;
+      writeJson(pkgPath, pkg);
+    }
+
+    setupSpinner.stop("App created.");
+
+    // Install deps
+    if (!options.skipInstall) {
+      const installSpinner = createSpinner("Installing dependencies...");
+      installSpinner.start();
+      try {
+        execSync("pnpm install", {
+          cwd: monorepoRoot,
+          stdio: "pipe",
+        });
+        installSpinner.stop("Dependencies installed.");
+      } catch (err: any) {
+        installSpinner.stop();
+        console.error("Failed to install dependencies:");
+        if (err.stderr) console.error(err.stderr.toString());
+        process.exit(1);
+      }
+    }
+
+    // Success
+    const relPath = path.relative(process.cwd(), appDir);
+    console.log();
+    console.log(
+      pc.green(pc.bold("Success!")) +
+        ` Created ${pc.bold(appName)} at ${relPath}`,
+    );
+    console.log();
+    console.log("Next steps:");
+    console.log(`  ${pc.cyan(`cd ${relPath}`)}`);
+    if (options.skipInstall) {
+      console.log(
+        `  ${pc.cyan("pnpm install")}  ${pc.dim("(from monorepo root)")}`,
+      );
+    }
+    console.log(`  ${pc.cyan("pnpm dev")}`);
+    console.log();
+  } finally {
+    if (tmpTemplateRoot) {
+      fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
+    }
+  }
+}
+
 async function scaffold(options: CliOptions) {
   let projectName: string;
   if (options.projectName) {
@@ -544,9 +716,22 @@ async function main() {
   if (options.projectName === "update") {
     options.projectName = undefined;
     await update(options);
-  } else {
-    await scaffold(options);
+    return;
   }
+
+  if (options.local) {
+    const monorepoRoot = findMonorepoRoot(process.cwd());
+    if (!monorepoRoot) {
+      console.error(
+        "Error: --local flag used but not inside an AWE monorepo.",
+      );
+      process.exit(1);
+    }
+    await scaffoldLocal(options, monorepoRoot);
+    return;
+  }
+
+  await scaffold(options);
 }
 
 main();

@@ -242,6 +242,137 @@ describe("CLI integration", { timeout: 30000 }, () => {
   });
 });
 
+describe("CLI local mode", { timeout: 30000 }, () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    // Create a fake monorepo structure
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-oncyber-local-"));
+    fs.writeFileSync(
+      path.join(tmpDir, "pnpm-workspace.yaml"),
+      'packages:\n  - "packages/*"\n  - "apps/*"\n  - "examples/*"\n',
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, "package.json"),
+      JSON.stringify({ name: "awe", private: true }, null, 2),
+    );
+    // Create fake packages/engine so detection works
+    fs.mkdirSync(path.join(tmpDir, "packages/engine"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, "packages/engine/package.json"),
+      JSON.stringify({ name: "@oncyberio/engine" }, null, 2),
+    );
+    // Create a fake template in examples/starter
+    const starterDir = path.join(tmpDir, "examples/starter");
+    fs.mkdirSync(path.join(starterDir, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(starterDir, "package.json"),
+      JSON.stringify({ name: "starter", version: "0.0.0" }, null, 2),
+    );
+    fs.writeFileSync(path.join(starterDir, "src/index.ts"), "// game code");
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("creates app in apps/ when --local is passed", () => {
+    const { stdout, exitCode } = runCli(
+      "my-game --local --template starter --skip-install",
+      tmpDir,
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Success!");
+    expect(stdout).toContain("my-game");
+
+    const appDir = path.join(tmpDir, "apps/my-game");
+    expect(fs.existsSync(appDir)).toBe(true);
+    expect(fs.existsSync(path.join(appDir, "package.json"))).toBe(true);
+    expect(fs.existsSync(path.join(appDir, "src/index.ts"))).toBe(true);
+  });
+
+  it("sets app name in package.json", () => {
+    runCli("cool-game --local --template starter --skip-install", tmpDir);
+
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, "apps/cool-game/package.json"), "utf-8"),
+    );
+    expect(pkg.name).toBe("cool-game");
+  });
+
+  it("converts app name to kebab-case", () => {
+    runCli("MyCoolGame --local --template starter --skip-install", tmpDir);
+
+    expect(fs.existsSync(path.join(tmpDir, "apps/my-cool-game"))).toBe(true);
+    const pkg = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, "apps/my-cool-game/package.json"),
+        "utf-8",
+      ),
+    );
+    expect(pkg.name).toBe("my-cool-game");
+  });
+
+  it("fails when app already exists", () => {
+    fs.mkdirSync(path.join(tmpDir, "apps/existing"), { recursive: true });
+    const { exitCode, stdout } = runCli(
+      "existing --local --template starter --skip-install",
+      tmpDir,
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("already exists");
+  });
+
+  it("fails with unknown template", () => {
+    const { exitCode, stdout } = runCli(
+      "bad --local --template nonexistent --skip-install",
+      tmpDir,
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("Unknown template");
+  });
+
+  it("does not create a project directory in cwd (only in apps/)", () => {
+    runCli("my-game --local --template starter --skip-install", tmpDir);
+
+    // Should NOT create tmpDir/my-game (that's what scaffold does)
+    expect(fs.existsSync(path.join(tmpDir, "my-game"))).toBe(false);
+    // Should create tmpDir/apps/my-game
+    expect(fs.existsSync(path.join(tmpDir, "apps/my-game"))).toBe(true);
+  });
+
+  it("works with --local flag from subdirectory", () => {
+    // Run from packages/ subdirectory — should still find monorepo root
+    const subDir = path.join(tmpDir, "packages");
+    const { stdout, exitCode } = runCli(
+      "sub-game --local --template starter --skip-install",
+      subDir,
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Success!");
+    expect(fs.existsSync(path.join(tmpDir, "apps/sub-game"))).toBe(true);
+  });
+
+  it("falls back to upstream template when examples are missing locally", () => {
+    fs.rmSync(path.join(tmpDir, "examples"), { recursive: true, force: true });
+
+    const { stdout, exitCode } = runCli(
+      "fallback-game --local --template starter --skip-install",
+      tmpDir,
+      { AWE_REPO_BRANCH: "dev" },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Fetched template from upstream.");
+    expect(stdout).toContain("Success!");
+    expect(fs.existsSync(path.join(tmpDir, "apps/fallback-game"))).toBe(true);
+  });
+});
+
 describe.skipIf(!process.env.TEST_REAL_CLONE)(
   "real clone from GitHub",
   { timeout: 120000 },
