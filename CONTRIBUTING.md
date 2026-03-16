@@ -35,7 +35,6 @@ This is a pnpm workspace monorepo. See the [README](README.md) for a full breakd
 | Engine          | `packages/engine/`               | Core 3D engine (components, physics, rendering) |
 | Editor          | `packages/engine-edit/`          | Visual editing tools (gizmos, selection, undo/redo) |
 | Asset Optimizer | `packages/asset-optimizer/`      | GLTF/texture optimization pipeline       |
-| MCP Server      | `packages/mcp-server/`           | AI tool server for scene manipulation    |
 | Studio          | `packages/studio/`               | In-browser studio UI and tools           |
 | CLI             | `packages/create-oncyber-app/`   | Project scaffolding tool                 |
 | Scripts         | `scripts/`                       | Animation baking, GLTF inspection        |
@@ -82,7 +81,6 @@ pnpm asset-optimizer:check
 
 # Testing
 pnpm --filter engine test
-pnpm --filter mcp-server test
 pnpm --filter create-oncyber-app test
 
 # API generation
@@ -123,7 +121,6 @@ feat(engine): add water shader component
 fix(engine-edit): correct gizmo alignment on rotated objects
 docs: update physics configuration examples
 chore: update three.js to 0.171
-refactor(mcp-server): simplify component schema resolution
 test(engine): add collision detection edge case tests
 ```
 
@@ -131,7 +128,7 @@ Format: `type(scope): description`
 
 **Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`
 
-**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `mcp-server`, `studio`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
+**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `studio`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
 
 ## Pull Requests
 

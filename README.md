@@ -11,7 +11,7 @@ A 3D game engine and framework built on [Three.js](https://threejs.org/). Build 
 - **Particle effects** — three.quarks-based VFX system
 - **Visual editor** — embedded studio at `/studio` for scene editing
 - **Asset optimization** — Draco compression, KTX2 textures, mesh optimization
-- **AI-powered development** — MCP server tools plus repo-specific engine skills for AI-assisted scene editing and game development workflows
+- **AI-powered development** — CLI tools plus repo-specific engine skills for AI-assisted scene editing and game development workflows
 - **GPU instancing & LOD** — performance optimizations for large scenes
 - **Navigation meshes** — pathfinding via recast-navigation
 - **AI navigation** — navmesh-based pathfinding and movement for NPCs and agents
@@ -39,7 +39,6 @@ awe/
 │   ├── engine/              # Core 3D game engine (@oncyberio/engine)
 │   ├── engine-edit/         # Visual editing tools (@oncyberio/engine-edit)
 │   ├── asset-optimizer/     # GLTF/texture optimization (@oncyberio/asset-optimizer)
-│   ├── mcp-server/          # MCP server for AI tools (@oncyberio/mcp-server)
 │   ├── studio/              # In-browser studio tools (@oncyberio/studio)
 │   └── create-oncyber-app/  # CLI project scaffolder
 ├── examples/                # Example game projects (auth-multiplayer, football-demo, multiplayer, starter, zombie-survival)
@@ -54,7 +53,6 @@ awe/
 | `@oncyberio/engine`          | Core 3D game engine — components, physics, input, rendering         |
 | `@oncyberio/engine-edit`     | Editor utilities — gizmos, selection, transform controls, undo/redo |
 | `@oncyberio/asset-optimizer` | Asset pipeline — Draco, meshoptimizer, KTX2, Sharp, IPFS uploads    |
-| `@oncyberio/mcp-server`      | Model Context Protocol server for AI-assisted scene editing         |
 | `create-oncyber-app`         | Interactive CLI to scaffold new game projects from a template       |
 | `@oncyberio/scripts`         | CLI tools for animation baking and GLTF inspection                  |
 | `@oncyberio/studio`          | Embedded scene editing studio UI and tools                          |
@@ -95,7 +93,7 @@ For development commands, code style, branching, and PR workflow, see [CONTRIBUT
 
 ### AI Integration
 
-The MCP server provides 30+ tools for AI assistants to manipulate scenes programmatically — adding components, configuring physics, managing assets, and more. Generated projects come pre-configured with Claude Code skills for engine usage, VFX creation, and asset inspection.
+Generated projects include CLI tools for asset optimization (model compression, VRM processing, animation baking) and Claude Code skills for engine usage, VFX creation, and asset inspection.
 
 ## License
 

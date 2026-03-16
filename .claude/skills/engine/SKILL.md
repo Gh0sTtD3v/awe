@@ -8,13 +8,20 @@ description: |
 
 ## Core Workflow
 
-1. **Define static components** using MCP tools (preferred) or edit `static-scene.json` directly
+1. **Define static components** by editing `static-scene.json` directly
 2. **Implement game logic** in a game script file (events, collisions, interactions)
 3. **Add UI** in a React component if needed (score, timer, menus)
 
-## Scene Editing — Use MCP Tools
+## Scene Editing
 
-For all scene CRUD operations (adding, updating, deleting components, managing assets, physics, lighting), **use the oncyberio-engine MCP tools** rather than manually editing `static-scene.json`. The MCP server provides validation, auto-ID generation, asset search, and schema enforcement.
+Edit `public/data/static-scene.json` directly for all scene CRUD operations (adding, updating, deleting components, managing assets, physics, lighting).
+
+For compute-heavy tasks, use the CLI:
+- `pnpm optimize-model <path>` — optimize a 3D model
+- `pnpm optimize-vrm <path>` — optimize a VRM avatar
+- `pnpm bake-anim <fbx-path> [name]` — bake a Mixamo FBX animation
+- `pnpm upload-asset <source-path>` — upload a local asset
+- `pnpm validate-scene` — validate the scene file
 
 ### static-scene.json Overview
 
@@ -30,7 +37,7 @@ For detailed information, read these docs as needed:
 - **[references/assets-guide.md](references/assets-guide.md)** - Loading and managing 3D assets (models, avatars, uploads)
 - **[references/vrm-anims.md](references/vrm-anims.md)** - VRM animation system
 
-When working with a component, check its `*-data.ts` file for the data interface (e.g., `MeshComponentData`, `ModelComponentData`), or use the MCP `get_component_schema` tool.
+When working with a component, check its `*-data.ts` file for the data interface (e.g., `MeshComponentData`, `ModelComponentData`).
 
 The guides in this folder focus on **game logic patterns and workflows** (scripts, input, physics, interactions) — the API types are the authoritative reference for exact signatures.
 

@@ -30,11 +30,11 @@ space.stop(); // stops game update loop
 
 ## Components
 
-Components are the building blocks of scenes. Define them statically via MCP tools (preferred) or `static-scene.json`, or create them dynamically at runtime.
+Components are the building blocks of scenes. Define them statically in `static-scene.json`, or create them dynamically at runtime.
 
 ### Creating Components
 
-**Static (scene editing):** Use MCP tools (`add_component`, `add_model_to_scene`, `add_avatar_to_scene`) to add components to the scene. Prefer static scene data over runtime creation when possible.
+**Static (scene editing):** Edit `public/data/static-scene.json` directly to add components to the scene. Prefer static scene data over runtime creation when possible.
 
 **Runtime (game script):**
 

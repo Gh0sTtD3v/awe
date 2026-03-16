@@ -226,7 +226,7 @@ ${pc.bold("What's included:")}
   - Next.js app with the AWE 3D game engine pre-configured
   - Embedded studio at /studio for visual scene editing
   - Claude skills for engine usage, VFX creation, and GLTF inspection
-  - MCP tools for AI-assisted scene editing
+  - CLI tools for asset optimization and scene validation
   - Sample scene with a default environment and avatar
 `);
 }

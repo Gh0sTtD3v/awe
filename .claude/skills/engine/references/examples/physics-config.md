@@ -2,7 +2,24 @@
 
 ## Static Physics Setup
 
-Use the MCP `set_physics` tool to add/update physics on existing components, or include a `collider` when using `add_component`.
+Add a `collider` property to the component in `public/data/static-scene.json`:
+
+```json
+{
+  "my-platform": {
+    "id": "my-platform",
+    "name": "Platform",
+    "type": "mesh",
+    "position": { "x": 0, "y": 0, "z": 0 },
+    "geometry": { "type": "box", "width": 10, "height": 0.5, "depth": 10 },
+    "collider": {
+      "enabled": true,
+      "rigidbodyType": "FIXED",
+      "colliderType": "CUBE"
+    }
+  }
+}
+```
 
 ## Runtime Physics Setup
 

@@ -2,9 +2,9 @@
   "name": "@oncyberio/asset-optimizer",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit"
   },
   "dependencies": {
@@ -25,10 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "tsx": "^4.21.0",
     "typescript": "^5"
-  },
-  "files": [
-    "dist",
-    "LICENCE"
-  ]
+  }
 }

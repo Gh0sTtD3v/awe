@@ -1,0 +1,214 @@
+#!/usr/bin/env node
+
+import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { extname, basename } from "node:path";
+import { validateScene } from "./scene/validate-scene.js";
+import { uploadAsset } from "./upload/upload-asset.js";
+import { bakeAnimation } from "./bake/bake-animation.js";
+import { inspectGltf } from "./inspect/inspect-gltf.js";
+import { OptimizeService } from "./optimize-service.js";
+import { fileExists, resolveProjectPath } from "./file-utils/index.js";
+import type { OOAsset } from "./types.js";
+
+function printUsage() {
+  console.error(`Usage: asset-optimizer <command> [options]
+
+Commands:
+  optimize-model <path>     Optimize a 3D model (GLB/GLTF)
+  optimize-vrm <path>       Optimize a VRM avatar file
+  bake-anim <fbx-path>      Bake a Mixamo FBX animation to JSON
+  upload-asset <source>     Upload a local asset to the project
+  validate-scene            Validate the project's static-scene.json
+  inspect-gltf <path>       Inspect a GLTF/GLB file metadata
+
+Global options:
+  --project-dir=PATH        Project directory (default: cwd)
+
+optimize-model options:
+  --no-draco                Disable Draco compression
+  --no-meshopt              Disable MeshOptimizer simplification
+  --no-weld                 Disable vertex welding
+
+bake-anim options:
+  <name>                    Optional animation name (2nd positional arg)
+
+upload-asset options:
+  --name=NAME               Override asset name`);
+}
+
+function parseArgs(argv: string[]) {
+  const args: { positional: string[]; flags: Record<string, string | boolean> } = {
+    positional: [],
+    flags: {},
+  };
+
+  for (const arg of argv) {
+    if (arg.startsWith("--")) {
+      const eq = arg.indexOf("=");
+      if (eq !== -1) {
+        args.flags[arg.slice(2, eq)] = arg.slice(eq + 1);
+      } else if (arg.startsWith("--no-")) {
+        args.flags[arg.slice(5)] = false;
+      } else {
+        args.flags[arg.slice(2)] = true;
+      }
+    } else {
+      args.positional.push(arg);
+    }
+  }
+
+  return args;
+}
+
+function outputJson(data: unknown) {
+  console.log(JSON.stringify(data, null, 2));
+}
+
+function fail(message: string): never {
+  outputJson({ error: true, message });
+  process.exit(1);
+}
+
+async function main() {
+  const { positional, flags } = parseArgs(process.argv.slice(2));
+  const command = positional[0];
+  const projectDir = resolve((flags["project-dir"] as string) || process.cwd());
+
+  if (!command || flags["help"] === true) {
+    printUsage();
+    process.exit(command ? 0 : 1);
+  }
+
+  switch (command) {
+    case "optimize-model": {
+      const assetPath = positional[1];
+      if (!assetPath) fail("Missing required argument: <path>");
+
+      const ext = extname(assetPath).toLowerCase();
+      if (ext !== ".glb" && ext !== ".gltf") {
+        fail(`Unsupported file type: ${ext}. Supported: .glb, .gltf`);
+      }
+
+      const relativePath = assetPath.replace(/^\/+/, "");
+      const resolvedPath = resolveProjectPath(projectDir, "public", relativePath);
+      if (!(await fileExists(resolvedPath))) {
+        fail(`File not found: ${assetPath}`);
+      }
+
+      const publicDir = resolveProjectPath(projectDir, "public");
+      const asset: OOAsset = {
+        type: "model",
+        url: assetPath,
+        mime_type: ext === ".glb" ? "model/gltf-binary" : "model/gltf+json",
+      };
+
+      const compressionOptions = {
+        useWeld: flags["weld"] !== false,
+        useDraco: flags["draco"] !== false,
+        useMeshOpt: flags["meshopt"] !== false,
+      };
+
+      try {
+        const result = await OptimizeService.optimizeAsset(asset, compressionOptions, { publicDir });
+        outputJson(result);
+      } catch (err) {
+        fail(`Optimization failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      break;
+    }
+
+    case "optimize-vrm": {
+      const assetPath = positional[1];
+      if (!assetPath) fail("Missing required argument: <path>");
+
+      const ext = extname(assetPath).toLowerCase();
+      if (ext !== ".vrm" && ext !== ".glb") {
+        fail(`Unsupported file type: ${ext}. Supported: .vrm, .glb`);
+      }
+
+      const relativePath = assetPath.replace(/^\/+/, "");
+      const resolvedPath = resolveProjectPath(projectDir, "public", relativePath);
+      if (!(await fileExists(resolvedPath))) {
+        fail(`File not found: ${assetPath}`);
+      }
+
+      const publicDir = resolveProjectPath(projectDir, "public");
+      const filename = basename(assetPath);
+
+      try {
+        const buffer = await readFile(resolvedPath);
+        const url = await OptimizeService.optimizeVRM(buffer, filename, publicDir);
+        outputJson({ optimizedUrl: url });
+      } catch (err) {
+        fail(`VRM optimization failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      break;
+    }
+
+    case "bake-anim": {
+      const fbxPath = positional[1];
+      if (!fbxPath) fail("Missing required argument: <fbx-path>");
+
+      try {
+        const result = await bakeAnimation({
+          fbxPath,
+          projectDir,
+          name: positional[2],
+        });
+        outputJson(result);
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "upload-asset": {
+      const sourcePath = positional[1];
+      if (!sourcePath) fail("Missing required argument: <source-path>");
+
+      try {
+        const result = await uploadAsset({
+          sourcePath,
+          projectDir,
+          name: flags["name"] as string | undefined,
+        });
+        outputJson(result);
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "validate-scene": {
+      try {
+        const result = await validateScene(projectDir);
+        outputJson(result);
+        if (!result.valid) process.exit(1);
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "inspect-gltf": {
+      const filePath = positional[1];
+      if (!filePath) fail("Missing required argument: <path>");
+
+      try {
+        const result = await inspectGltf(filePath);
+        outputJson(result);
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    default:
+      fail(`Unknown command: ${command}`);
+  }
+}
+
+main().catch((err) => {
+  fail(err instanceof Error ? err.message : String(err));
+});

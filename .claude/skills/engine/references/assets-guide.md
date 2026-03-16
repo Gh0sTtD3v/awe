@@ -127,20 +127,20 @@ Pre-built 3D models with multiple optimization levels.
 
 ## Adding Assets to the Scene
 
-**Use MCP tools** for all scene asset operations:
+Edit `public/data/static-scene.json` directly and use CLI tools for compute tasks:
 
-| Task | MCP Tool |
+| Task | How |
 | --- | --- |
-| Add a 3D model | `add_model_to_scene` (searches library, adds with optimized URLs) |
-| Add an avatar | `add_avatar_to_scene` (searches library, adds with compressed URLs) |
-| Upload a local file | `upload_asset` (hashes, copies, registers in uploaded_assets.json) |
-| Browse models | `list_models` or `search_assets` |
-| Browse avatars | `list_avatars` or `search_assets` |
-| Browse uploads | `list_uploads` |
+| Add a 3D model | Look up in `public/library3D.json`, add a component to `static-scene.json` |
+| Add an avatar | Look up in `public/vrms.json`, add a component to `static-scene.json` |
+| Upload a local file | `pnpm upload-asset <path>` (hashes, copies, registers in uploaded_assets.json) |
+| Browse models | Read `public/library3D.json` directly |
+| Browse avatars | Read `public/vrms.json` directly |
+| Browse uploads | Read `public/data/uploaded_assets.json` directly |
 
 ### Automatic URL Selection
 
-The engine automatically selects the best asset URL based on device capabilities. The MCP tools handle this by including all URL variants when adding assets.
+The engine automatically selects the best asset URL based on device capabilities. Include all URL variants when adding assets to the scene.
 
 - **Avatars:** `url` + `urlCompressed` (KTX2 textures)
 - **Models:** `url` + `optimized.high` / `optimized.low` / `optimized.low_compressed` (GPU-tier based)

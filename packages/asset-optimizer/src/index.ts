@@ -32,3 +32,23 @@ export {
 // Optimize Service
 export { OptimizeService } from "./optimize-service";
 export type { OptimizeAssetResult } from "./optimize-service";
+
+// Scene Validation
+export { validateScene, readScene } from "./scene/validate-scene";
+export type { ValidationResult } from "./scene/validate-scene";
+export type { SceneComponent, SceneData, ColliderConfig } from "./scene/types";
+
+// Upload
+export { uploadAsset } from "./upload/upload-asset";
+export type { UploadedAsset, UploadAssetOptions } from "./upload/upload-asset";
+
+// Bake Animation
+export { bakeAnimation } from "./bake/bake-animation";
+export type { BakeResult, BakeAnimationOptions } from "./bake/bake-animation";
+
+// Inspect
+export { inspectGltf } from "./inspect/inspect-gltf";
+export type { InspectionResult } from "./inspect/inspect-gltf";
+
+// File Utilities
+export { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getScenePath, getUploadedAssetsPath } from "./file-utils";

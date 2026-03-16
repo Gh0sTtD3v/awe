@@ -1,16 +1,37 @@
 # VRM Animations Guide
 
-Custom VRM animations can be added from Mixamo FBX files using the **`bake_animation` MCP tool**.
+Custom VRM animations can be added from Mixamo FBX files using the `pnpm bake-anim` CLI command.
 
 ### Adding New Animations
 
 1. **Place FBX file** in `public/assets/anims/` (download from [Mixamo](https://www.mixamo.com/))
 
-2. **Bake the animation** using the `bake_animation` MCP tool:
-   - `fbxPath`: path relative to `public/` (e.g., `assets/anims/zombie_attack.fbx`)
-   - Optional: `name`, `loop` (default: true), `sync` (default: false), `timeScale` (default: 1)
+2. **Bake the animation** using the CLI:
+   ```
+   pnpm bake-anim <fbx-path> [name]
+   ```
+   - `fbx-path`: path relative to `public/` (e.g., `assets/anims/zombie_attack.fbx`)
+   - `name`: optional animation name (defaults to filename, sanitized to snake_case)
 
-3. **Register the clip** using the `add_animation` MCP tool with the bake output
+3. **Register the clip** by adding the bake output to the `vrm-anims` component in `static-scene.json`:
+   ```json
+   {
+     "vrm-anims": {
+       "id": "vrm-anims",
+       "name": "VRM Animations",
+       "type": "vrm-anims",
+       "anims": {
+         "zombie_attack": {
+           "name": "zombie_attack",
+           "url": "/assets/anims/zombie_attack.json",
+           "loop": true,
+           "sync": false,
+           "timeScale": 1
+         }
+       }
+     }
+   }
+   ```
 
 4. **Use in game script** (requires `useCpuAnimation: true` on spawn/avatar):
    ```typescript

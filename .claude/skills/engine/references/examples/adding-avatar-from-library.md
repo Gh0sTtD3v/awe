@@ -2,7 +2,22 @@
 
 ## Adding to Scene
 
-Use the MCP `add_avatar_to_scene` tool — it searches the avatar library, includes both `url` and `urlCompressed`, and adds the component in one step. Use `list_avatars` or `search_assets` to browse available avatars first.
+Look up the avatar in `public/vrms.json`, then add a component to `public/data/static-scene.json`:
+
+```json
+{
+  "my-npc": {
+    "id": "my-npc",
+    "name": "Guard NPC",
+    "type": "avatar",
+    "position": { "x": 5, "y": 0, "z": 3 },
+    "url": "https://cyber.mypinata.cloud/ipfs/...",
+    "urlCompressed": "https://cyber.mypinata.cloud/ipfs/..."
+  }
+}
+```
+
+Copy both `url` and `urlCompressed` from the vrms.json entry for the chosen avatar.
 
 ## Runtime Duplication
 
