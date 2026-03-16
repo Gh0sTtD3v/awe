@@ -13,7 +13,7 @@
   "dependencies": {
     "@oncyberio/engine": "workspace:*",
     "@oncyberio/engine-edit": "workspace:*",
-    "@oncyberio/asset-optimizer": "workspace:*",
+    "@oncyberio/tools": "workspace:*",
     "@gsap/react": "^2.1.0",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",

@@ -1,146 +1,43 @@
 # Assets Guide
 
-This guide covers loading and managing 3D assets in your scene.
+Asset sources, storage locations, and workflows for adding assets to the scene.
 
 ## Asset Sources
 
-### Official Avatars (vrms.json)
+There are two kinds of assets: **official** (pre-built, hosted remotely) and **custom** (user-provided, stored locally).
 
-VRM avatars available for characters (player, zombie ...).
+### Official assets
 
-**Location:** `public/vrms.json`
+Pre-built assets shipped with the engine. Read-only catalogs — browse them to find assets to add to the scene.
 
-**Structure:**
+- **3D Models** — `packages/studio/src/data/library-3d.json` — GLB models with pre-optimized variants (high/low/low_compressed). See [adding-model-from-library.md](adding-model-from-library.md)
+- **VRM Avatars** — `packages/studio/src/data/vrms.json` — VRM characters with compressed versions. See [adding-avatar-from-library.md](adding-avatar-from-library.md)
 
-```json
-{
-  "sunshine": {
-    "id": "sunshine",
-    "name": "Summer",
-    "url": "https://cyber.mypinata.cloud/ipfs/...",
-    "urlCompressed": "https://cyber.mypinata.cloud/ipfs/...",
-    "image": "https://cyber.mypinata.cloud/ipfs/...",
-    "preview_image": "https://cyber.mypinata.cloud/ipfs/...",
-    "description": "Avatar description"
-  }
-}
-```
+### Custom assets
 
-| Field           | Description                     |
-| --------------- | ------------------------------- |
-| `id`            | Unique avatar identifier        |
-| `name`          | Display name                    |
-| `url`           | Full quality VRM/GLB URL        |
-| `urlCompressed` | Optimized VRM URL (prefer this) |
-| `image`         | Preview image URL               |
-| `description`   | Avatar description              |
+User-provided files processed via CLI tools. Stored locally in `public/assets/` with metadata in `public/data/`.
 
-### Official 3D Models (library3D.json)
+- **3D Models** (`.glb`, `.gltf`) — uploaded, optimized, registered. See [adding-custom-model.md](adding-custom-model.md)
+- **VRM Avatars** (`.vrm`) — uploaded, optimized, registered. See [adding-custom-avatar.md](adding-custom-avatar.md)
+- **VRM Animations** (`.fbx`) — baked from Mixamo FBX to JSON. See [adding-custom-vrm-anim.md](adding-custom-vrm-anim.md)
+- **Images, Audio, Video** (`.png`, `.jpg`, `.mp3`, `.wav`, `.mp4`, `.webm`) — uploaded, registered. See [adding-custom-media.md](adding-custom-media.md)
 
-Pre-built 3D models with multiple optimization levels.
-
-**Location:** `public/library3D.json`
-
-**Structure:**
-
-```json
-{
-  "id": "...",
-  "name": "...",
-  "hash": "...",
-  "mimeType": "model/gltf-binary",
-  "image": {
-    "pinata": "https://cyber.mypinata.cloud/ipfs/..."
-  },
-  "url": {
-    "pinata": "https://cyber.mypinata.cloud/ipfs/..."
-  },
-  "d_optimized_files": {
-    "high": {
-      "pinata": "https://..."
-    },
-    "low": {
-      "pinata": "https://..."
-    },
-    "low_compressed": {
-      "pinata": "https://..."
-    }
-  },
-  "source": {
-    "name": "VipeKit",
-    "slug": "vipekit",
-    "nodeName": "Building_03",
-    "url": "https://..."
-  }
-}
-```
-
-| Field               | Description                                     |
-| ------------------- | ----------------------------------------------- |
-| `id` / `hash`       | Unique identifier (SHA256 hash)                 |
-| `name`              | Display name                                    |
-| `url`               | Default model URL (pinata)                      |
-| `d_optimized_files` | Optimization levels (high, low, low_compressed) |
-| `image`             | Preview thumbnail                               |
-| `source`            | Origin kit metadata                             |
-
-**Optimization Levels:**
-
-- `high` - Full quality, largest file size
-- `low` - Reduced quality, smaller file size
-- `low_compressed` - Most optimized, smallest file size (recommended for web)
-
-### Game custom assets (uploaded_assets.json)
-
-**Location:** `public/data/uploaded_assets.json`
-
-**Structure:**
-
-```json
-{
-  "hash": "...",
-  "url": "/assets/uploaded-assets-[hash].png",
-  "name": "my-asset.png",
-  "mimeType": "image/png",
-  "createdAt": 1768923704464,
-  "lastModified": 1768923704464
-}
-```
-
-| Field       | Description                          |
-| ----------- | ------------------------------------ |
-| `hash`      | SHA256 hash of file contents         |
-| `url`       | Local path relative to public folder |
-| `name`      | Original filename                    |
-| `mimeType`  | File MIME type                       |
-| `createdAt` | Upload timestamp                     |
-
-## Storage Locations
+### Storage locations
 
 | Content               | Path                               |
 | --------------------- | ---------------------------------- |
-| Avatar library        | `public/vrms.json`                 |
-| 3D model library      | `public/library3D.json`            |
-| User uploads metadata | `public/data/uploaded_assets.json` |
-| User upload files     | `public/assets/`                   |
+| 3D model library      | `packages/studio/src/data/library-3d.json` |
+| Avatar library        | `packages/studio/src/data/vrms.json`       |
+| Custom asset metadata | `public/data/uploaded_assets.json` |
+| Custom avatar metadata| `public/data/uploaded_avatars.json` |
+| Custom asset files    | `public/assets/`                   |
+| Optimized assets      | `public/assets/optimized/`         |
+| Baked animations      | `public/assets/anims/`             |
 | Scene definition      | `public/data/static-scene.json`    |
 
-## Adding Assets to the Scene
+## Automatic URL Selection
 
-**Use MCP tools** for all scene asset operations:
+The engine automatically selects the best asset URL based on device capabilities. Include all URL variants when adding assets to the scene.
 
-| Task | MCP Tool |
-| --- | --- |
-| Add a 3D model | `add_model_to_scene` (searches library, adds with optimized URLs) |
-| Add an avatar | `add_avatar_to_scene` (searches library, adds with compressed URLs) |
-| Upload a local file | `upload_asset` (hashes, copies, registers in uploaded_assets.json) |
-| Browse models | `list_models` or `search_assets` |
-| Browse avatars | `list_avatars` or `search_assets` |
-| Browse uploads | `list_uploads` |
-
-### Automatic URL Selection
-
-The engine automatically selects the best asset URL based on device capabilities. The MCP tools handle this by including all URL variants when adding assets.
-
-- **Avatars:** `url` + `urlCompressed` (KTX2 textures)
 - **Models:** `url` + `optimized.high` / `optimized.low` / `optimized.low_compressed` (GPU-tier based)
+- **Avatars:** `url` + `urlCompressed` (platform-based)

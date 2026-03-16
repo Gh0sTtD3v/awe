@@ -1,4 +1,4 @@
-import { OOAsset } from "@oncyberio/asset-optimizer";
+import { OOAsset } from "@oncyberio/tools";
 import { OptimizedFiles } from "../../../types/optimized-files";
 import { optimizeAssetAction, optimizeVRMAction } from "../../../actions/optimize";
 

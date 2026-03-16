@@ -5,18 +5,25 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "postinstall": "node scripts/ensure-mcp-build.mjs",
-    "bake-anim": "pnpm --filter @oncyberio/scripts bake-anim",
-    "inspect-gltf": "pnpm --filter @oncyberio/scripts inspect-gltf",
-    "collect-assets": "pnpm --filter @oncyberio/scripts collect-assets",
-    "mcp:ensure-build": "node scripts/ensure-mcp-build.mjs",
+    "add-model": "tsx packages/tools/src/cli.ts add-model",
+    "add-avatar": "tsx packages/tools/src/cli.ts add-avatar",
+    "bake-anim": "tsx packages/tools/src/cli.ts bake-anim",
+    "optimize-model": "tsx packages/tools/src/cli.ts optimize-model",
+    "optimize-vrm": "tsx packages/tools/src/cli.ts optimize-vrm",
+    "upload-asset": "tsx packages/tools/src/cli.ts upload-asset",
+    "validate-scene": "tsx packages/tools/src/cli.ts validate-scene",
+    "inspect-gltf": "tsx packages/tools/src/cli.ts inspect-gltf",
     "engine:check": "pnpm --filter engine check",
     "engine:test": "pnpm --filter engine test",
     "engine:build:api": "pnpm --filter engine build:api",
     "engine-edit:check": "pnpm --filter engine-edit check",
-    "asset-optimizer:check": "pnpm --filter asset-optimizer check",
+    "tools:check": "pnpm --filter tools check",
+    "tools:test": "pnpm --filter tools test",
     "studio:check": "pnpm --filter @oncyberio/studio check",
     "create-game": "pnpm --filter create-oncyber-app exec tsx src/index.ts --local"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   },
   "pnpm": {
     "overrides": {

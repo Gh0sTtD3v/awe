@@ -53,7 +53,7 @@ npx create-oncyber-app my-game --use-npm --skip-install --skip-git
 - **Next.js app** with the oncyberio 3D game engine pre-configured
 - **Embedded studio** at the `/_studio` route for visual scene editing
 - **Claude skills** for engine usage, VFX creation, and GLTF inspection
-- **MCP tools** for AI-assisted scene editing (add/update/delete components, manage assets, physics, lighting)
+- **CLI tools** for asset optimization and scene validation
 - **Sample scene** with a default environment and avatar
 
 ## Tech Stack
@@ -86,7 +86,6 @@ my-game/
 │   ├── hooks/           # Custom React hooks
 │   └── lib/             # Utilities and control presets
 ├── .claude/skills/      # Claude skills for engine, VFX, GLTF
-├── .mcp.json            # MCP server configuration
 ├── package.json
 └── tsconfig.json
 ```
@@ -107,4 +106,4 @@ my-game/
 2. Open [http://localhost:3000](http://localhost:3000) to see your game
 3. Open [http://localhost:3000/_studio](http://localhost:3000/_studio) to edit the scene visually
 4. Edit `src/components/game-script.tsx` to add game logic
-5. Use the MCP tools or studio to add 3D models, avatars, and physics
+5. Edit `public/data/static-scene.json` or use CLI tools to add 3D models, avatars, and physics
