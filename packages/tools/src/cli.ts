@@ -2,7 +2,7 @@
 
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
-import { extname, basename } from "node:path";
+import { basename } from "node:path";
 import { validateScene } from "./scene/validate-scene.js";
 import { uploadAsset } from "./upload/upload-asset.js";
 import { bakeAnimation } from "./bake/bake-animation.js";
@@ -17,9 +17,9 @@ function printUsage() {
 
 Commands:
   add-model <path>          Upload, optimize, and register a 3D model (GLB/GLTF)
-  add-avatar <path>         Upload, optimize, and register a VRM avatar
-  optimize-model <path>     Optimize a 3D model (GLB/GLTF)
-  optimize-vrm <path>       Optimize a VRM avatar file
+  add-avatar <path>         Upload, optimize, and register an avatar asset
+  optimize-model <path>     Optimize a 3D model asset
+  optimize-vrm <path>       Optimize a VRM-compatible avatar asset
   bake-anim <fbx-path>      Bake a Mixamo FBX animation to JSON
   upload-asset <source>     Upload a local asset to the project
   validate-scene            Validate the project's static-scene.json
@@ -89,18 +89,13 @@ async function main() {
 
   if (!command || flags["help"] === true) {
     printUsage();
-    process.exit(command ? 0 : 1);
+    process.exit(flags["help"] === true ? 0 : command ? 0 : 1);
   }
 
   switch (command) {
     case "add-model": {
       const sourcePath = positional[1];
       if (!sourcePath) fail("Missing required argument: <path>");
-
-      const ext = extname(sourcePath).toLowerCase();
-      if (ext !== ".glb" && ext !== ".gltf") {
-        fail(`Unsupported file type: ${ext}. Supported: .glb, .gltf`);
-      }
 
       try {
         // Step 1: Upload (hash, copy, register)
@@ -115,7 +110,7 @@ async function main() {
         const asset: OOAsset = {
           type: "model",
           url: uploaded.url,
-          mime_type: ext === ".glb" ? "model/gltf-binary" : "model/gltf+json",
+          mime_type: uploaded.mimeType,
         };
         const compressionOptions = {
           useWeld: flags["weld"] !== false,
@@ -150,11 +145,6 @@ async function main() {
     case "add-avatar": {
       const sourcePath = positional[1];
       if (!sourcePath) fail("Missing required argument: <path>");
-
-      const ext = extname(sourcePath).toLowerCase();
-      if (ext !== ".vrm") {
-        fail(`Unsupported file type: ${ext}. Supported: .vrm`);
-      }
 
       try {
         // Step 1: Upload (hash, copy, register in uploaded_assets.json)
@@ -205,11 +195,6 @@ async function main() {
       const assetPath = positional[1];
       if (!assetPath) fail("Missing required argument: <path>");
 
-      const ext = extname(assetPath).toLowerCase();
-      if (ext !== ".glb" && ext !== ".gltf") {
-        fail(`Unsupported file type: ${ext}. Supported: .glb, .gltf`);
-      }
-
       const relativePath = assetPath.replace(/^\/+/, "");
       const resolvedPath = resolveProjectPath(projectDir, "public", relativePath);
       if (!(await fileExists(resolvedPath))) {
@@ -220,7 +205,7 @@ async function main() {
       const asset: OOAsset = {
         type: "model",
         url: assetPath,
-        mime_type: ext === ".glb" ? "model/gltf-binary" : "model/gltf+json",
+        mime_type: "model/gltf-binary",
       };
 
       const compressionOptions = {
@@ -241,11 +226,6 @@ async function main() {
     case "optimize-vrm": {
       const assetPath = positional[1];
       if (!assetPath) fail("Missing required argument: <path>");
-
-      const ext = extname(assetPath).toLowerCase();
-      if (ext !== ".vrm" && ext !== ".glb") {
-        fail(`Unsupported file type: ${ext}. Supported: .vrm, .glb`);
-      }
 
       const relativePath = assetPath.replace(/^\/+/, "");
       const resolvedPath = resolveProjectPath(projectDir, "public", relativePath);

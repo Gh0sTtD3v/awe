@@ -5,7 +5,7 @@ import { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getUploade
 
 const SUPPORTED_EXTENSIONS = new Set([
   ".glb", ".gltf", ".png", ".jpg", ".jpeg", ".webp",
-  ".mp3", ".wav", ".mp4", ".webm",
+  ".mp3", ".wav", ".mp4", ".webm", ".vrm",
 ]);
 
 const MIME_MAP: Record<string, string> = {
@@ -19,6 +19,7 @@ const MIME_MAP: Record<string, string> = {
   ".wav": "audio/wav",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  ".vrm": "model/vrm",
 };
 
 export interface UploadedAsset {

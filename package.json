@@ -18,6 +18,7 @@
     "engine:build:api": "pnpm --filter engine build:api",
     "engine-edit:check": "pnpm --filter engine-edit check",
     "tools:check": "pnpm --filter tools check",
+    "tools:test": "pnpm --filter tools test",
     "studio:check": "pnpm --filter @oncyberio/studio check",
     "create-game": "pnpm --filter create-oncyber-app exec tsx src/index.ts --local"
   },
