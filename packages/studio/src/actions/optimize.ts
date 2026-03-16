@@ -1,6 +1,6 @@
 "use server";
 
-import { OptimizeService, type OptimizeAssetResult, type OOAsset } from "@oncyberio/asset-optimizer";
+import { OptimizeService, type OptimizeAssetResult, type OOAsset } from "@oncyberio/tools";
 import { resolveWorkingFolder } from "../server/working-folder-service";
 
 /**

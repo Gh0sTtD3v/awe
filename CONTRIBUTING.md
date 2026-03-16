@@ -34,10 +34,9 @@ This is a pnpm workspace monorepo. See the [README](README.md) for a full breakd
 | --------------- | -------------------------------- | ---------------------------------------- |
 | Engine          | `packages/engine/`               | Core 3D engine (components, physics, rendering) |
 | Editor          | `packages/engine-edit/`          | Visual editing tools (gizmos, selection, undo/redo) |
-| Asset Optimizer | `packages/asset-optimizer/`      | GLTF/texture optimization pipeline       |
+| Tools           | `packages/tools/`                | Asset pipeline & CLI tools               |
 | Studio          | `packages/studio/`               | In-browser studio UI and tools           |
 | CLI             | `packages/create-oncyber-app/`   | Project scaffolding tool                 |
-| Scripts         | `scripts/`                       | Animation baking, GLTF inspection        |
 
 ## Code Style
 
@@ -59,7 +58,7 @@ editorEvents.ts        # incorrect
   ```bash
   pnpm engine:check
   pnpm engine-edit:check
-  pnpm asset-optimizer:check
+  pnpm tools:check
   ```
 
 ### General Guidelines
@@ -77,7 +76,7 @@ editorEvents.ts        # incorrect
 # Type-checking
 pnpm engine:check         # Type-check the engine
 pnpm engine-edit:check    # Type-check engine-edit
-pnpm asset-optimizer:check
+pnpm tools:check
 
 # Testing
 pnpm --filter engine test
@@ -128,7 +127,7 @@ Format: `type(scope): description`
 
 **Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`
 
-**Scopes:** `engine`, `engine-edit`, `asset-optimizer`, `studio`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
+**Scopes:** `engine`, `engine-edit`, `tools`, `studio`, `create-oncyber-app`, `scripts`, or omit for cross-cutting changes.
 
 ## Pull Requests
 

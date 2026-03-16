@@ -4,13 +4,13 @@ This file provides guidance to AI coding assistants when working with code in th
 
 ## Package Overview
 
-`@oncyberio/asset-optimizer` is a Node.js library for optimizing 3D assets (GLTF/GLB, VRM) and textures. It provides compression, format conversion, and upload utilities for the oncyberio engine ecosystem.
+`@oncyberio/tools` is a Node.js library for optimizing 3D assets (GLTF/GLB, VRM) and textures. It provides compression, format conversion, and upload utilities for the oncyberio engine ecosystem.
 
 ## Commands
 
 ```bash
 # From monorepo root
-pnpm asset-optimizer:check   # Typecheck
+pnpm tools:check             # Typecheck
 
 # From this package directory
 pnpm check                   # Typecheck
@@ -27,7 +27,7 @@ import {
   optimizeGLTF,
   processVRMBuffer,
   OptimizeService,
-} from "@oncyberio/asset-optimizer";
+} from "@oncyberio/tools";
 ```
 
 ### Module Structure

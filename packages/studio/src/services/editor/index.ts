@@ -28,7 +28,7 @@ import { NavView } from "@oncyberio/engine-edit/types";
 import type { EditorDragData } from "@oncyberio/engine-edit/dnd/utils";
 import { getOrCreateEditor } from "@oncyberio/engine-edit/editors/editor-registry";
 import { OptimizerServices } from "../../utils/uploader/optimizer";
-import { OOAsset } from "@oncyberio/asset-optimizer";
+import { OOAsset } from "@oncyberio/tools";
 
 export type Command = () => Promise<Undo>;
 

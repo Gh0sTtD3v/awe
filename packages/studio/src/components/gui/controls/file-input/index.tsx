@@ -6,7 +6,7 @@ import { showError } from "../../../../modals/context";
 import { uploadFile } from "../../../../utils/uploader";
 import { UploadInput } from "../../../upload-input";
 import { OptimizerServices } from "../../../../utils/uploader/optimizer";
-import { OOAsset } from "@oncyberio/asset-optimizer";
+import { OOAsset } from "@oncyberio/tools";
 
 const MAX_UPLOAD_SIZE = 10; // MB
 

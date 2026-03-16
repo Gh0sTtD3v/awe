@@ -13,7 +13,7 @@ import type { OOAsset } from "./types.js";
 import type { UploadedAsset } from "./upload/upload-asset.js";
 
 function printUsage() {
-  console.error(`Usage: asset-optimizer <command> [options]
+  console.error(`Usage: tools <command> [options]
 
 Commands:
   add-model <path>          Upload, optimize, and register a 3D model (GLB/GLTF)

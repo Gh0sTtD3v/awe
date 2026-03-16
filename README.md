@@ -38,11 +38,10 @@ awe/
 ├── packages/
 │   ├── engine/              # Core 3D game engine (@oncyberio/engine)
 │   ├── engine-edit/         # Visual editing tools (@oncyberio/engine-edit)
-│   ├── asset-optimizer/     # GLTF/texture optimization (@oncyberio/asset-optimizer)
+│   ├── tools/               # Asset pipeline & CLI tools (@oncyberio/tools)
 │   ├── studio/              # In-browser studio tools (@oncyberio/studio)
 │   └── create-oncyber-app/  # CLI project scaffolder
 ├── examples/                # Example game projects (auth-multiplayer, football-demo, multiplayer, starter, zombie-survival)
-├── scripts/                 # Utility scripts (animation baking, GLTF inspection, collect-assets)
 └── ... (no root-level `apps/` or `docs/` directories in this checkout)
 ```
 
@@ -52,9 +51,8 @@ awe/
 | ---------------------------- | ------------------------------------------------------------------- |
 | `@oncyberio/engine`          | Core 3D game engine — components, physics, input, rendering         |
 | `@oncyberio/engine-edit`     | Editor utilities — gizmos, selection, transform controls, undo/redo |
-| `@oncyberio/asset-optimizer` | Asset pipeline — Draco, meshoptimizer, KTX2, Sharp, IPFS uploads    |
+| `@oncyberio/tools`           | Asset pipeline & CLI tools — Draco, meshoptimizer, KTX2, Sharp, IPFS uploads |
 | `create-oncyber-app`         | Interactive CLI to scaffold new game projects from a template       |
-| `@oncyberio/scripts`         | CLI tools for animation baking and GLTF inspection                  |
 | `@oncyberio/studio`          | Embedded scene editing studio UI and tools                          |
 
 ## Quick Start
