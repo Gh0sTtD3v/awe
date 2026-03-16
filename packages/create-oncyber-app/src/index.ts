@@ -6,7 +6,7 @@ import { execSync } from "child_process";
 import { input, select } from "@inquirer/prompts";
 import pc from "picocolors";
 import { detectPackageManager } from "./detect-package-manager";
-import { createSpinner } from "./spinner";
+import { createSpinner, createSteps } from "./spinner";
 
 const REPO_URL =
   process.env.AWE_REPO_URL || "https://github.com/runthefun/awe-dev.git";
@@ -31,6 +31,7 @@ export interface CliOptions {
   packageManager?: PackageManager;
   skipInstall: boolean;
   skipGit: boolean;
+  local: boolean;
 }
 
 export function toKebabCase(str: string): string {
@@ -48,16 +49,64 @@ function writeJson(filePath: string, data: Record<string, any>) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
-function sparseClone(repoUrl: string, dest: string, template: string) {
+const SCAFFOLD_EXCLUDED_DIR_NAMES = new Set([
+  ".git",
+  ".next",
+  ".turbo",
+  ".vercel",
+  ".cache",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+]);
+
+const SCAFFOLD_EXCLUDED_FILE_NAMES = new Set([
+  ".DS_Store",
+]);
+
+const SCAFFOLD_EXCLUDED_FILE_SUFFIXES = [
+  ".tsbuildinfo",
+];
+
+/**
+ * Walk up from `startDir` looking for the monorepo root
+ * (identified by having both pnpm-workspace.yaml and packages/engine/).
+ * Returns the root path or null.
+ */
+function findMonorepoRoot(startDir: string): string | null {
+  let dir = startDir;
+  while (true) {
+    if (
+      fs.existsSync(path.join(dir, "pnpm-workspace.yaml")) &&
+      fs.existsSync(path.join(dir, "packages/engine"))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function sparseCloneDirs(repoUrl: string, dest: string, dirs: string[]) {
   execSync(
     `git clone --depth 1 --filter=blob:none --sparse --branch "${REPO_BRANCH}" "${repoUrl}" "${dest}"`,
     { stdio: "pipe" },
   );
-  const dirs = ["packages", "scripts", ".claude", `examples/${template}`];
   execSync(
     `git -C "${dest}" sparse-checkout set ${dirs.join(" ")}`,
     { stdio: "pipe" },
   );
+}
+
+function sparseClone(repoUrl: string, dest: string, template: string) {
+  sparseCloneDirs(repoUrl, dest, [
+    "packages",
+    "scripts",
+    ".claude",
+    `examples/${template}`,
+  ]);
 }
 
 function cleanupScaffold(
@@ -81,7 +130,9 @@ function cleanupScaffold(
   const templateDir = path.join(projectDir, "examples", template);
   const gameDir = path.join(projectDir, "apps/game");
   fs.mkdirSync(path.join(projectDir, "apps"), { recursive: true });
-  copyDirSync(templateDir, gameDir);
+  copyDirSync(templateDir, gameDir, {
+    shouldSkip: shouldSkipScaffoldEntry,
+  });
 
   // Remove examples/ directory
   const examplesDir = path.join(projectDir, "examples");
@@ -144,6 +195,7 @@ ${pc.bold("Options:")}
   --use-yarn       Use yarn for dependency installation
   --skip-install   Skip automatic dependency installation
   --skip-git       Skip git repository initialization
+  --local          Create app inside the monorepo's apps/ directory
   --help           Show this help message
   --version        Show the CLI version
 
@@ -162,6 +214,9 @@ ${pc.bold("Examples:")}
 
   ${pc.dim("# Use pnpm and skip git init")}
   npx create-oncyber-app my-game --use-pnpm --skip-git
+
+  ${pc.dim("# Create an app inside the monorepo")}
+  create-oncyber-app my-game --local
 
   ${pc.dim("# Update an existing project's engine and packages")}
   cd my-game && npx create-oncyber-app update
@@ -187,6 +242,7 @@ export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
     skipInstall: false,
     skipGit: false,
+    local: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -211,6 +267,9 @@ export function parseArgs(argv: string[]): CliOptions {
         break;
       case "--skip-git":
         options.skipGit = true;
+        break;
+      case "--local":
+        options.local = true;
         break;
       case "--help":
         printHelp();
@@ -247,16 +306,39 @@ async function promptProjectName(): Promise<string> {
   return toKebabCase(name || "my-app");
 }
 
-function copyDirSync(src: string, dest: string) {
+function shouldSkipScaffoldEntry(entry: fs.Dirent) {
+  if (SCAFFOLD_EXCLUDED_DIR_NAMES.has(entry.name)) {
+    return true;
+  }
+
+  if (SCAFFOLD_EXCLUDED_FILE_NAMES.has(entry.name)) {
+    return true;
+  }
+
+  return SCAFFOLD_EXCLUDED_FILE_SUFFIXES.some((suffix) =>
+    entry.name.endsWith(suffix),
+  );
+}
+
+function copyDirSync(
+  src: string,
+  dest: string,
+  options?: {
+    shouldSkip?: (entry: fs.Dirent) => boolean;
+  },
+) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (options?.shouldSkip?.(entry)) {
+      continue;
+    }
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isSymbolicLink()) {
       const target = fs.readlinkSync(srcPath);
       fs.symlinkSync(target, destPath);
     } else if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
+      copyDirSync(srcPath, destPath, options);
     } else {
       fs.copyFileSync(srcPath, destPath);
     }
@@ -335,7 +417,7 @@ async function update(options: CliOptions) {
     }
 
     // Update root configs
-    const configFiles = ["tsconfig.json", "turbo.json", ".editorconfig"];
+    const configFiles = ["tsconfig.json", ".editorconfig"];
     for (const file of configFiles) {
       const srcFile = path.join(repoDir, file);
       const destFile = path.join(projectDir, file);
@@ -394,6 +476,147 @@ async function update(options: CliOptions) {
   } finally {
     // Clean up temp dir
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
+  // Resolve app name
+  let appName: string;
+  if (options.projectName) {
+    appName = toKebabCase(options.projectName);
+  } else {
+    appName = await input({
+      message: "What is your app named?",
+      default: "my-game",
+      validate(value) {
+        const name = toKebabCase(value || "my-game");
+        const dir = path.join(monorepoRoot, "apps", name);
+        if (fs.existsSync(dir)) {
+          return `App already exists: apps/${name}`;
+        }
+        return true;
+      },
+    });
+    appName = toKebabCase(appName || "my-game");
+  }
+
+  const appDir = path.join(monorepoRoot, "apps", appName);
+  if (fs.existsSync(appDir)) {
+    console.error(`Error: App already exists: apps/${appName}`);
+    process.exit(1);
+  }
+
+  // Resolve template
+  let template: string;
+  if (options.template) {
+    if (!TEMPLATE_NAMES.includes(options.template)) {
+      console.error(
+        `Error: Unknown template "${options.template}". Available templates: ${TEMPLATE_NAMES.join(", ")}`,
+      );
+      process.exit(1);
+    }
+    template = options.template;
+  } else {
+    template = await select<string>({
+      message: "Which template would you like to use?",
+      choices: TEMPLATES.map((t) => ({
+        name: `${t.name} — ${t.description}`,
+        value: t.name,
+      })),
+      default: DEFAULT_TEMPLATE,
+    });
+  }
+
+  let templateDir = path.join(monorepoRoot, "examples", template);
+  let tmpTemplateRoot: string | null = null;
+  const needsFetch = !fs.existsSync(templateDir);
+
+  // Build step labels
+  const stepLabels: string[] = [];
+  if (needsFetch) stepLabels.push("Fetching template from upstream");
+  stepLabels.push("Copying template");
+  if (!options.skipInstall) stepLabels.push("Installing dependencies");
+
+  // Visual separator after prompts
+  console.log();
+
+  const steps = createSteps(stepLabels);
+  steps.start();
+
+  try {
+    // Fetch template from upstream if not available locally
+    if (needsFetch) {
+      steps.startStep();
+      tmpTemplateRoot = fs.mkdtempSync(
+        path.join(require("os").tmpdir(), "awe-local-template-"),
+      );
+      const repoDir = path.join(tmpTemplateRoot, "repo");
+      try {
+        sparseCloneDirs(REPO_URL, repoDir, [`examples/${template}`]);
+        templateDir = path.join(repoDir, "examples", template);
+        if (!fs.existsSync(templateDir)) {
+          throw new Error(
+            `Template directory not found: examples/${template}`,
+          );
+        }
+        steps.completeStep();
+      } catch (err: any) {
+        fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
+        console.error("\nFailed to fetch template from upstream.");
+        if (err.stderr) console.error(err.stderr.toString());
+        else if (err.message) console.error(err.message);
+        process.exit(1);
+      }
+    }
+
+    // Copy template
+    steps.startStep();
+    fs.mkdirSync(path.join(monorepoRoot, "apps"), { recursive: true });
+    copyDirSync(templateDir, appDir, {
+      shouldSkip: shouldSkipScaffoldEntry,
+    });
+
+    // Update package.json name
+    const pkgPath = path.join(appDir, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = readJson(pkgPath);
+      pkg.name = appName;
+      writeJson(pkgPath, pkg);
+    }
+    steps.completeStep();
+
+    // Install deps
+    if (!options.skipInstall) {
+      steps.startStep();
+      try {
+        execSync("pnpm install", {
+          cwd: monorepoRoot,
+          stdio: "pipe",
+        });
+        steps.completeStep();
+      } catch (err: any) {
+        console.error("\nFailed to install dependencies:");
+        if (err.stderr) console.error(err.stderr.toString());
+        process.exit(1);
+      }
+    }
+
+    // Success
+    console.log();
+    console.log(
+      `🎮 ${pc.green(pc.bold("Success!"))} Created ${pc.bold(appName)} at ${pc.cyan(`apps/${appName}`)}`,
+    );
+    console.log();
+    console.log("Next steps:");
+    if (options.skipInstall) {
+      console.log(`  ${pc.cyan("pnpm install")}`);
+    }
+    console.log(`  ${pc.cyan(`pnpm --filter ${appName} dev`)}`);
+    console.log();
+  } finally {
+    if (tmpTemplateRoot) {
+      fs.rmSync(tmpTemplateRoot, { recursive: true, force: true });
+    }
   }
 }
 
@@ -544,9 +767,22 @@ async function main() {
   if (options.projectName === "update") {
     options.projectName = undefined;
     await update(options);
-  } else {
-    await scaffold(options);
+    return;
   }
+
+  if (options.local) {
+    const monorepoRoot = findMonorepoRoot(process.cwd());
+    if (!monorepoRoot) {
+      console.error(
+        "Error: --local flag used but not inside an AWE monorepo.",
+      );
+      process.exit(1);
+    }
+    await scaffoldLocal(options, monorepoRoot);
+    return;
+  }
+
+  await scaffold(options);
 }
 
 main();

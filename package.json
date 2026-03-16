@@ -1,6 +1,9 @@
 {
   "name": "awe",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "postinstall": "node scripts/ensure-mcp-build.mjs",
     "bake-anim": "pnpm --filter @oncyberio/scripts bake-anim",
@@ -12,7 +15,8 @@
     "engine:build:api": "pnpm --filter engine build:api",
     "engine-edit:check": "pnpm --filter engine-edit check",
     "asset-optimizer:check": "pnpm --filter asset-optimizer check",
-    "studio:check": "pnpm --filter @oncyberio/studio check"
+    "studio:check": "pnpm --filter @oncyberio/studio check",
+    "create-game": "pnpm --filter create-oncyber-app exec tsx src/index.ts --local"
   },
   "pnpm": {
     "overrides": {

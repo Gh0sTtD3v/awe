@@ -29,7 +29,7 @@ A 3D game engine and framework built on [Three.js](https://threejs.org/). Build 
 | Animation    | GSAP, @pixiv/three-vrm      |
 | Particles    | three.quarks                |
 | Language     | TypeScript 5                |
-| Build        | Turborepo + pnpm workspaces |
+| Build        | pnpm workspaces + Next.js Turbopack |
 
 ## Monorepo Structure
 
@@ -63,7 +63,7 @@ awe/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v20.9+)
 - [pnpm](https://pnpm.io/) (v8+)
 
 ### Create a New Game

@@ -16,6 +16,7 @@ describe("parseArgs", () => {
       packageManager: undefined,
       skipInstall: false,
       skipGit: false,
+      local: false,
     });
   });
 
@@ -76,6 +77,7 @@ describe("parseArgs", () => {
       packageManager: "pnpm",
       skipInstall: true,
       skipGit: true,
+      local: false,
     });
   });
 
@@ -120,5 +122,15 @@ describe("parseArgs", () => {
     expect(result.projectName).toBe("my-game");
     expect(result.skipGit).toBe(true);
     expect(result.packageManager).toBe("npm");
+  });
+
+  it("parses --local flag", () => {
+    const result = parseArgs(["node", "create-oncyber-app", "--local"]);
+    expect(result.local).toBe(true);
+  });
+
+  it("defaults local to false", () => {
+    const result = parseArgs(["node", "create-oncyber-app"]);
+    expect(result.local).toBe(false);
   });
 });
