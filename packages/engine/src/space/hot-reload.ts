@@ -2,6 +2,105 @@ import type { Game } from "../@types/game";
 import { deepEqual } from "../internal/utils/js";
 import type { Space } from "./space";
 
+const ignoredKeys = {
+  id: true,
+  type: true,
+  kit: true,
+  _version: true,
+  children: true,
+};
+
+export interface ComponentRecordDiff {
+  added: string[];
+  removed: string[];
+  updated: Record<string, any>;
+}
+
+export function diffComponentData(
+  prev: Record<string, any>,
+  next: Record<string, any>
+) {
+  let diff = null;
+
+  Object.keys(prev).forEach((key) => {
+    if (ignoredKeys[key]) {
+      return;
+    }
+
+    if (!deepEqual(prev[key], next[key])) {
+      diff ??= {};
+      diff[key] = next[key];
+    }
+  });
+
+  return diff;
+}
+
+export function diffGameComponents(
+  prevComponents: Record<string, any>,
+  nextComponents: Record<string, any>
+): ComponentRecordDiff {
+  const diff: ComponentRecordDiff = {
+    added: [],
+    removed: [],
+    updated: {},
+  };
+
+  Object.keys(prevComponents).forEach((id) => {
+    if (!nextComponents[id]) {
+      diff.removed.push(id);
+      return;
+    }
+
+    const delta = diffComponentData(prevComponents[id], nextComponents[id]);
+
+    if (delta) {
+      diff.updated[id] = delta;
+    }
+  });
+
+  Object.keys(nextComponents).forEach((id) => {
+    if (!prevComponents[id]) {
+      diff.added.push(id);
+    }
+  });
+
+  return diff;
+}
+
+export function applyGameDataToSpace(
+  space: Space,
+  prevGameData: Game,
+  nextGameData: Game
+) {
+  const diff = diffGameComponents(
+    prevGameData.components,
+    nextGameData.components
+  );
+
+  diff.added.forEach((id) => {
+    space.components.create(nextGameData.components[id]);
+  });
+
+  diff.removed.forEach((id) => {
+    const instance = space.components.byInternalId(id);
+
+    if (instance) {
+      space.components.destroy(instance);
+    }
+  });
+
+  Object.keys(diff.updated).forEach((id) => {
+    const instance = space.components.byInternalId(id);
+
+    if (!instance) {
+      return;
+    }
+
+    instance.setData(diff.updated[id]);
+  });
+}
+
 export class Hot {
   //
   space: Space;
@@ -38,97 +137,7 @@ export class Hot {
     const prevData = this.gameData;
     this.gameData = gameData;
 
-    this.diffComponents(prevData.components, this.gameData.components);
-  }
-
-  diffComponents(
-    prevComponents: Record<string, any>,
-    newComponents: Record<string, any>
-  ) {
-    //
-    const diff = this._diffRecord(prevComponents, newComponents);
-
-    console.log("hot reload diff", diff);
-
-    diff.added.forEach((id) => {
-      //
-      this.space.components.create(newComponents[id]);
-    });
-
-    diff.removed.forEach((id) => {
-      //
-      const instance = this.space.components.byInternalId(id);
-
-      this.space.components.destroy(instance);
-    });
-
-    Object.keys(diff.updated).forEach((id) => {
-      //
-      const delta = diff.updated[id];
-
-      const instance = this.space.components.byInternalId(id);
-
-      instance.setData(delta);
-    });
-  }
-
-  private _diffRecord(prev: Record<string, any>, next: Record<string, any>) {
-    //
-    const diff = {
-      added: [],
-      removed: [],
-      updated: {} as Record<string, any>,
-    };
-
-    Object.keys(prev).forEach((id) => {
-      //
-      if (!next[id]) {
-        diff.removed.push(id);
-      } else {
-        //
-        let delta = this.diffObject(prev[id], next[id]);
-
-        if (delta) {
-          diff.updated[id] = delta;
-        }
-      }
-    });
-
-    Object.keys(next).forEach((id) => {
-      //
-      if (!prev[id]) {
-        diff.added.push(id);
-      }
-    });
-
-    return diff;
-  }
-
-  _ignoreKeys = {
-    id: true,
-    type: true,
-    kit: true,
-    _version: true,
-    children: true,
-  };
-
-  diffObject(prev: Record<string, any>, next: Record<string, any>) {
-    //
-    let diff = null;
-
-    Object.keys(prev).forEach((key) => {
-      //
-      if (this._ignoreKeys[key]) {
-        return;
-      }
-
-      if (!deepEqual(prev[key], next[key])) {
-        diff ??= {};
-        diff[key] = next[key];
-      }
-    });
-
-    return diff;
+    applyGameDataToSpace(this.space, prevData, this.gameData);
   }
 
   dispose() {

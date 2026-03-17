@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./styles": "./src/ui/styles/global.css"
+    "./styles": "./src/ui/styles/global.css",
+    "./scene-events-route": "./src/scene-events-route.ts"
   },
   "scripts": {
     "check": "tsc --noEmit"
