@@ -3,14 +3,14 @@
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { validateScene } from "./scene/validate-scene.js";
-import { uploadAsset } from "./upload/upload-asset.js";
-import { bakeAnimation } from "./bake/bake-animation.js";
-import { inspectGltf } from "./inspect/inspect-gltf.js";
-import { OptimizeService } from "./optimize-service.js";
-import { fileExists, resolveProjectPath, readJsonFile, writeJsonFile, getUploadedAssetsPath, getUploadedAvatarsPath } from "./file-utils/index.js";
-import type { OOAsset } from "./types.js";
-import type { UploadedAsset } from "./upload/upload-asset.js";
+import { validateScene } from "./scene/validate-scene";
+import { uploadAsset } from "./upload/upload-asset";
+import { bakeAnimation } from "./bake/bake-animation";
+import { inspectGltf } from "./inspect/inspect-gltf";
+import { OptimizeService } from "./optimize-service";
+import { fileExists, resolveProjectPath, readJsonFile, writeJsonFile, getUploadedAssetsPath, getUploadedAvatarsPath } from "./file-utils";
+import type { OOAsset } from "./types";
+import type { UploadedAsset } from "./upload/upload-asset";
 
 function printUsage() {
   console.error(`Usage: tools <command> [options]
