@@ -1,5 +1,5 @@
-import { readJsonFile, fileExists, resolveProjectPath, getScenePath } from "../file-utils/index.js";
-import type { SceneData, SceneComponent } from "./types.js";
+import { readJsonFile, fileExists, resolveProjectPath, getScenePath } from "../file-utils";
+import type { SceneData, SceneComponent } from "./types";
 
 interface RawScene {
   id?: string;

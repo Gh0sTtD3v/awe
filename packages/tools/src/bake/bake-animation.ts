@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
 import { createRequire } from "node:module";
-import { fileExists, resolveProjectPath } from "../file-utils/index.js";
+import { fileExists, resolveProjectPath } from "../file-utils";
 
 const require = createRequire(import.meta.url);
 

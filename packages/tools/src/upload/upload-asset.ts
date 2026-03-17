@@ -1,7 +1,7 @@
 import { readFile, copyFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { extname, basename, join } from "node:path";
-import { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getUploadedAssetsPath } from "../file-utils/index.js";
+import { readJsonFile, writeJsonFile, fileExists, resolveProjectPath, getUploadedAssetsPath } from "../file-utils";
 
 const SUPPORTED_EXTENSIONS = new Set([
   ".glb", ".gltf", ".png", ".jpg", ".jpeg", ".webp",
