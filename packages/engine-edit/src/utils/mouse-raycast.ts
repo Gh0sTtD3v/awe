@@ -231,9 +231,21 @@ export class MouseRaycast {
 
         this.mouse(e);
 
-        const intersects = this._doRaycast();
+        const shouldLogIntersects =
+            process.env.NODE_ENV === "development" &&
+            window["__engineEditDebugRaycast"] === true;
 
-        console.log("intersects", intersects);
+        let intersects: Intersection<Mesh>[];
+
+        if (shouldLogIntersects) {
+            const startTime = performance.now();
+
+            intersects = this._doRaycast();
+
+            console.log("intersects", `${performance.now() - startTime}ms`, intersects);
+        } else {
+            intersects = this._doRaycast();
+        }
 
         const currentComponent = this.getClickedComponent(intersects);
 

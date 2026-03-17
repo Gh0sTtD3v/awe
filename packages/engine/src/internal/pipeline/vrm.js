@@ -95,9 +95,11 @@ class VRMPipeline {
 
         var storePlugins = opts.plugins
 
-        opts.plugins = [...opts.plugins]
+        opts.plugins = [...(opts.plugins || [])]
 
-        opts.plugins.push(instanceOpacityPlugin)
+        if( opts.plugins.includes(instanceOpacityPlugin) == false ){
+            opts.plugins.push(instanceOpacityPlugin)
+        }
         
         var newMesh = mesh;
 
