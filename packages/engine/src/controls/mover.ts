@@ -32,7 +32,7 @@ function getYawFromQuaternion(quaternion: Quaternion): number {
  * Jump configuration for physics-based projectile motion
  */
 export interface JumpConfig {
-  /** Jump peak height in units (default: 5) */
+  /** Jump peak height in scene units (default: 5) */
   height?: number;
   /** Time to reach peak in seconds (default: 0.5) */
   duration?: number;
@@ -189,8 +189,6 @@ function resolveFacingMode(movement: MovementConfig): MoverFacingMode {
  * mover.move(input.axis("moveX"), input.axis("moveY"));
  * ```
  */
-// Conversion factor from scene units to jump units (matches PlatformerControls)
-const SCENE_JUMP_UNIT = 0.04;
 const RESTORE_POSITION = new Vector3();
 const RESTORE_QUATERNION = new Quaternion();
 
@@ -561,14 +559,16 @@ export class Mover {
     this._jumpState.elapsedTime = 0;
     this._jumpState.reachedPeak = false;
 
-    // Calculate jump physics (same formula as PlatformerControls)
-    this._jumpState.maxHeight = config.height * SCENE_JUMP_UNIT;
+    // Calculate jump physics using kinematic equations:
+    //   peak = v0*T - 0.5*g*T^2 = H  =>  v0 = 2H/T, g = 2H/T^2
+    this._jumpState.maxHeight = config.height;
     const jumpDuration = config.duration / 2; // Time to peak
 
     // Calculate gravity and initial velocity for desired arc
     this._jumpState.jumpGravity =
-      this._jumpState.maxHeight / Math.pow(jumpDuration, 2);
-    this._jumpState.jumpVelocity = this._jumpState.maxHeight / jumpDuration;
+      (2 * this._jumpState.maxHeight) / Math.pow(jumpDuration, 2);
+    this._jumpState.jumpVelocity =
+      (2 * this._jumpState.maxHeight) / jumpDuration;
 
     // Clear coyote time
     this._coyoteTimeLeft = 0;
@@ -923,25 +923,21 @@ export class Mover {
 
     this._jumpState.elapsedTime += dt;
 
-    // Projectile motion calculation
+    // Projectile motion: h(t) = v0*t - 0.5*g*t^2
+    const t = this._jumpState.elapsedTime;
     this._jumpState.currentHeight =
-      this._jumpState.jumpVelocity * this._jumpState.elapsedTime -
-      0.5 *
-        this._jumpState.jumpGravity *
-        Math.pow(this._jumpState.elapsedTime, 2);
+      this._jumpState.jumpVelocity * t -
+      0.5 * this._jumpState.jumpGravity * t * t;
 
     // Check if we've reached the peak (past 90% of max height)
     this._jumpState.reachedPeak =
-      this._jumpState.currentHeight > (this._jumpState.maxHeight / 2) * 0.9;
+      this._jumpState.currentHeight > this._jumpState.maxHeight * 0.9;
 
     if (this._jumpState.currentHeight >= 0) {
-      // Still in upward or peak phase - calculate velocity from height
+      // Velocity = v0 - g*t, scaled by dt to produce displacement
+      // (consistent with _applyMovement which also pre-multiplies by dt)
       this._velocity.y =
-        (this._jumpState.currentHeight +
-          0.5 *
-            -this._jumpState.jumpGravity *
-            Math.pow(this._jumpState.elapsedTime, 2)) /
-        this._jumpState.elapsedTime;
+        (this._jumpState.jumpVelocity - this._jumpState.jumpGravity * t) * dt;
     } else {
       // Jump arc complete, return to normal gravity
       this._jumpState.isJumping = false;
