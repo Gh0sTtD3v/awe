@@ -81,7 +81,7 @@ class ModelPipeline {
   // assign instance vrm
 
   assingModelInstance(mesh, geometry, originalMaterial, opts) {
-    opts.plugins = opts.plugins || [];
+    opts.plugins = [...(opts.plugins || [])];
 
     let useTransparency = opts.useTransparency;
 
@@ -100,7 +100,10 @@ class ModelPipeline {
 
     var newMesh = mesh;
 
-    if (useTransparency == true) {
+    if (
+      useTransparency == true &&
+      opts.plugins.includes(instanceOpacityPlugin) == false
+    ) {
       opts.plugins.push(instanceOpacityPlugin);
     }
 
