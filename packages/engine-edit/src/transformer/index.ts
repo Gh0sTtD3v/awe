@@ -223,7 +223,13 @@ export class Transformer extends Group {
             } else {
                 this.attachedObjectCallbacks?.onDragEnd();
             }
-            console.log("onTransformDraggingChanged/object", event.value);
+
+            if (
+                process.env.NODE_ENV === "development" &&
+                window["__engineEditDebugTransforms"] === true
+            ) {
+                console.log("onTransformDraggingChanged/object", event.value);
+            }
 
             return;
         }
