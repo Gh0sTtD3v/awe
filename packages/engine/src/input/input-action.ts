@@ -12,7 +12,18 @@
  * @module input-action
  */
 
-import type { ButtonBinding, ButtonBindingConfig, ButtonState } from "./bindings";
+import type {
+  ButtonBinding,
+  ButtonBindingConfig,
+  ButtonState,
+  CompositeButtonAllBinding,
+  CompositeButtonAnyBinding,
+  CustomButtonBinding,
+  GamepadButtonBinding,
+  KeyButtonBinding,
+  MouseButtonBinding,
+  TouchTapBinding,
+} from "./bindings";
 import { ButtonState as BS, createBindingFromConfig } from "./bindings";
 import type { Processor, ScalarProcessorConfig } from "./processors";
 import { createProcessor } from "./processors";
@@ -23,9 +34,32 @@ import type {
   InteractionContext,
 } from "./interactions";
 import { createInteraction } from "./interactions";
-import type { ControlStateManager } from "./control-state";
+import type { ControlStateManager, DeviceType } from "./control-state";
 
 const MAX_DUPLICATE_UPDATES = 2;
+
+type LeafButtonBinding =
+  | KeyButtonBinding
+  | GamepadButtonBinding
+  | MouseButtonBinding
+  | TouchTapBinding
+  | CustomButtonBinding;
+
+type CompositeButtonBinding = CompositeButtonAnyBinding | CompositeButtonAllBinding;
+
+/**
+ * Source metadata for the binding(s) that contributed to an action callback.
+ */
+export interface ActionSource {
+  /** Device family for the leaf binding */
+  device: DeviceType;
+  /** Leaf binding type that contributed to the callback */
+  bindingType: LeafButtonBinding["type"];
+  /** Binding-specific control identifier (eg: key code, button index, custom event) */
+  control: string | number;
+  /** The resolved leaf binding instance */
+  binding: LeafButtonBinding;
+}
 
 /**
  * Callback context passed to action event callbacks.
@@ -39,6 +73,10 @@ export interface ActionCallbackContext {
   duration: number;
   /** Interaction phase that triggered this callback */
   phase: InteractionPhase;
+  /** Primary source for the callback, following binding declaration order */
+  source: ActionSource | null;
+  /** All active/edge sources contributing to this callback */
+  sources: readonly ActionSource[];
 }
 
 /**
@@ -396,11 +434,14 @@ export class InputAction {
    * Fire callbacks for a given phase
    */
   private _fireCallbacks(phase: InteractionPhase): void {
+    const sources = resolveActionSources(this._bindings);
     const callbackCtx: ActionCallbackContext = {
       action: this,
       value: this._cachedPressed ? 1 : 0,
       duration: this._currentDuration,
       phase,
+      source: sources[0] ?? null,
+      sources,
     };
 
     switch (phase) {
@@ -428,4 +469,79 @@ export class InputAction {
  */
 export function createInputAction(config: InputActionConfig): InputAction {
   return new InputAction(config);
+}
+
+function resolveActionSources(bindings: readonly ButtonBinding[]): ActionSource[] {
+  const sources: ActionSource[] = [];
+
+  for (const binding of bindings) {
+    collectActionSources(binding, sources);
+  }
+
+  return sources;
+}
+
+function collectActionSources(binding: ButtonBinding, sources: ActionSource[]): void {
+  switch (binding.type) {
+    case "compositeButtonAny":
+    case "compositeButtonAll":
+      for (const child of (binding as CompositeButtonBinding).bindings) {
+        collectActionSources(child, sources);
+      }
+      return;
+    case "keyButton":
+    case "gamepadButton":
+    case "mouseButton":
+    case "touchTap":
+    case "customButton":
+      if (!isActionSourceActive(binding)) {
+        return;
+      }
+      sources.push(createActionSource(binding as LeafButtonBinding));
+      return;
+  }
+}
+
+function isActionSourceActive(binding: ButtonBinding): boolean {
+  return binding.isPressed() || binding.getState() !== BS.Idle;
+}
+
+function createActionSource(binding: LeafButtonBinding): ActionSource {
+  switch (binding.type) {
+    case "keyButton":
+      return {
+        device: "keyboard",
+        bindingType: binding.type,
+        control: binding.code,
+        binding,
+      };
+    case "gamepadButton":
+      return {
+        device: "gamepad",
+        bindingType: binding.type,
+        control: binding.button,
+        binding,
+      };
+    case "mouseButton":
+      return {
+        device: "mouse",
+        bindingType: binding.type,
+        control: binding.button,
+        binding,
+      };
+    case "touchTap":
+      return {
+        device: "touch",
+        bindingType: binding.type,
+        control: "tap",
+        binding,
+      };
+    case "customButton":
+      return {
+        device: "custom",
+        bindingType: binding.type,
+        control: binding.event,
+        binding,
+      };
+  }
 }

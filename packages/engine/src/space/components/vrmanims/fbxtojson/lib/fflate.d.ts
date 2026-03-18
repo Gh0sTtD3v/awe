@@ -2,9 +2,8 @@
  * Type declarations for fflate.js (vendored fflate v0.6.9)
  * https://github.com/101arrowz/fflate
  *
- * DO NOT REMOVE: This file is required for `pnpm engine:build:api` to succeed.
- * TypeScript cannot infer types from the companion .js file during declaration
- * emit, causing TS9005 errors. This .d.ts provides the necessary type information.
+ * Kept alongside the companion .js file so TypeScript has explicit types for
+ * the vendored module.
  */
 
 export class Deflate {

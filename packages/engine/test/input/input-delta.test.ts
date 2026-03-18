@@ -7,6 +7,7 @@ import {
 import {
   emitInputFrame,
   moveMouse,
+  pressMouseButton,
   scrollMouse,
   setupNavigatorMock,
 } from "./input-test-utils";
@@ -264,6 +265,54 @@ describe("Inputs delta frame safety (mouse delta and wheel distribution)", () =>
         { x: 4, y: -2 },
         { x: 4, y: -2 },
       ]);
+    } finally {
+      inputs.dispose();
+    }
+  });
+
+  it("should ignore pointer-lock mouse buttons when pointer lock is inactive", () => {
+    (globalThis as any).document = { pointerLockElement: null };
+
+    const config = {
+      Fire: {
+        type: "button",
+        bindings: [Mouse.button(0, { requirePointerLock: true })],
+      },
+    } as const;
+
+    const inputs = createInputs(config);
+
+    try {
+      pressMouseButton(0);
+      emitInputFrame(1);
+      inputs.update(1 / 60);
+
+      expect(inputs.Fire.isPressed).toBe(false);
+      expect(inputs.Fire.wasJustPressed).toBe(false);
+    } finally {
+      inputs.dispose();
+    }
+  });
+
+  it("should read pointer-lock mouse buttons when pointer lock is active", () => {
+    (globalThis as any).document = { pointerLockElement: {} };
+
+    const config = {
+      Fire: {
+        type: "button",
+        bindings: [Mouse.button(0, { requirePointerLock: true })],
+      },
+    } as const;
+
+    const inputs = createInputs(config);
+
+    try {
+      pressMouseButton(0);
+      emitInputFrame(1);
+      inputs.update(1 / 60);
+
+      expect(inputs.Fire.isPressed).toBe(true);
+      expect(inputs.Fire.wasJustPressed).toBe(true);
     } finally {
       inputs.dispose();
     }

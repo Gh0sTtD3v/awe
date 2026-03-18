@@ -1,5 +1,4 @@
 import {
-  Engine,
   Camera,
   type Component3D,
   type Space,
@@ -11,6 +10,7 @@ import {
   Gamepad,
   Mouse,
   Touch,
+  Custom,
   Interactions,
 } from "@oncyberio/engine";
 import {
@@ -58,11 +58,19 @@ const GAMEPLAY_INPUTS = {
   },
   Look: {
     type: "vector2" as const,
-    bindings: [Mouse.pointerLockDelta(), Gamepad.rightStick()],
+    bindings: [
+      Mouse.pointerLockDelta(),
+      Gamepad.rightStick(),
+      Custom.vector2("look"),
+    ],
   },
   Jump: {
     type: "button" as const,
-    bindings: [Keyboard.button("Space"), Gamepad.button("A")],
+    bindings: [
+      Keyboard.button("Space"),
+      Gamepad.button("A"),
+      Custom.button("jump"),
+    ],
     interactions: [Interactions.press()],
   },
   Sprint: {
@@ -72,6 +80,33 @@ const GAMEPLAY_INPUTS = {
       Keyboard.button("ShiftRight"),
       Gamepad.button("LB"),
     ],
+  },
+  Fire: {
+    type: "button" as const,
+    bindings: [
+      Mouse.button(0, { requirePointerLock: true }),
+      Gamepad.button("RT"),
+      Custom.button("fire"),
+    ],
+    interactions: [Interactions.press()],
+  },
+  Reload: {
+    type: "button" as const,
+    bindings: [
+      Keyboard.button("KeyR"),
+      Gamepad.button("X"),
+      Custom.button("reload"),
+    ],
+    interactions: [Interactions.press()],
+  },
+  Inspect: {
+    type: "button" as const,
+    bindings: [
+      Keyboard.button("KeyI"),
+      Gamepad.button("Y"),
+      Custom.button("inspect"),
+    ],
+    interactions: [Interactions.press()],
   },
 } as const;
 
@@ -97,7 +132,6 @@ export class GameScript {
   private cameraRig: FirstPersonCameraRig | null = null;
   private mover: Mover | null = null;
   private controlsActive = false;
-  private engine = Engine.getInstance();
   private cleanup: (() => void) | null = null;
   private pistol: ModelComponent | null = null;
   private readonly weaponId = "fps-weapon";
@@ -195,6 +229,13 @@ export class GameScript {
     this.inputs.Jump.onPerformed(() => {
       this.mover?.startJump();
     });
+    this.inputs.Fire.onPerformed(this.shoot);
+    this.inputs.Reload.onPerformed(() => {
+      this.reload();
+    });
+    this.inputs.Inspect.onPerformed(() => {
+      this.inspect();
+    });
 
     // Hide avatar for FPS view
     this._player.visible = false;
@@ -234,19 +275,11 @@ export class GameScript {
       onUpdate: this.onUpdate,
       onDispose: this.onDispose,
     });
-
-    document.addEventListener("mousedown", this.onShoot);
-    document.addEventListener("keydown", this.onKeyDown);
-    document.addEventListener("keyup", this.onKeyUp);
   }
 
   dispose() {
     this.cleanup?.();
     this.cleanup = null;
-
-    document.removeEventListener("mousedown", this.onShoot);
-    document.removeEventListener("keydown", this.onKeyDown);
-    document.removeEventListener("keyup", this.onKeyUp);
 
     if (this.mover) {
       this.mover.off("movementStart", this.onMovementStart);
@@ -295,6 +328,9 @@ export class GameScript {
       this.mover?.reset();
     } else {
       this.inputs?.disable();
+      this.isSprinting = false;
+      stopSound("walking");
+      stopSound("running");
     }
     if (this.cameraRig) this.cameraRig.active = val;
   }
@@ -307,6 +343,7 @@ export class GameScript {
     const moveDir = this.inputs.Move.readValue();
     const lookDelta = this.inputs.Look.readValue();
     const isSprinting = this.inputs.Sprint.isPressed;
+    this.syncSprintState(isSprinting);
 
     if (lookDelta.x !== 0 || lookDelta.y !== 0) {
       this.cameraRig.rotate(lookDelta.x, lookDelta.y);
@@ -536,27 +573,69 @@ export class GameScript {
     const promises: Promise<any>[] = [];
 
     for (let i = 0; i < toSpawn; i++) {
-      // Try to find a random navigable point on the navmesh
-      const navPoint = this.navmesh?.crowd?.findRandomPoint();
-      let pos: { x: number; y: number; z: number };
-
-      if (navPoint) {
-        pos = { x: navPoint.x, y: navPoint.y, z: navPoint.z };
-      } else {
-        // Fallback to random angle/distance if navmesh query fails
-        const angle = Math.random() * Math.PI * 2;
-        const dist = minDist + Math.random() * (mapHalfSize - minDist);
-        pos = {
-          x: Math.cos(angle) * dist,
-          y: 0,
-          z: Math.sin(angle) * dist,
-        };
-      }
+      const pos = this.getZombieSpawnPosition(mapHalfSize, minDist);
       promises.push(this.zombieManager.spawnZombie(pos));
     }
 
     await Promise.all(promises);
     this.totalSpawned += toSpawn;
+  }
+
+  private getZombieSpawnPosition(mapHalfSize: number, minDist: number) {
+    const playerPos = this._player?.position;
+    const playerX = playerPos?.x ?? 0;
+    const playerY = playerPos?.y ?? 0;
+    const playerZ = playerPos?.z ?? 0;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const navPoint = this.navmesh?.crowd?.findRandomPoint();
+      if (
+        navPoint &&
+        this.isSpawnPositionFarEnough(navPoint.x, navPoint.z, playerX, playerZ, minDist)
+      ) {
+        return { x: navPoint.x, y: navPoint.y, z: navPoint.z };
+      }
+    }
+
+    const angle = Math.random() * Math.PI * 2;
+    const dist = minDist + Math.random() * (mapHalfSize - minDist);
+    const fallbackTarget = new Vector3(
+      playerX + Math.cos(angle) * dist,
+      playerY,
+      playerZ + Math.sin(angle) * dist
+    );
+    const snappedPoint = this.navmesh?.crowd?.findClosestPoint(fallbackTarget);
+
+    if (
+      snappedPoint &&
+      this.isSpawnPositionFarEnough(
+        snappedPoint.x,
+        snappedPoint.z,
+        playerX,
+        playerZ,
+        minDist
+      )
+    ) {
+      return { x: snappedPoint.x, y: snappedPoint.y, z: snappedPoint.z };
+    }
+
+    return {
+      x: fallbackTarget.x,
+      y: fallbackTarget.y,
+      z: fallbackTarget.z,
+    };
+  }
+
+  private isSpawnPositionFarEnough(
+    spawnX: number,
+    spawnZ: number,
+    playerX: number,
+    playerZ: number,
+    minDist: number
+  ) {
+    const dx = spawnX - playerX;
+    const dz = spawnZ - playerZ;
+    return Math.hypot(dx, dz) >= minDist;
   }
 
   private endGame(result: "won" | "lost") {
@@ -643,36 +722,6 @@ export class GameScript {
     console.log("[Shooter] Game disposed");
   };
 
-  onKeyDown = (e: KeyboardEvent) => {
-    if (e.code === "KeyR") {
-      this.reload();
-    }
-    if (e.code === "KeyI") {
-      this.inspect();
-    }
-    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-      if (!this.isSprinting) {
-        this.isSprinting = true;
-        if (this.mover?.isMoving) {
-          this.updateMovementSound();
-          this.syncWeaponAnimation();
-        }
-      }
-    }
-  };
-
-  onKeyUp = (e: KeyboardEvent) => {
-    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-      if (this.isSprinting) {
-        this.isSprinting = false;
-        if (this.mover?.isMoving) {
-          this.updateMovementSound();
-          this.syncWeaponAnimation();
-        }
-      }
-    }
-  };
-
   onMovementStart = () => {
     this.syncWeaponAnimation();
     this.updateMovementSound();
@@ -692,6 +741,16 @@ export class GameScript {
     } else {
       stopSound("running");
       playSound("walking");
+    }
+  }
+
+  private syncSprintState(nextSprinting: boolean) {
+    if (this.isSprinting === nextSprinting) return;
+
+    this.isSprinting = nextSprinting;
+    if (this.mover?.isMoving) {
+      this.updateMovementSound();
+      this.syncWeaponAnimation();
     }
   }
 
@@ -720,6 +779,7 @@ export class GameScript {
   inspect() {
     const state = gameStore.state;
     if (
+      !this.controlsActive ||
       state.gamePhase !== "playing" ||
       this.isReloading ||
       this.isShooting ||
@@ -739,10 +799,14 @@ export class GameScript {
     }, this.inspectAnimationMs);
   }
 
-  onShoot = (e: MouseEvent) => {
-    if (e.button !== 0) return;
+  private shoot = () => {
     const state = gameStore.state;
-    if (state.gamePhase !== "playing" || state.isReloading) return;
+    if (
+      !this.controlsActive ||
+      state.gamePhase !== "playing" ||
+      state.isReloading
+    )
+      return;
     if (state.ammo <= 0) return;
 
     const now = performance.now();
@@ -1001,7 +1065,8 @@ export class GameScript {
 
   reload() {
     const state = gameStore.state;
-    if (state.gamePhase !== "playing" || this.isReloading) return;
+    if (!this.controlsActive || state.gamePhase !== "playing" || this.isReloading)
+      return;
     if (state.ammo === state.maxAmmo) return;
 
     const clip =

@@ -22,13 +22,15 @@ pnpm install
 
 ```bash
 pnpm engine:check          # Type-check the engine
-pnpm --filter engine test  # Run engine tests
+pnpm engine:test           # Run engine tests
 pnpm engine-edit:check     # Type-check engine-edit
+pnpm tools:check           # Type-check the tools package
+pnpm studio:check          # Type-check the studio package
 ```
 
 ## Project Structure
 
-This is a pnpm workspace monorepo. See the [README](README.md) for a full breakdown of packages. The key areas you'll work in:
+This is a pnpm workspace monorepo. See the [README](README.md) for a full breakdown of packages. The key areas contributors work in:
 
 | Area            | Path                             | Description                              |
 | --------------- | -------------------------------- | ---------------------------------------- |
@@ -37,12 +39,13 @@ This is a pnpm workspace monorepo. See the [README](README.md) for a full breakd
 | Tools           | `packages/tools/`                | Asset pipeline & CLI tools               |
 | Studio          | `packages/studio/`               | In-browser studio UI and tools           |
 | CLI             | `packages/create-oncyber-app/`   | Project scaffolding tool                 |
+| Examples        | `examples/`                      | Reference games and integration demos    |
 
 ## Code Style
 
 ### File Naming
 
-All files **must** use kebab-case:
+All new source files should use kebab-case. Some generated files, third-party assets, and legacy data files in the repo are exceptions.
 
 ```
 game-script.tsx        # correct
@@ -54,11 +57,12 @@ editorEvents.ts        # incorrect
 ### TypeScript
 
 - The project uses TypeScript throughout
-- Run type checks before submitting changes:
+- Run the relevant type checks before submitting changes:
   ```bash
   pnpm engine:check
   pnpm engine-edit:check
   pnpm tools:check
+  pnpm studio:check
   ```
 
 ### General Guidelines
@@ -75,25 +79,23 @@ editorEvents.ts        # incorrect
 ```bash
 # Type-checking
 pnpm engine:check         # Type-check the engine
+pnpm engine:test          # Run engine tests
 pnpm engine-edit:check    # Type-check engine-edit
+pnpm --filter engine-edit test
 pnpm tools:check
-
-# Testing
-pnpm --filter engine test
+pnpm tools:test
+pnpm studio:check
 pnpm --filter create-oncyber-app test
 
-# API generation
-pnpm engine:build:api     # Generate public API type definitions
-
-# Run an example project
+# Run example projects
+pnpm --filter starter dev
+pnpm --filter football-demo dev
 pnpm --filter zombie-survival dev
-
-# Utility scripts
-pnpm bake-anim            # Bake VRM animations from Mixamo FBX files
-pnpm inspect-gltf         # Inspect GLTF/GLB model files
+pnpm --filter multiplayer dev
+pnpm --filter auth-multiplayer dev
 ```
 
-Tests use [Vitest](https://vitest.dev/). Write tests for new functionality when applicable.
+Tests use [Vitest](https://vitest.dev/) across the engine, editor, tools, CLI, and some examples. Write or update tests when you change behavior.
 
 ### Branching
 
@@ -106,10 +108,13 @@ Tests use [Vitest](https://vitest.dev/). Write tests for new functionality when 
 
 ### Making Changes
 
-1. **Engine changes** — work in `packages/engine/src/`. Run `pnpm engine:check` and `pnpm --filter engine test` to verify.
-2. **Editor changes** — work in `packages/engine-edit/src/`. Run `pnpm engine-edit:check` to verify.
-3. **API changes** — if you modify the engine's public API, regenerate type definitions with `pnpm engine:build:api`.
-4. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`.
+1. **Engine changes** — work in `packages/engine/src/`. Run `pnpm engine:check` and `pnpm engine:test` to verify.
+2. **Editor changes** — work in `packages/engine-edit/src/`. Run `pnpm engine-edit:check` and `pnpm --filter engine-edit test` when relevant.
+3. **Tools changes** — work in `packages/tools/src/`. Run `pnpm tools:check` and `pnpm tools:test`.
+4. **Studio changes** — work in `packages/studio/src/`. Run `pnpm studio:check`.
+5. **CLI changes** — work in `packages/create-oncyber-app/src/`. Run `pnpm --filter create-oncyber-app test`.
+6. **Template changes** — the generated project template lives at `packages/create-oncyber-app/template/`.
+7. **Example changes** — work in `examples/*/`. Run the relevant example locally, and run its tests if that example defines them.
 
 ## Commit Messages
 
@@ -132,7 +137,7 @@ Format: `type(scope): description`
 ## Pull Requests
 
 1. Make sure all type checks pass
-2. Make sure all tests pass
+2. Make sure the relevant tests pass
 3. Write a clear description of what changed and why
 4. Keep PRs focused — split unrelated changes into separate PRs
 5. Link related issues if applicable

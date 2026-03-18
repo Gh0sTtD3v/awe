@@ -1,11 +1,13 @@
 import { createInputs } from "../../src/input/input-map";
-import { Composite, Keyboard, Mouse } from "../../src/input/bindings";
+import { Composite, Custom, Keyboard, Mouse } from "../../src/input/bindings";
 import { Interactions } from "../../src/input/interactions";
 import { sharedControlState } from "../../src/input/control-state";
 import {
   emitInputFrame,
   pressKey,
   pressMouseButton,
+  pressCustomButton,
+  releaseCustomButton,
   releaseKey,
   releaseMouseButton,
   setupNavigatorMock,
@@ -657,6 +659,159 @@ describe("Inputs action frame safety (button edges and callbacks)", () => {
     } finally {
       unsubscribeStarted();
       unsubscribePerformed();
+      inputs.dispose();
+    }
+  });
+
+  it("should expose source metadata for custom and keyboard callbacks", () => {
+    const config = {
+        Jump: {
+          type: "button",
+          bindings: [Custom.button("jump"), Keyboard.button("Space")],
+          interactions: [Interactions.press("pressOnly")],
+        },
+      } as const;
+
+    const inputs = createInputs(config);
+    const jump = inputs.Jump;
+
+    const contexts: Array<{
+      device: string | undefined;
+      bindingType: string | undefined;
+      control: string | number | undefined;
+    }> = [];
+
+    const unsubscribe = jump.onPerformed((ctx) => {
+      contexts.push({
+        device: ctx.source?.device,
+        bindingType: ctx.source?.bindingType,
+        control: ctx.source?.control,
+      });
+    });
+
+    try {
+      pressCustomButton("jump");
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      releaseCustomButton("jump");
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      pressKey("Space");
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      expect(contexts).toEqual([
+        {
+          device: "custom",
+          bindingType: "customButton",
+          control: "jump",
+        },
+        {
+          device: "keyboard",
+          bindingType: "keyButton",
+          control: "Space",
+        },
+      ]);
+    } finally {
+      unsubscribe();
+      inputs.dispose();
+    }
+  });
+
+  it("should expose just-released mouse metadata for release callbacks", () => {
+    const config = {
+        Fire: {
+          type: "button",
+          bindings: [Mouse.button(0)],
+          interactions: [Interactions.press("releaseOnly")],
+        },
+      } as const;
+
+    const inputs = createInputs(config);
+    const fire = inputs.Fire;
+
+    let releaseCtx:
+      | {
+          value: number;
+          device: string | undefined;
+          bindingType: string | undefined;
+          control: string | number | undefined;
+        }
+      | undefined;
+
+    const unsubscribe = fire.onPerformed((ctx) => {
+      releaseCtx = {
+        value: ctx.value,
+        device: ctx.source?.device,
+        bindingType: ctx.source?.bindingType,
+        control: ctx.source?.control,
+      };
+    });
+
+    try {
+      pressMouseButton(0);
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      releaseMouseButton(0);
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      expect(releaseCtx).toEqual({
+        value: 0,
+        device: "mouse",
+        bindingType: "mouseButton",
+        control: 0,
+      });
+    } finally {
+      unsubscribe();
+      inputs.dispose();
+    }
+  });
+
+  it("should flatten composite bindings into leaf callback sources", () => {
+    const config = {
+        Attack: {
+          type: "button",
+          bindings: [
+            Composite.all(
+              Keyboard.any("ControlLeft", "ControlRight"),
+              Mouse.button(0),
+            ),
+          ],
+          interactions: [Interactions.press("pressAndRelease")],
+        },
+      } as const;
+
+    const inputs = createInputs(config);
+    const attack = inputs.Attack;
+
+    let startedSources: Array<{ device: string; control: string | number }> = [];
+
+    const unsubscribeStarted = attack.onStarted((ctx) => {
+      startedSources = ctx.sources.map((source) => ({
+        device: source.device,
+        control: source.control,
+      }));
+    });
+
+    try {
+      pressKey("ControlLeft");
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      pressMouseButton(0);
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      expect(startedSources).toEqual([
+        { device: "keyboard", control: "ControlLeft" },
+        { device: "mouse", control: 0 },
+      ]);
+    } finally {
+      unsubscribeStarted();
       inputs.dispose();
     }
   });

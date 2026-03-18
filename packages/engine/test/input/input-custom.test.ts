@@ -7,6 +7,8 @@ import {
   pressKey,
   releaseCustomButton,
   releaseKey,
+  setCustomValue,
+  setCustomVector2,
   setupNavigatorMock,
 } from "./input-test-utils";
 
@@ -81,6 +83,39 @@ describe("Inputs custom bindings", () => {
       emitInputFrame();
       inputs.update(1 / 60);
       expect(inputs.Jump.isPressed).toBe(false);
+    } finally {
+      inputs.dispose();
+    }
+  });
+
+  it("should read scalar and Vector2 values from imperative custom controls", () => {
+    const inputs = createInputs({
+      Throttle: {
+        type: "value",
+        bindings: [Custom.value("throttle")],
+      },
+      Aim: {
+        type: "vector2",
+        bindings: [Custom.vector2("aim")],
+      },
+    } as const);
+
+    try {
+      setCustomValue("throttle", 0.75);
+      setCustomVector2("aim", 0.2, -0.4);
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      expect(inputs.Throttle.readValue()).toBe(0.75);
+      expect(inputs.Aim.readValue()).toEqual({ x: 0.2, y: -0.4 });
+
+      setCustomValue("throttle", -0.25);
+      setCustomVector2("aim", -1, 0.5);
+      emitInputFrame();
+      inputs.update(1 / 60);
+
+      expect(inputs.Throttle.readValue()).toBe(-0.25);
+      expect(inputs.Aim.readValue()).toEqual({ x: -1, y: 0.5 });
     } finally {
       inputs.dispose();
     }

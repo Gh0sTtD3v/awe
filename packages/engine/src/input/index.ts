@@ -80,6 +80,8 @@ export type {
   MouseWheelBinding,
   TouchTapBinding,
   CustomButtonBinding,
+  CustomValueBinding,
+  CustomVector2Binding,
   TouchJoystickBinding,
   TouchPositionBinding,
   TouchDeltaBinding,
@@ -105,6 +107,8 @@ export type {
   MouseWheelConfig,
   TouchTapConfig,
   CustomButtonConfig,
+  CustomValueConfig,
+  CustomVector2Config,
   TouchJoystickConfig,
   TouchJoystickVector2Config,
   TouchPositionConfig,
@@ -162,6 +166,7 @@ export { InputAction, createInputAction } from "./input-action";
 export type {
   ActionCallbackContext,
   ActionCallback,
+  ActionSource,
   InputActionConfig,
 } from "./input-action";
 

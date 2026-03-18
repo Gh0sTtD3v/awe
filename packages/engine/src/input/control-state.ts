@@ -660,6 +660,8 @@ export class TouchState {
  */
 export class CustomState {
   private _buttons = new Set<string>();
+  private _values = new Map<string, number>();
+  private _vectors = new Map<string, { x: number; y: number }>();
   private _active = false;
 
   /**
@@ -715,10 +717,46 @@ export class CustomState {
   }
 
   /**
+   * Get the latest scalar value for a custom control.
+   */
+  getValue(event: string): number {
+    return this._values.get(event) ?? 0;
+  }
+
+  /**
+   * Set the scalar value for a custom control.
+   */
+  setValue(event: string, value: number): void {
+    if (!this._active) return;
+    this._values.set(event, value);
+  }
+
+  /**
+   * Get the latest Vector2 value for a custom control.
+   */
+  getVector2(event: string): { x: number; y: number } {
+    const value = this._vectors.get(event);
+    if (!value) {
+      return { x: 0, y: 0 };
+    }
+    return { x: value.x, y: value.y };
+  }
+
+  /**
+   * Set the Vector2 value for a custom control.
+   */
+  setVector2(event: string, x: number, y: number): void {
+    if (!this._active) return;
+    this._vectors.set(event, { x, y });
+  }
+
+  /**
    * Reset all state
    */
   reset(): void {
     this._buttons.clear();
+    this._values.clear();
+    this._vectors.clear();
   }
 }
 

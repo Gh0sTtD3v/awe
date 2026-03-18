@@ -20,7 +20,6 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "build:api": "tsc -p tsconfig.api.json; tsc-alias -p tsconfig.api.json; node scripts/post-build-api.mjs",
     "test": "vitest run",
     "headless:check": "tsx --import tsconfig-paths/register scripts/headless-check.ts"
   },
@@ -50,7 +49,6 @@
   "devDependencies": {
     "@types/node": "^20",
     "@types/three": "^0.170.0",
-    "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5",
     "vitest": "^4.0.18"

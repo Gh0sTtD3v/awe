@@ -15,7 +15,6 @@
     "inspect-gltf": "tsx packages/tools/src/cli.ts inspect-gltf",
     "engine:check": "pnpm --filter engine check",
     "engine:test": "pnpm --filter engine test",
-    "engine:build:api": "pnpm --filter engine build:api",
     "engine-edit:check": "pnpm --filter engine-edit check",
     "tools:check": "pnpm --filter tools check",
     "tools:test": "pnpm --filter tools test",
