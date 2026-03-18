@@ -12,7 +12,7 @@ export class MeshComponentEditor extends Component3DEditor<MeshComponent> {
     _addPluginSelection = "";
 
     getSelectionMesh() {
-        const t = this.data?.display == true ? super.getSelectionMesh() : null;
+        const t = this.data?.displayInEditor == true ? super.getSelectionMesh() : null;
 
         return t;
     }
