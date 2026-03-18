@@ -71,8 +71,8 @@ import { VisualPluginRegistry } from "../visual-plugin-registry";
  *     picture: "https://example.com/guard-icon.png",
  * });
  *
- * // Play a walk animation with fade-in
- * npc.play("walk", { fadeIn: 0.3 });
+ * // Persist a walk animation as the avatar's current default state
+ * npc.play("walk", { fadeIn: 0.3, persist: true });
  *
  * // Access a specific bone
  * const headBone = npc.getBone("head");
@@ -82,8 +82,8 @@ import { VisualPluginRegistry } from "../visual-plugin-registry";
  *     // runs each animation tick
  * });
  *
- * // Stop the walk animation and revert to idle
- * npc.stop("walk", { fadeOut: 0.3 });
+ * // Stop the persisted walk animation and revert to idle
+ * npc.stop("walk", { fadeOut: 0.3, persist: true });
  *
  * // Clean up the mixer callback
  * dispose();
@@ -746,11 +746,13 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
    * Plays a named animation on the avatar. Requires {@link AvatarComponentData.useCpuAnimation}
    * to be `true` (CPU animation mode). Logs an error if GPU animation mode is active.
    *
-   * Also updates the component's `animation` data to the given name.
+   * By default this is transient and does not change the component's durable
+   * `animation` data. Pass `persist: true` to also update `data.animation`.
    *
    * @param name - The name of the animation to play (e.g. `"walk"`, `"run"`, `"idle"`).
    * @param opts - Animation playback options.
    * @param opts.fadeIn - Fade-in duration in seconds (default: 0).
+   * @param opts.fadeOut - Fade-out duration in seconds when `stopAll` is `true`.
    * @param opts.stopAll - If true, stops all other animations before playing (default: false).
    * @param opts.speed - Playback speed multiplier (default: 1).
    * @param opts.loop - Loop mode: `"once"` (play once), `"repeat"` (loop forever), or `"pingpong"` (alternate direction).
@@ -759,12 +761,13 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
    * @param opts.timeScale - Time scale for the animation (default: 1).
    * @param opts.weight - Blend weight for the animation (default: 1).
    * @param opts.reset - If true, resets the animation even if already playing (default: false).
+   * @param opts.persist - If true, also updates the component's durable `animation` data (default: false).
    * @param opts.callback - Callback fired on animation events. Receives `{ type: "loop" | "finished", action }`.
    *
    * @example
    * ```ts
-   * // Play a looping walk animation
-   * avatar.play("walk", { fadeIn: 0.3, loop: "repeat" });
+   * // Persist a looping walk animation as the avatar's current default state
+   * avatar.play("walk", { fadeIn: 0.3, loop: "repeat", persist: true });
    *
    * // Play a one-shot jump animation with callback
    * avatar.play("jump", {
@@ -781,6 +784,7 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
     name: string,
     opts?: {
       fadeIn?: number;
+      fadeOut?: number;
       stopAll?: boolean;
       speed?: number;
       loop?: "once" | "repeat" | "pingpong";
@@ -789,6 +793,7 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
       timeScale?: number;
       weight?: number;
       reset?: boolean;
+      persist?: boolean;
       callback?: (event: { type: "loop" | "finished" }) => void;
     },
   ) {
@@ -799,22 +804,27 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
 
     this._avatar?.vrm.playAnimation(name, opts);
 
-    this.setData({ animation: name });
+    if (opts?.persist) {
+      this.setData({ animation: name });
+    }
   }
 
   /**
    * Stops a named animation on the avatar. Requires {@link AvatarComponentData.useCpuAnimation}
-   * to be `true` (CPU animation mode). If the stopped animation is the current default
-   * animation, the component reverts to `"idle"`.
+   * to be `true` (CPU animation mode). By default this is transient and leaves
+   * the component's durable `animation` data unchanged. Pass `persist: true`
+   * to also revert the current persisted animation to `"idle"`.
    *
    * @param name - The name of the animation to stop.
    * @param opts - Options for stopping the animation.
    * @param opts.fadeOut - Optional fade-out duration in seconds.
+   * @param opts.persist - If true, also clears the component's durable `animation` data when stopping the current persisted animation.
    */
   stop(
     name: string,
-    opts: {
+    opts?: {
       fadeOut?: number;
+      persist?: boolean;
     },
   ) {
     if (this.data.useCpuAnimation == false) {
@@ -824,7 +834,7 @@ export class AvatarComponent extends Component3D<AvatarComponentData> {
 
     this._avatar?.vrm.stopAnimation(name, opts);
 
-    if (this.data.animation == name) {
+    if (opts?.persist && this.data.animation == name) {
       this.setData({ animation: "idle" });
     }
   }

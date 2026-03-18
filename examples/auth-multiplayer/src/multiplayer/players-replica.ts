@@ -55,7 +55,7 @@ export function createPlayersReplica(
       if (!component || isLocal || !model.anim) return;
 
       if (component.data?.animation !== model.anim) {
-        component.play(model.anim, { fadeIn: 0.15 });
+        component.play(model.anim, { fadeIn: 0.15, persist: true });
       }
     },
   };

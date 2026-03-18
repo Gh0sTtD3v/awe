@@ -78,6 +78,22 @@ Six built-in slots exist: `idle`, `walk`, `jump`, `run`, `fly`, `sitting`. To ov
 Requires `useCpuAnimation: true` on the avatar component:
 
 ```typescript
-avatar.play("zombie_attack", { fadeIn: 0.2 });
+// Durable/default state
+avatar.play("run", { fadeIn: 0.15, persist: true });
+
+// Transient one-shot
+avatar.play("zombie_attack", {
+  fadeIn: 0.2,
+  loop: "once",
+  stopAll: true,
+});
+
+// Stop a transient one-shot early
 avatar.stop("zombie_attack", { fadeOut: 0.2 });
 ```
+
+### Choosing Persistent vs Transient
+
+- Use `persist: true` for locomotion or any animation that should become the avatar's new durable/default state.
+- Leave `persist` off for short reactions such as hit, attack, recoil, or emotes.
+- Persisting a non-looping clip means it can become the avatar's resting pose after it finishes. That is often correct for `death`, but usually wrong for `hit` or `attack`.

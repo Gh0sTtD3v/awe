@@ -37,6 +37,6 @@ rigidBody.raw.setLinearDamping(1.5);
 rigidBody.raw.setAngularDamping(2);
 collider.raw.isSensor();
 raycastResult.raw.toi;
-player?.play("idle");
+player?.play("idle", { persist: true, fadeOut: 0.2 });
 handle.cancel();
 handle.active;

@@ -64,8 +64,10 @@ function createMockSpace() {
     const avatar: FakeAvatar = {
       id: config.id,
       destroy: vi.fn(),
-      play: vi.fn((animation: string) => {
-        avatar.data.animation = animation;
+      play: vi.fn((animation: string, opts?: { persist?: boolean }) => {
+        if (opts?.persist) {
+          avatar.data.animation = animation;
+        }
       }),
       data: {
         animation: config.animation ?? "idle",

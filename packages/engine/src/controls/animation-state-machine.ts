@@ -582,6 +582,7 @@ export class AnimationStateMachine<TContext = {}> {
       loop,
       speed: config.speed ?? 1,
       clampWhenFinished: loop === "once",
+      persist: true,
       callback: (opts: { type: string }) => {
         if (opts.type === "finished") {
           this._finished = true;

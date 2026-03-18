@@ -136,62 +136,43 @@ export class ZombieManager {
 
     const avatar = zombie.component as AvatarComponent;
     const clip = animMap[state];
-    const vrmController = (avatar as any)?._avatar?.vrm;
-    const playDirect = (opts: Record<string, any>) => {
-      if (typeof vrmController?.playAnimation === "function") {
-        vrmController.playAnimation(clip, opts);
-        return true;
-      }
-      return false;
-    };
 
     if (state === "hit" || state === "attack") {
-      if (
-        playDirect({
-          loop: "once",
-          repetitions: 1,
-          reset: true,
-          stopAll: true,
-          clampWhenFinished: false,
-          fadeIn: 0.04,
-        })
-      )
-        return;
-      zombie.component.setData({ animation: clip });
+      avatar.play(clip, {
+        loop: "once",
+        repetitions: 1,
+        reset: true,
+        stopAll: true,
+        clampWhenFinished: false,
+        fadeIn: 0.04,
+      });
       return;
     }
 
     if (state === "dead") {
-      // Use the public AvatarComponent.play() API for reliable death animation.
+      // Persist the death clip so avatar reloads or mode changes keep the corpse pose.
       // fadeIn/fadeOut: 0 ensures an instant snap with no blending artifacts
       // that could leave the zombie in a mid-air pose.
-      const avatarComp = zombie.component as AvatarComponent;
-      if (typeof avatarComp.play === "function") {
-        (avatarComp as any).play(clip, {
-          loop: "once",
-          repetitions: 1,
-          reset: true,
-          stopAll: true,
-          clampWhenFinished: true,
-          fadeIn: 0,
-          fadeOut: 0,
-        });
-        return;
-      }
-      zombie.component.setData({ animation: clip });
+      avatar.play(clip, {
+        loop: "once",
+        repetitions: 1,
+        reset: true,
+        stopAll: true,
+        clampWhenFinished: true,
+        fadeIn: 0,
+        fadeOut: 0,
+        persist: true,
+      });
       return;
     }
 
-    if (
-      playDirect({
-        loop: "repeat",
-        reset: true,
-        stopAll: true,
-        fadeIn: 0.08,
-      })
-    )
-      return;
-    zombie.component.setData({ animation: clip });
+    avatar.play(clip, {
+      loop: "repeat",
+      reset: true,
+      stopAll: true,
+      fadeIn: 0.08,
+      persist: true,
+    });
   }
 
   damageZombie(componentId: string, amount: number) {
