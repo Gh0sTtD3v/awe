@@ -5,12 +5,15 @@ import path from "path";
 import { execSync } from "child_process";
 import { input, select } from "@inquirer/prompts";
 import pc from "picocolors";
-import { detectPackageManager } from "./detect-package-manager";
 import { createSpinner, createSteps } from "./spinner";
 
 const REPO_URL =
   process.env.AWE_REPO_URL || "https://github.com/oncyberio/awe.git";
 const REPO_BRANCH = process.env.AWE_REPO_BRANCH || "main";
+const PNPM_VERSION = "10.10.0";
+const PNPM_PACKAGE_MANAGER = `pnpm@${PNPM_VERSION}`;
+const PNPM_BOOTSTRAP_COMMAND =
+  `corepack enable && corepack prepare ${PNPM_PACKAGE_MANAGER} --activate`;
 
 const TEMPLATES = [
   { name: "starter", description: "Minimal game setup with player controls" },
@@ -109,19 +112,46 @@ function sparseClone(repoUrl: string, dest: string, template: string) {
   ]);
 }
 
-function getWorkspaceScriptCommand(
-  packageManager: PackageManager,
-  workspaceName: string,
-  scriptName: string,
-) {
-  switch (packageManager) {
-    case "npm":
-      return `npm run ${scriptName} --workspace ${workspaceName}`;
-    case "yarn":
-      return `yarn workspace ${workspaceName} ${scriptName}`;
-    case "pnpm":
-    default:
-      return `pnpm --filter ${workspaceName} ${scriptName}`;
+function getWorkspaceScriptCommand(workspaceName: string, scriptName: string) {
+  return `pnpm --filter ${workspaceName} ${scriptName}`;
+}
+
+function canRunCommand(command: string) {
+  try {
+    execSync(command, { stdio: "pipe" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensurePnpmAvailable() {
+  if (canRunCommand("pnpm --version")) {
+    return;
+  }
+
+  console.log(pc.dim("pnpm was not found. Trying to set it up with Corepack..."));
+
+  if (!canRunCommand("corepack --version")) {
+    console.error("Error: pnpm is required to work with this project.");
+    console.error(`Run:\n  ${PNPM_BOOTSTRAP_COMMAND}`);
+    process.exit(1);
+  }
+
+  try {
+    execSync("corepack enable", { stdio: "pipe" });
+    execSync(`corepack prepare ${PNPM_PACKAGE_MANAGER} --activate`, {
+      stdio: "pipe",
+    });
+    execSync("pnpm --version", { stdio: "pipe" });
+    console.log(pc.dim("pnpm is ready."));
+  } catch (err: any) {
+    console.error("Failed to set up pnpm automatically.");
+    console.error(`Run:\n  ${PNPM_BOOTSTRAP_COMMAND}`);
+    if (err.stderr) {
+      console.error(err.stderr.toString());
+    }
+    process.exit(1);
   }
 }
 
@@ -129,7 +159,6 @@ function cleanupScaffold(
   projectDir: string,
   projectName: string,
   template: string,
-  packageManager: PackageManager,
 ) {
   // Remove .git from the clone
   const gitDir = path.join(projectDir, ".git");
@@ -170,13 +199,14 @@ function cleanupScaffold(
   if (fs.existsSync(rootPkgPath)) {
     const rootPkg = readJson(rootPkgPath);
     rootPkg.name = projectName;
+    rootPkg.packageManager = PNPM_PACKAGE_MANAGER;
     rootPkg.workspaces = ["packages/*", "apps/*"];
     rootPkg.scripts = {
       ...rootPkg.scripts,
-      dev: getWorkspaceScriptCommand(packageManager, projectName, "dev"),
-      build: getWorkspaceScriptCommand(packageManager, projectName, "build"),
-      start: getWorkspaceScriptCommand(packageManager, projectName, "start"),
-      check: getWorkspaceScriptCommand(packageManager, projectName, "check"),
+      dev: getWorkspaceScriptCommand(projectName, "dev"),
+      build: getWorkspaceScriptCommand(projectName, "build"),
+      start: getWorkspaceScriptCommand(projectName, "start"),
+      check: getWorkspaceScriptCommand(projectName, "check"),
     };
     delete rootPkg.scripts["create-game"];
     delete rootPkg.scripts["template:dev"];
@@ -218,14 +248,14 @@ ${pc.bold("Commands:")}
 
 ${pc.bold("Options:")}
   --template NAME  Choose a project template (default: ${DEFAULT_TEMPLATE})
-  --use-npm        Use npm for dependency installation
-  --use-pnpm       Use pnpm for dependency installation (default)
-  --use-yarn       Use yarn for dependency installation
   --skip-install   Skip automatic dependency installation
   --skip-git       Skip git repository initialization
   --local          Create app inside the monorepo's apps/ directory
   --help           Show this help message
   --version        Show the CLI version
+
+${pc.bold("Package Manager:")}
+  Uses pnpm automatically. If pnpm is missing, the CLI will try to enable it with Corepack.
 
 ${pc.bold("Templates:")}
 ${templateList}
@@ -240,8 +270,8 @@ ${pc.bold("Examples:")}
   ${pc.dim("# Create a multiplayer project")}
   npx create-oncyber-app my-game --template multiplayer
 
-  ${pc.dim("# Use pnpm and skip git init")}
-  npx create-oncyber-app my-game --use-pnpm --skip-git
+  ${pc.dim("# Skip git init")}
+  npx create-oncyber-app my-game --skip-git
 
   ${pc.dim("# Create an app inside the monorepo")}
   create-oncyber-app my-game --local
@@ -263,6 +293,17 @@ function printVersion() {
   const pkgPath = path.join(__dirname, "../package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   console.log(pkg.version);
+}
+
+function validatePackageManager(options: CliOptions) {
+  if (!options.packageManager || options.packageManager === "pnpm") {
+    return;
+  }
+
+  console.error("Error: create-oncyber-app currently supports pnpm only.");
+  console.error("Remove the package manager flag and run the command again.");
+  console.error(`If pnpm is missing, run:\n  ${PNPM_BOOTSTRAP_COMMAND}`);
+  process.exit(1);
 }
 
 export function parseArgs(argv: string[]): CliOptions {
@@ -477,12 +518,12 @@ async function update(options: CliOptions) {
     updateSpinner.stop("Packages updated.");
 
     // Install deps
-    const packageManager = options.packageManager || "pnpm";
     if (!options.skipInstall) {
+      ensurePnpmAvailable();
       const installSpinner = createSpinner("Installing dependencies...");
       installSpinner.start();
       try {
-        execSync(`${packageManager} install`, {
+        execSync("pnpm install", {
           cwd: projectDir,
           stdio: "pipe",
         });
@@ -615,6 +656,7 @@ async function scaffoldLocal(options: CliOptions, monorepoRoot: string) {
 
     // Install deps
     if (!options.skipInstall) {
+      ensurePnpmAvailable();
       steps.startStep();
       try {
         execSync("pnpm install", {
@@ -682,22 +724,6 @@ async function scaffold(options: CliOptions) {
     });
   }
 
-  let packageManager: PackageManager;
-  if (options.packageManager) {
-    packageManager = options.packageManager;
-  } else {
-    const detected = detectPackageManager();
-    packageManager = await select<PackageManager>({
-      message: "Which package manager would you like to use?",
-      choices: [
-        { name: "npm", value: "npm" as const },
-        { name: "pnpm", value: "pnpm" as const },
-        { name: "yarn", value: "yarn" as const },
-      ],
-      default: detected,
-    });
-  }
-
   const projectDir = path.resolve(process.cwd(), projectName);
 
   // Register SIGINT handler to clean up partial project directory
@@ -730,7 +756,7 @@ async function scaffold(options: CliOptions) {
   // Set up project
   const setupSpinner = createSpinner("Setting up project...");
   setupSpinner.start();
-  cleanupScaffold(projectDir, projectName, template, packageManager);
+  cleanupScaffold(projectDir, projectName, template);
   setupSpinner.stop("Project set up.");
 
   // Git initialization
@@ -754,10 +780,11 @@ async function scaffold(options: CliOptions) {
   // Dependency installation
   let depsInstalled = false;
   if (!options.skipInstall) {
+    ensurePnpmAvailable();
     const installSpinner = createSpinner("Installing dependencies...");
     installSpinner.start();
     try {
-      execSync(`${packageManager} install`, {
+      execSync("pnpm install", {
         cwd: projectDir,
         stdio: "pipe",
       });
@@ -783,14 +810,15 @@ async function scaffold(options: CliOptions) {
   console.log("Next steps:");
   console.log(`  ${pc.cyan(`cd ${projectName}`)}`);
   if (!depsInstalled) {
-    console.log(`  ${pc.cyan(`${packageManager} install`)}`);
+    console.log(`  ${pc.cyan("pnpm install")}`);
   }
-  console.log(`  ${pc.cyan(`${packageManager} dev`)}`);
+  console.log(`  ${pc.cyan("pnpm dev")}`);
   console.log();
 }
 
 async function main() {
   const options = parseArgs(process.argv);
+  validatePackageManager(options);
 
   if (options.projectName === "update") {
     options.projectName = undefined;

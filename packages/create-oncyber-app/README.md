@@ -7,7 +7,7 @@ Scaffold a new 3D game powered by the oncyberio engine.
 ```bash
 npx create-oncyber-app my-game
 cd my-game
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see your game, or [http://localhost:3000/_studio](http://localhost:3000/_studio) for the visual editor.
@@ -18,34 +18,33 @@ Open [http://localhost:3000](http://localhost:3000) to see your game, or [http:/
 npx create-oncyber-app [project-name] [options]
 ```
 
-When run without a project name, the CLI starts in interactive mode and prompts for a name and package manager.
+When run without a project name, the CLI starts in interactive mode and prompts for a name and template. The generated project uses pnpm.
 
 ## Options
 
 | Flag | Description |
 | --- | --- |
-| `--use-npm` | Use npm as the package manager |
-| `--use-pnpm` | Use pnpm as the package manager |
-| `--use-yarn` | Use yarn as the package manager |
 | `--skip-install` | Skip automatic dependency installation |
 | `--skip-git` | Skip git repository initialization |
 | `--help` | Show the help message |
 | `--version` | Show the CLI version |
 
+The CLI uses pnpm automatically. If pnpm is missing, it will try to enable it with Corepack.
+
 ## Examples
 
 ```bash
-# Interactive mode — prompts for name and package manager
+# Interactive mode — prompts for name and template
 npx create-oncyber-app
 
 # Create a project with a specific name
 npx create-oncyber-app my-game
 
-# Use pnpm and skip git init
-npx create-oncyber-app my-game --use-pnpm --skip-git
+# Skip git init
+npx create-oncyber-app my-game --skip-git
 
 # Scaffold only — no install, no git
-npx create-oncyber-app my-game --use-npm --skip-install --skip-git
+npx create-oncyber-app my-game --skip-install --skip-git
 ```
 
 ## What's Included
@@ -102,7 +101,7 @@ my-game/
 
 ## Next Steps
 
-1. Run `npm run dev` to start the dev server
+1. Run `pnpm dev` to start the dev server
 2. Open [http://localhost:3000](http://localhost:3000) to see your game
 3. Open [http://localhost:3000/_studio](http://localhost:3000/_studio) to edit the scene visually
 4. Edit `src/components/game-script.tsx` to add game logic
