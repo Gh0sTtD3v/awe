@@ -3,7 +3,9 @@
 import { gameStore } from "../lib/game-store";
 import { startGame } from "../lib/game-script";
 import { useStore } from "@/hooks/use-store";
+import { useTouchScreen } from "@/hooks/use-touch-screen";
 import { GAME_CONFIG } from "@/lib/game-config";
+import { MobileControls } from "@/components/mobile-controls";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -13,6 +15,7 @@ function formatTime(seconds: number): string {
 
 function StartScreen() {
   const state = useStore(gameStore);
+  const isTouch = useTouchScreen();
 
   if (state.gamePhase !== "menu") return null;
 
@@ -24,7 +27,8 @@ function StartScreen() {
       <div className="bg-black/80 py-5" />
       <div className="flex-1" />
       <div className="bg-black/80 py-5 text-center text-white text-xl">
-        <em className="font-bold not-italic italic">Click</em> to start!
+        <em className="font-bold not-italic italic">{isTouch ? "Tap" : "Click"}</em>{" "}
+        to start!
       </div>
     </div>
   );
@@ -67,6 +71,7 @@ function EndScreen() {
 
 function HUD() {
   const state = useStore(gameStore);
+  const isTouch = useTouchScreen();
 
   if (state.gamePhase !== "playing") return null;
 
@@ -87,7 +92,7 @@ function HUD() {
       </div>
 
       {/* Bottom left: Health */}
-      <div className="absolute bottom-4 left-4">
+      <div className={isTouch ? "absolute left-4 top-[4.8rem]" : "absolute bottom-4 left-4"}>
         <div className="bg-black/60 text-white px-4 py-2 rounded-lg min-w-[10rem]">
           <div className="text-xs text-gray-400 mb-0.5">HP</div>
           <div className="text-2xl font-bold font-mono">
@@ -103,7 +108,7 @@ function HUD() {
       </div>
 
       {/* Bottom right: Ammo */}
-      <div className="absolute bottom-4 right-4">
+      <div className={isTouch ? "absolute right-4 top-4" : "absolute bottom-4 right-4"}>
         <div className="bg-black/60 text-white px-4 py-2 rounded-lg">
           <div className="text-2xl font-bold font-mono">
             {state.ammo} / {state.maxAmmo}
@@ -112,7 +117,9 @@ function HUD() {
             <div className="text-amber-400 text-sm">Reloading...</div>
           )}
           {!state.isReloading && state.ammo === 0 && (
-            <div className="text-red-400 text-sm">Press R to reload</div>
+            <div className="text-red-400 text-sm">
+              {isTouch ? "Tap Reload" : "Press R to reload"}
+            </div>
           )}
         </div>
       </div>
@@ -143,6 +150,7 @@ export function GameUI() {
       <EndScreen />
       <HUD />
       <Crosshair />
+      <MobileControls />
     </>
   );
 }

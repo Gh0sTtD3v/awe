@@ -80,6 +80,23 @@ export function releaseCustomButton(
   controlState.custom.releaseButton(event);
 }
 
+export function setCustomValue(
+  event: string,
+  value: number,
+  controlState: ControlStateManager = sharedControlState,
+): void {
+  controlState.custom.setValue(event, value);
+}
+
+export function setCustomVector2(
+  event: string,
+  x: number,
+  y: number,
+  controlState: ControlStateManager = sharedControlState,
+): void {
+  controlState.custom.setVector2(event, x, y);
+}
+
 export function setupNavigatorMock(): void {
   (globalThis as any).navigator ??= {};
   (globalThis as any).navigator.getGamepads ??= () => [];

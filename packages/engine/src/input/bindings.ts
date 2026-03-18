@@ -250,6 +250,24 @@ export interface CustomButtonBinding extends ButtonBinding {
   event: string;
 }
 
+/**
+ * Imperative custom scalar binding.
+ * Useful for app-driven analog controls such as sliders or triggers.
+ */
+export interface CustomValueBinding extends ValueBinding<number> {
+  type: "customValue";
+  event: string;
+}
+
+/**
+ * Imperative custom Vector2 binding.
+ * Useful for app-driven virtual sticks, look pads, or drag surfaces.
+ */
+export interface CustomVector2Binding extends ValueBinding<Vector2> {
+  type: "customVector2";
+  event: string;
+}
+
 // ============================================================================
 // Composite Bindings
 // ============================================================================
@@ -380,6 +398,18 @@ export interface CustomButtonConfig {
   event: string;
 }
 
+/** Config for custom scalar binding */
+export interface CustomValueConfig {
+  type: "customValue";
+  event: string;
+}
+
+/** Config for custom Vector2 binding */
+export interface CustomVector2Config {
+  type: "customVector2";
+  event: string;
+}
+
 /** Config for composite 1D axis binding */
 export interface CompositeAxis1DConfig {
   type: "compositeAxis1D";
@@ -423,6 +453,7 @@ type ScalarValueBindingConfig =
   | GamepadAxisConfig
   | MouseWheelConfig
   | TouchJoystickConfig
+  | CustomValueConfig
   | CompositeAxis1DConfig;
 
 type Vector2ValueBindingConfig =
@@ -432,6 +463,7 @@ type Vector2ValueBindingConfig =
   | TouchJoystickVector2Config
   | TouchPositionConfig
   | TouchDeltaConfig
+  | CustomVector2Config
   | CompositeVector2Config;
 
 /** Union of all value binding configs for a given type */
@@ -592,6 +624,44 @@ function createCustomButtonBinding(event: string): CustomButtonBinding {
     isPressed: state.isPressed,
     getState: state.getState,
     consume: state.consume,
+  };
+}
+
+function createCustomValueBinding(event: string): CustomValueBinding {
+  let _value = 0;
+
+  return {
+    type: "customValue",
+    event,
+    sample(ctrl: ControlStateManager): void {
+      _value = ctrl.custom.getValue(event);
+    },
+    read(): number {
+      return _value;
+    },
+    consume(): void {
+      // No-op for stateless scalar bindings
+    },
+    combine: combineBinding.number.first,
+  };
+}
+
+function createCustomVector2Binding(event: string): CustomVector2Binding {
+  let _value: Vector2 = { x: 0, y: 0 };
+
+  return {
+    type: "customVector2",
+    event,
+    sample(ctrl: ControlStateManager): void {
+      _value = ctrl.custom.getVector2(event);
+    },
+    read(): Vector2 {
+      return _value;
+    },
+    consume(): void {
+      // No-op for stateless Vector2 bindings
+    },
+    combine: combineBinding.vector2.first,
   };
 }
 
@@ -1344,12 +1414,22 @@ export const Touch = {
  * const inputs = createInputs({
  *   Jump: {
  *     type: "button",
- *     bindings: [Custom.button("jump"), Keyboard.button("Space")],
+  *     bindings: [Custom.button("jump"), Keyboard.button("Space")],
+  *   },
+ *   Throttle: {
+ *     type: "value",
+ *     bindings: [Custom.value("throttle")],
+ *   },
+ *   Aim: {
+ *     type: "vector2",
+ *     bindings: [Custom.vector2("aim")],
  *   },
  * });
  *
  * sharedControlState.custom.pressButton("jump");
  * sharedControlState.custom.releaseButton("jump");
+ * sharedControlState.custom.setValue("throttle", 0.75);
+ * sharedControlState.custom.setVector2("aim", 0.2, -0.4);
  * ```
  */
 export const Custom = {
@@ -1359,6 +1439,22 @@ export const Custom = {
    */
   button(event: string): CustomButtonConfig {
     return { type: "customButton", event };
+  },
+
+  /**
+   * Create a custom scalar binding config.
+   * @param event - Arbitrary app-defined control name (e.g. "throttle")
+   */
+  value(event: string): CustomValueConfig {
+    return { type: "customValue", event };
+  },
+
+  /**
+   * Create a custom Vector2 binding config.
+   * @param event - Arbitrary app-defined control name (e.g. "aim")
+   */
+  vector2(event: string): CustomVector2Config {
+    return { type: "customVector2", event };
   },
 };
 
@@ -1483,6 +1579,16 @@ export function createBindingFromConfig(config: BindingConfig): Binding {
       return createTouchTapBinding();
     case "customButton":
       return createCustomButtonBinding(config.event);
+    case "customValue":
+      return withNumberProcessors(
+        createCustomValueBinding(config.event),
+        config.processors,
+      );
+    case "customVector2":
+      return withVector2Processors(
+        createCustomVector2Binding(config.event),
+        config.processors,
+      );
     case "touchJoystick":
       return withNumberProcessors(
         createTouchJoystickBinding(config.axis),

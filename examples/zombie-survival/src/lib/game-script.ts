@@ -58,7 +58,11 @@ const GAMEPLAY_INPUTS = {
   },
   Look: {
     type: "vector2" as const,
-    bindings: [Mouse.pointerLockDelta(), Gamepad.rightStick()],
+    bindings: [
+      Mouse.pointerLockDelta(),
+      Gamepad.rightStick(),
+      Custom.vector2("look"),
+    ],
   },
   Jump: {
     type: "button" as const,
