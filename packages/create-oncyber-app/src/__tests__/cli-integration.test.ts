@@ -118,6 +118,21 @@ describe("CLI integration", { timeout: 30000 }, () => {
     expect(fs.existsSync(path.join(projectDir, "packages/create-oncyber-app"))).toBe(false);
   });
 
+  it("updates scaffolded CLAUDE.md to describe the generated app layout", () => {
+    runCli("claude-guidance --template starter --use-pnpm --skip-install --skip-git", tmpDir);
+
+    const claudeMd = fs.readFileSync(
+      path.join(tmpDir, "claude-guidance", "CLAUDE.md"),
+      "utf-8",
+    );
+
+    expect(claudeMd).toContain("/apps/claude-guidance");
+    expect(claudeMd).toContain("/examples/starter");
+    expect(claudeMd).toContain("https://github.com/oncyberio/awe");
+    expect(claudeMd).toContain("workspace packages in `/packages`");
+    expect(claudeMd).toContain("does not keep an `/examples` directory");
+  });
+
   it("removes template scripts from root package.json", () => {
     runCli("scripts-test --template starter --use-pnpm --skip-install --skip-git", tmpDir);
 

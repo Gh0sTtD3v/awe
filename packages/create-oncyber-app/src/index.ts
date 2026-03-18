@@ -52,6 +52,44 @@ function writeJson(filePath: string, data: Record<string, any>) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
+function updateScaffoldedClaudeMd(
+  projectDir: string,
+  projectName: string,
+  template: string,
+) {
+  const claudePath = path.join(projectDir, "CLAUDE.md");
+  if (!fs.existsSync(claudePath)) {
+    return;
+  }
+
+  fs.writeFileSync(
+    claudePath,
+    `# Project Overview
+
+This is a 3D game project scaffolded from the AWE monorepo. The main app lives in \`/apps/${projectName}\` inside this generated workspace.
+
+# Code Style Guide
+
+All files in this mono repo MUST use **kebab-case** naming (eg \`editor-events.ts\`, \`constants.ts\`)
+
+# Skills
+
+- \`/engine\` — oncyber engine API and usage patterns. Use before working on game code.
+- \`/game-prd\` — create a game spec / PRD before implementation. Use when planning a new game or scoping a game idea.
+
+# Scaffold Origin
+
+This project was created by \`create-oncyber-app\` from the source AWE repo at \`https://github.com/oncyberio/awe\`.
+
+The game app in \`/apps/${projectName}\` was copied from the source repo's \`/examples/${template}\` template.
+
+The shared engine, studio, tools, and other workspace packages in \`/packages\` also came from that same source repo snapshot.
+
+The generated repo does not keep an \`/examples\` directory, so use \`/apps/${projectName}\` as the main reference when editing the game.
+`,
+  );
+}
+
 const SCAFFOLD_EXCLUDED_DIR_NAMES = new Set([
   ".git",
   ".next",
@@ -193,6 +231,8 @@ function cleanupScaffold(
     gamePkg.name = projectName;
     writeJson(gamePkgPath, gamePkg);
   }
+
+  updateScaffoldedClaudeMd(projectDir, projectName, template);
 
   // Update root package.json — set name and generated-project scripts
   const rootPkgPath = path.join(projectDir, "package.json");
