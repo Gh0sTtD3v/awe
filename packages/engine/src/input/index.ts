@@ -166,6 +166,7 @@ export { InputAction, createInputAction } from "./input-action";
 export type {
   ActionCallbackContext,
   ActionCallback,
+  ActionSource,
   InputActionConfig,
 } from "./input-action";
 
