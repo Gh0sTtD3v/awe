@@ -82,9 +82,6 @@ pnpm tools:check
 pnpm --filter engine test
 pnpm --filter create-oncyber-app test
 
-# API generation
-pnpm engine:build:api     # Generate public API type definitions
-
 # Run an example project
 pnpm --filter zombie-survival dev
 
@@ -108,8 +105,7 @@ Tests use [Vitest](https://vitest.dev/). Write tests for new functionality when 
 
 1. **Engine changes** — work in `packages/engine/src/`. Run `pnpm engine:check` and `pnpm --filter engine test` to verify.
 2. **Editor changes** — work in `packages/engine-edit/src/`. Run `pnpm engine-edit:check` to verify.
-3. **API changes** — if you modify the engine's public API, regenerate type definitions with `pnpm engine:build:api`.
-4. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`.
+3. **Template changes** — the project template lives at `packages/create-oncyber-app/template/`.
 
 ## Commit Messages
 
