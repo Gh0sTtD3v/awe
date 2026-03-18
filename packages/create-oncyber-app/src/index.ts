@@ -9,7 +9,7 @@ import { detectPackageManager } from "./detect-package-manager";
 import { createSpinner, createSteps } from "./spinner";
 
 const REPO_URL =
-  process.env.AWE_REPO_URL || "https://github.com/runthefun/awe-dev.git";
+  process.env.AWE_REPO_URL || "https://github.com/oncyberio/awe.git";
 const REPO_BRANCH = process.env.AWE_REPO_BRANCH || "main";
 
 const TEMPLATES = [
@@ -109,10 +109,27 @@ function sparseClone(repoUrl: string, dest: string, template: string) {
   ]);
 }
 
+function getWorkspaceScriptCommand(
+  packageManager: PackageManager,
+  workspaceName: string,
+  scriptName: string,
+) {
+  switch (packageManager) {
+    case "npm":
+      return `npm run ${scriptName} --workspace ${workspaceName}`;
+    case "yarn":
+      return `yarn workspace ${workspaceName} ${scriptName}`;
+    case "pnpm":
+    default:
+      return `pnpm --filter ${workspaceName} ${scriptName}`;
+  }
+}
+
 function cleanupScaffold(
   projectDir: string,
   projectName: string,
   template: string,
+  packageManager: PackageManager,
 ) {
   // Remove .git from the clone
   const gitDir = path.join(projectDir, ".git");
@@ -148,11 +165,22 @@ function cleanupScaffold(
     writeJson(gamePkgPath, gamePkg);
   }
 
-  // Update root package.json — set name
+  // Update root package.json — set name and generated-project scripts
   const rootPkgPath = path.join(projectDir, "package.json");
   if (fs.existsSync(rootPkgPath)) {
     const rootPkg = readJson(rootPkgPath);
     rootPkg.name = projectName;
+    rootPkg.workspaces = ["packages/*", "apps/*"];
+    rootPkg.scripts = {
+      ...rootPkg.scripts,
+      dev: getWorkspaceScriptCommand(packageManager, projectName, "dev"),
+      build: getWorkspaceScriptCommand(packageManager, projectName, "build"),
+      start: getWorkspaceScriptCommand(packageManager, projectName, "start"),
+      check: getWorkspaceScriptCommand(packageManager, projectName, "check"),
+    };
+    delete rootPkg.scripts["create-game"];
+    delete rootPkg.scripts["template:dev"];
+    delete rootPkg.scripts["template:check"];
     writeJson(rootPkgPath, rootPkg);
   }
 
@@ -702,7 +730,7 @@ async function scaffold(options: CliOptions) {
   // Set up project
   const setupSpinner = createSpinner("Setting up project...");
   setupSpinner.start();
-  cleanupScaffold(projectDir, projectName, template);
+  cleanupScaffold(projectDir, projectName, template, packageManager);
   setupSpinner.stop("Project set up.");
 
   // Git initialization
@@ -785,4 +813,18 @@ async function main() {
   await scaffold(options);
 }
 
-main();
+function isDirectExecution() {
+  const entryPath = process.argv[1];
+  if (!entryPath) {
+    return false;
+  }
+
+  return path.resolve(entryPath) === __filename;
+}
+
+if (isDirectExecution()) {
+  void main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

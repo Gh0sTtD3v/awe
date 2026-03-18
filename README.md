@@ -76,7 +76,7 @@ This scaffolds a full Next.js project with the oncyberio engine pre-configured, 
 ### Monorepo Development
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/oncyberio/awe.git
 cd awe
 pnpm install
 ```

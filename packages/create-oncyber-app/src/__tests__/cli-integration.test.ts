@@ -115,6 +115,38 @@ describe("CLI integration", { timeout: 30000 }, () => {
     expect(rootPkg.scripts["dev"]).toBeDefined();
   });
 
+  it("writes npm workspace scripts for generated projects", () => {
+    runCli("npm-script-test --template starter --use-npm --skip-install --skip-git", tmpDir);
+
+    const rootPkg = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, "npm-script-test", "package.json"), "utf-8"),
+    );
+
+    expect(rootPkg.workspaces).toEqual(["packages/*", "apps/*"]);
+    expect(rootPkg.scripts["dev"]).toBe(
+      "npm run dev --workspace npm-script-test",
+    );
+    expect(rootPkg.scripts["build"]).toBe(
+      "npm run build --workspace npm-script-test",
+    );
+  });
+
+  it("writes yarn workspace scripts for generated projects", () => {
+    runCli("yarn-script-test --template starter --use-yarn --skip-install --skip-git", tmpDir);
+
+    const rootPkg = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, "yarn-script-test", "package.json"), "utf-8"),
+    );
+
+    expect(rootPkg.workspaces).toEqual(["packages/*", "apps/*"]);
+    expect(rootPkg.scripts["dev"]).toBe(
+      "yarn workspace yarn-script-test dev",
+    );
+    expect(rootPkg.scripts["build"]).toBe(
+      "yarn workspace yarn-script-test build",
+    );
+  });
+
   it("removes examples/* from pnpm-workspace.yaml and keeps apps/*", () => {
     runCli("workspace-test --template starter --use-pnpm --skip-install --skip-git", tmpDir);
 
