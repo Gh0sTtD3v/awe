@@ -115,6 +115,23 @@ describe("CLI integration", { timeout: 30000 }, () => {
     expect(rootPkg.scripts["dev"]).toBeDefined();
   });
 
+  it("writes pnpm workspace scripts for generated projects", () => {
+    runCli("pnpm-script-test --template starter --skip-install --skip-git", tmpDir);
+
+    const rootPkg = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, "pnpm-script-test", "package.json"), "utf-8"),
+    );
+
+    expect(rootPkg.packageManager).toBe("pnpm@10.10.0");
+    expect(rootPkg.workspaces).toEqual(["packages/*", "apps/*"]);
+    expect(rootPkg.scripts["dev"]).toBe(
+      "pnpm --filter pnpm-script-test dev",
+    );
+    expect(rootPkg.scripts["build"]).toBe(
+      "pnpm --filter pnpm-script-test build",
+    );
+  });
+
   it("removes examples/* from pnpm-workspace.yaml and keeps apps/*", () => {
     runCli("workspace-test --template starter --use-pnpm --skip-install --skip-git", tmpDir);
 
@@ -145,6 +162,26 @@ describe("CLI integration", { timeout: 30000 }, () => {
     expect(exitCode).not.toBe(0);
     expect(stdout).toContain("Unknown template");
     expect(stdout).toContain("nonexistent");
+  });
+
+  it("fails fast when --use-npm is passed", () => {
+    const { exitCode, stdout } = runCli(
+      "bad-package-manager --use-npm --skip-install --skip-git",
+      tmpDir,
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("pnpm only");
+  });
+
+  it("fails fast when --use-yarn is passed", () => {
+    const { exitCode, stdout } = runCli(
+      "bad-package-manager --use-yarn --skip-install --skip-git",
+      tmpDir,
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("pnpm only");
   });
 
   it("initializes git repo when --skip-git is not passed", () => {
@@ -184,11 +221,11 @@ describe("CLI integration", { timeout: 30000 }, () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Usage:");
     expect(stdout).toContain("--template");
-    expect(stdout).toContain("--use-npm");
-    expect(stdout).toContain("--use-pnpm");
-    expect(stdout).toContain("--use-yarn");
     expect(stdout).toContain("--skip-install");
     expect(stdout).toContain("--skip-git");
+    expect(stdout).toContain("Uses pnpm automatically");
+    expect(stdout).not.toContain("--use-npm");
+    expect(stdout).not.toContain("--use-yarn");
     expect(stdout).toContain("update");
     expect(stdout).toContain("Templates:");
     expect(stdout).toContain("starter");

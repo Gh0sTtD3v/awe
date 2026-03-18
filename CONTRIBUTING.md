@@ -13,7 +13,7 @@ Thanks for your interest in contributing to oncyberio! This guide will help you 
 ### Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/oncyberio/awe.git
 cd awe
 pnpm install
 ```

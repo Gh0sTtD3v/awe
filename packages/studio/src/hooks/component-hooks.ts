@@ -9,6 +9,7 @@ const exludedComponents = {
   script: true,
   dust: true,
   impact: true,
+  particles: true,
 };
 
 export function useComponentTypes() {
@@ -20,7 +21,7 @@ export function useComponentTypes() {
     //
 
     return options.filter((factory) => {
-      return !exludedComponents[factory.info.type];
+      return !exludedComponents[factory.info.type] && !factory.info.hidden;
     });
     //
   }, [options]);

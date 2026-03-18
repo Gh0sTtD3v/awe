@@ -16,6 +16,7 @@ export class ParticlesComponentFactory extends DefaultComponentFactory<Particles
     title: "particles",
     image:
       "https://cyber.mypinata.cloud/ipfs/QmYzQWNkreX2MrypGBWPEUzWLxA2BLjGhegxvZrAq9CLUC",
+    hidden: true,
     draggable: true,
     transform: true,
     studioTab: "worldSettings",

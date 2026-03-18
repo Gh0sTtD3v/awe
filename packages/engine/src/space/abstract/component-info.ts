@@ -25,6 +25,7 @@ export interface ComponentInfo {
   studioTab?: string;
   singleton?: boolean;
   required?: boolean;
+  hidden?: boolean;
   draggable?: boolean;
   priority?: number;
   custom?: boolean;

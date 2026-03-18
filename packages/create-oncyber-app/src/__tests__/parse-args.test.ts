@@ -25,19 +25,9 @@ describe("parseArgs", () => {
     expect(result.projectName).toBe("my-game");
   });
 
-  it("parses --use-npm flag", () => {
-    const result = parseArgs(["node", "create-oncyber-app", "--use-npm"]);
-    expect(result.packageManager).toBe("npm");
-  });
-
   it("parses --use-pnpm flag", () => {
     const result = parseArgs(["node", "create-oncyber-app", "--use-pnpm"]);
     expect(result.packageManager).toBe("pnpm");
-  });
-
-  it("parses --use-yarn flag", () => {
-    const result = parseArgs(["node", "create-oncyber-app", "--use-yarn"]);
-    expect(result.packageManager).toBe("yarn");
   });
 
   it("parses --skip-install flag", () => {
@@ -117,11 +107,11 @@ describe("parseArgs", () => {
       "create-oncyber-app",
       "--skip-git",
       "my-game",
-      "--use-npm",
+      "--use-pnpm",
     ]);
     expect(result.projectName).toBe("my-game");
     expect(result.skipGit).toBe(true);
-    expect(result.packageManager).toBe("npm");
+    expect(result.packageManager).toBe("pnpm");
   });
 
   it("parses --local flag", () => {

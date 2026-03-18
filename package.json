@@ -1,6 +1,7 @@
 {
   "name": "awe",
   "private": true,
+  "packageManager": "pnpm@10.10.0",
   "engines": {
     "node": ">=20.9.0"
   },
