@@ -20,7 +20,6 @@ import { MeshComponentEditor } from "./mesh/editor";
 import { ModelEditor } from "./model/editor";
 import { NavmeshComponentEditor } from "./navmesh/editor";
 import { ObjectEditor } from "./object/editor";
-import { ParticlesEditor } from "./particles/editor";
 import { PostProcessingEditor } from "./postprocessing/editor";
 import { QuarksComponentEditor } from "./quarks/editor";
 import { ReflectorEditor } from "./reflector/editor";
@@ -53,7 +52,6 @@ export function registerAllEditors() {
   registerEditor("model", ModelEditor);
   registerEditor("navmesh", NavmeshComponentEditor);
   registerEditor("object", ObjectEditor);
-  registerEditor("particles", ParticlesEditor);
   registerEditor("postprocessing", PostProcessingEditor);
   registerEditor("quarks", QuarksComponentEditor);
   registerEditor("reflector", ReflectorEditor);
