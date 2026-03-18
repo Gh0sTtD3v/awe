@@ -19,8 +19,17 @@ function runCli(
   cwd: string,
   env?: Record<string, string>,
 ): { stdout: string; exitCode: number } {
+  return runCliEntry(CLI_PATH, args, cwd, env);
+}
+
+function runCliEntry(
+  entryPath: string,
+  args: string,
+  cwd: string,
+  env?: Record<string, string>,
+): { stdout: string; exitCode: number } {
   try {
-    const stdout = execSync(`npx tsx ${CLI_PATH} ${args}`, {
+    const stdout = execSync(`npx tsx "${entryPath}" ${args}`, {
       cwd,
       stdio: "pipe",
       env: {
@@ -237,6 +246,17 @@ describe("CLI integration", { timeout: 30000 }, () => {
 
     expect(exitCode).toBe(0);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it("shows help when invoked through a symlinked entrypoint", () => {
+    const symlinkPath = path.join(tmpDir, "create-oncyber-app.ts");
+    fs.symlinkSync(CLI_PATH, symlinkPath);
+
+    const { stdout, exitCode } = runCliEntry(symlinkPath, "--help", tmpDir);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Usage:");
+    expect(stdout).toContain("create-oncyber-app");
   });
 
   it("includes packages/ directory in scaffolded project", () => {

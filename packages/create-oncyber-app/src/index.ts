@@ -842,12 +842,9 @@ async function main() {
 }
 
 function isDirectExecution() {
-  const entryPath = process.argv[1];
-  if (!entryPath) {
-    return false;
-  }
-
-  return path.resolve(entryPath) === __filename;
+  return typeof require !== "undefined"
+    && typeof module !== "undefined"
+    && require.main === module;
 }
 
 if (isDirectExecution()) {
