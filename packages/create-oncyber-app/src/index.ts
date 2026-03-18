@@ -172,9 +172,9 @@ function cleanupScaffold(
     fs.rmSync(cliDir, { recursive: true, force: true });
   }
 
-  // Copy selected template to apps/game/
+  // Copy selected template to apps/<project-name>/
   const templateDir = path.join(projectDir, "examples", template);
-  const gameDir = path.join(projectDir, "apps/game");
+  const gameDir = path.join(projectDir, "apps", projectName);
   fs.mkdirSync(path.join(projectDir, "apps"), { recursive: true });
   copyDirSync(templateDir, gameDir, {
     shouldSkip: shouldSkipScaffoldEntry,
@@ -186,7 +186,7 @@ function cleanupScaffold(
     fs.rmSync(examplesDir, { recursive: true, force: true });
   }
 
-  // Update apps/game/package.json — set name to project name
+  // Update apps/<project-name>/package.json — set name to project name
   const gamePkgPath = path.join(gameDir, "package.json");
   if (fs.existsSync(gamePkgPath)) {
     const gamePkg = readJson(gamePkgPath);
