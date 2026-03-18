@@ -84,7 +84,7 @@ const GAMEPLAY_INPUTS = {
   Fire: {
     type: "button" as const,
     bindings: [
-      Mouse.button(0),
+      Mouse.button(0, { requirePointerLock: true }),
       Gamepad.button("RT"),
       Custom.button("fire"),
     ],

@@ -177,6 +177,7 @@ export interface DPadBinding extends ValueBinding<Vector2> {
 export interface MouseButtonBinding extends ButtonBinding {
   type: "mouseButton";
   button: number; // 0=left, 1=middle, 2=right
+  requirePointerLock?: boolean;
 }
 
 /**
@@ -353,6 +354,7 @@ export interface DPadConfig {
 export interface MouseButtonConfig {
   type: "mouseButton";
   button: number;
+  requirePointerLock?: boolean;
 }
 
 /** Config for mouse delta binding */
@@ -586,12 +588,20 @@ function createGamepadAxisBinding(
   };
 }
 
-function createMouseButtonBinding(button: number): MouseButtonBinding {
+function createMouseButtonBinding(
+  button: number,
+  requirePointerLock = false,
+): MouseButtonBinding {
   const state = createButtonState();
   return {
     type: "mouseButton",
     button,
+    requirePointerLock,
     sample(ctrl: ControlStateManager): void {
+      if (requirePointerLock && !isPointerLocked()) {
+        state.update(false);
+        return;
+      }
       state.update(ctrl.mouse.isButtonDown(button));
     },
     isPressed: state.isPressed,
@@ -1315,6 +1325,7 @@ export const Gamepad = {
  * @example
  * ```ts
  * Mouse.button(0)    // Left button (0=left, 1=middle, 2=right)
+ * Mouse.button(0, { requirePointerLock: true }) // Only active while locked
  * Mouse.delta()      // Movement delta as Vector2
  * Mouse.wheel()      // Wheel delta as number
  * ```
@@ -1324,8 +1335,15 @@ export const Mouse = {
    * Create a mouse button binding config
    * @param button - Button index (0=left, 1=middle, 2=right)
    */
-  button(button: number): MouseButtonConfig {
-    return { type: "mouseButton", button };
+  button(
+    button: number,
+    options: { requirePointerLock?: boolean } = {},
+  ): MouseButtonConfig {
+    return {
+      type: "mouseButton",
+      button,
+      requirePointerLock: options.requirePointerLock,
+    };
   },
 
   /**
@@ -1567,7 +1585,10 @@ export function createBindingFromConfig(config: BindingConfig): Binding {
     case "dpad":
       return withVector2Processors(createDPadBinding(), config.processors);
     case "mouseButton":
-      return createMouseButtonBinding(config.button);
+      return createMouseButtonBinding(
+        config.button,
+        config.requirePointerLock,
+      );
     case "mouseDelta":
       return withVector2Processors(
         createMouseDeltaBinding(config.requirePointerLock),
