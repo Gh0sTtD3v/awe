@@ -69,8 +69,10 @@ function createMockSpace() {
     const avatar: FakeAvatar = {
       id: config.id,
       destroy: vi.fn(),
-      play: vi.fn((animation: string) => {
-        avatar.data.animation = animation;
+      play: vi.fn((animation: string, opts?: { persist?: boolean }) => {
+        if (opts?.persist) {
+          avatar.data.animation = animation;
+        }
       }),
       data: {
         animation: config.animation ?? "idle",
@@ -448,6 +450,7 @@ describe("multiplayer integration", () => {
       expect(player?.anim).toBe("jump_running");
       expect(remoteAvatar.play).toHaveBeenCalledWith("jump_running", {
         fadeIn: 0.15,
+        persist: true,
       });
       expect(remoteAvatar.data.animation).toBe("jump_running");
     });

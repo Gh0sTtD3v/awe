@@ -1,6 +1,7 @@
-import { getGameData, updateGame } from "../actions/game";
+import { getGameData, getGameRevision, updateGame } from "../actions/game";
 
 export const ClientGameService = {
   getGameData,
+  getGameRevision,
   updateGame,
 };

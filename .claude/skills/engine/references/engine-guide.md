@@ -91,8 +91,8 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 
 ### Core Objects
 
-| Type     | Description                                         |
-| -------- | --------------------------------------------------- |
+| Type            | Description                                         |
+| --------------- | --------------------------------------------------- |
 | `mesh`          | Basic shapes (box, sphere, cylinder, plane)         |
 | `model`         | 3D models (GLB/GLTF)                                |
 | `avatar`        | VRM avatars (see `public/vrms.json`)                |
@@ -109,17 +109,17 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 
 ### Environment
 
-| Type         | Description                            |
-| ------------ | -------------------------------------- |
-| `terrain`    | Ground/floor with optional grid shader |
-| `water`      | Water surfaces                         |
-| `grass`      | Grass with wind animation              |
-| `lighting`   | Scene lighting                         |
-| `fog`        | Atmospheric fog                        |
-| `background` | Sky/background settings                |
-| `envmap`     | Environment map / reflections          |
-| `reflector`  | Mirror/reflective surfaces             |
-| `postprocessing` | Post-processing effects            |
+| Type             | Description                            |
+| ---------------- | -------------------------------------- |
+| `terrain`        | Ground/floor with optional grid shader |
+| `water`          | Water surfaces                         |
+| `grass`          | Grass with wind animation              |
+| `lighting`       | Scene lighting                         |
+| `fog`            | Atmospheric fog                        |
+| `background`     | Sky/background settings                |
+| `envmap`         | Environment map / reflections          |
+| `reflector`      | Mirror/reflective surfaces             |
+| `postprocessing` | Post-processing effects                |
 
 ### Effects & Particles
 
@@ -136,11 +136,11 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 
 ### Game Systems
 
-| Type        | Description                              |
-| ----------- | ---------------------------------------- |
-| `vrm-anims` | VRM animation definitions                |
-| `camera`    | Camera component                         |
-| `navmesh`   | Navigation mesh for pathfinding          |
+| Type        | Description                     |
+| ----------- | ------------------------------- |
+| `vrm-anims` | VRM animation definitions       |
+| `camera`    | Camera component                |
+| `navmesh`   | Navigation mesh for pathfinding |
 
 ### Interaction & Navigation
 
@@ -154,18 +154,33 @@ For full component properties and methods, see `packages/engine/api/space/abstra
 ### Avatars
 
 - Based on VRM models, animated with VRM animations
-- Use `useCpuAnimation: true` if calling `avatar.getBone(id)`
+- Use `useCpuAnimation: true` if calling `avatar.getBone(id)` or `avatar.play()` / `avatar.stop()`
 - Built-in animations: `idle`, `walk`, `run`, `jump`, `fly`, `sitting`
 
 ```ts
-avatar.animation = "walk";
+// Durable/default animation state
+avatar.setData({ animation: "walk" });
+
+// Imperative but durable
+avatar.play("run", { fadeIn: 0.15, persist: true });
+
+// Transient one-shot
+avatar.play("hit", { loop: "once", fadeIn: 0.05 });
 ```
+
+### Avatar Animation Semantics
+
+- `setData({ animation })` updates the avatar's durable/default animation state. The engine re-applies this across animation refreshes and CPU/GPU mode switches.
+- `avatar.play()` / `avatar.stop()` control transient playback. They are the right fit for one-shots like hit reactions, attacks, and emotes.
+- Pass `persist: true` to `avatar.play()` / `avatar.stop()` only when you intentionally want to update the durable/default animation state too.
+- `AnimationStateMachine` persists by default and is the recommended way to drive locomotion/stateful presentation.
+- Be careful persisting non-looping clips. A persisted non-looping clip can become the avatar's new resting pose after it finishes. This is good for `death`, but usually wrong for `hit` or `attack`.
 
 **Facing convention (-Z forward):** Avatars face **-Z** by default. When manually computing a facing angle from a direction vector, you must add `Math.PI` — this is the most common gotcha:
 
 ```ts
 // dir = normalized movement direction (e.g. from input)
-const angle = Math.atan2(dir.x, dir.z) + Math.PI;  // +π required!
+const angle = Math.atan2(dir.x, dir.z) + Math.PI; // +π required!
 avatar.rotation.y = angle;
 ```
 
@@ -470,14 +485,14 @@ Build player controls from engine primitives: `Mover` for movement, camera rigs 
 import { Mover, ThirdPersonCameraRig } from "@oncyber/engine/controls";
 
 const mover = new Mover({
-  body: avatar,                    // Component3D to move
-  target: Camera.current,          // Reference for target-relative movement
+  body: avatar, // Component3D to move
+  target: Camera.current, // Reference for target-relative movement
   movement: { speed: 15, facingMode: "movement" },
-  jump: { height: 2, count: 2 },  // optional
+  jump: { height: 2, count: 2 }, // optional
 });
 
 // In onFixedUpdate:
-mover.move(inputX, inputZ);  // -1..1 axes from input
+mover.move(inputX, inputZ); // -1..1 axes from input
 mover.update(dt);
 ```
 
@@ -485,11 +500,11 @@ mover.update(dt);
 
 Controls how the avatar's rotation is managed. This is the key property for different camera/gameplay styles:
 
-| Mode | Behavior | Use case |
-|---|---|---|
-| `"movement"` | Face travel direction while moving (default) | Platformer, top-down, sports games |
-| `"target"` | Face the target's (camera's) yaw direction, even while idle | Shift-lock, combat, strafing |
-| `"none"` | No automatic rotation — caller controls facing | FPS, auto-runner, cutscenes |
+| Mode         | Behavior                                                    | Use case                           |
+| ------------ | ----------------------------------------------------------- | ---------------------------------- |
+| `"movement"` | Face travel direction while moving (default)                | Platformer, top-down, sports games |
+| `"target"`   | Face the target's (camera's) yaw direction, even while idle | Shift-lock, combat, strafing       |
+| `"none"`     | No automatic rotation — caller controls facing              | FPS, auto-runner, cutscenes        |
 
 ```ts
 // Switch at runtime (e.g. toggle shift-lock)
@@ -550,9 +565,12 @@ Keep AI decisions, scoring rules, state machines, and other game logic in plain 
 
 ```ts
 // game-ai.ts — pure logic, no engine imports
-export function chooseTarget(enemies: { pos: Vec2; hp: number }[], playerPos: Vec2) {
+export function chooseTarget(
+  enemies: { pos: Vec2; hp: number }[],
+  playerPos: Vec2,
+) {
   return enemies
-    .filter(e => e.hp > 0)
+    .filter((e) => e.hp > 0)
     .sort((a, b) => dist(a.pos, playerPos) - dist(b.pos, playerPos))[0];
 }
 

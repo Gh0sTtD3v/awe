@@ -19,12 +19,23 @@ const StudioUI = dynamic(
 
 function StudioContent() {
   const [gameData, setGameData] = useState<GameData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   const loadGameData = useCallback(async () => {
-    const data = await ClientGameService.getGameData();
-    setGameData(data);
-    setReady(true);
+    try {
+      const data = await ClientGameService.getGameData();
+
+      setGameData(data);
+      setLoadError(null);
+    } catch (error) {
+      console.error("Failed to load static-scene.json", error);
+      setLoadError(
+        error instanceof Error ? error.message : "Unknown scene load error"
+      );
+    } finally {
+      setReady(true);
+    }
   }, []);
 
   useEffectOnce(() => {
@@ -33,6 +44,14 @@ function StudioContent() {
   });
 
   if (!ready || !gameData) {
+    if (ready && loadError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-black px-6 text-center text-sm text-white">
+          Failed to load `static-scene.json`: {loadError}
+        </div>
+      );
+    }
+
     return null;
   }
 

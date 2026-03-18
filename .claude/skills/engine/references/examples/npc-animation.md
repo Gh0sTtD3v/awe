@@ -2,6 +2,8 @@
 
 The `AnimationStateMachine` from `@oncyberio/engine/controls` works standalone for NPC animation — no `Mover` needed.
 
+Use it for stable animation phases such as locomotion or jump/fall/landing. The machine persists avatar animation state by default, so it is the right tool for "what animation should this character currently be in?".
+
 ```typescript
 import { AnimationStateMachine } from "@oncyberio/engine/controls";
 
@@ -45,7 +47,7 @@ const anim = new AnimationStateMachine<{ moving: boolean; kicking: boolean }>({
   states: {
     idle: { clip: "idle" },
     run: { clip: "run" },
-    kick: { clip: "kick", loop: false }, // one-shot animation
+    kick: { clip: "kick", loop: "once" }, // one-shot animation
   },
   transitions: [
     { from: "idle", to: "kick", when: (ctx) => ctx.kicking },
@@ -58,4 +60,18 @@ const anim = new AnimationStateMachine<{ moving: boolean; kicking: boolean }>({
 });
 ```
 
-> **Note**: `AnimationStateMachine` is the same system used for player avatar animation (see `examples/starter`). Using it directly gives you full control over NPC animation.
+## Transient Reactions
+
+For brief reactions such as `hit`, `attack`, or short emotes, prefer direct transient playback instead of making that clip the avatar's new default state:
+
+```typescript
+npcAvatar.play("hit", {
+  loop: "once",
+  fadeIn: 0.04,
+  stopAll: true,
+});
+```
+
+Use `persist: true` only if the reaction should become the avatar's new durable/base animation state. That is uncommon for `hit`/`attack`, but common for something terminal like `death`.
+
+> **Note**: `AnimationStateMachine` is the same system used for player avatar animation (see `examples/starter`). Using it directly gives you full control over NPC animation without touching private avatar internals.

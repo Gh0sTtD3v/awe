@@ -11,34 +11,45 @@ function getDataFilePath(workingFolder: string): string {
   return path.join(workingFolder, "data/static-scene.json");
 }
 
+export interface GameRevision {
+  mtimeMs: number;
+}
+
 export class GameService {
-  private static readGameDataSync(dataFile: string): GameData {
-    try {
-      if (!fs.existsSync(dataFile)) {
-        // Ensure directory exists
-        const dir = path.dirname(dataFile);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        // Create with default scene
-        const defaultData = {
-          ...DEFAULT_SCENE,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        } as GameData;
-        fs.writeFileSync(dataFile, JSON.stringify(defaultData, null, 2), "utf-8");
-        return defaultData;
-      }
-      const data = fs.readFileSync(dataFile, "utf-8");
-      return JSON.parse(data);
-    } catch {
-      // Return default scene on error
-      return {
-        ...DEFAULT_SCENE,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      } as GameData;
+  private static ensureGameDataFileSync(dataFile: string): void {
+    if (fs.existsSync(dataFile)) {
+      return;
     }
+
+    const dir = path.dirname(dataFile);
+
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    const defaultData = {
+      ...DEFAULT_SCENE,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    } as GameData;
+
+    fs.writeFileSync(dataFile, JSON.stringify(defaultData, null, 2), "utf-8");
+  }
+
+  private static readGameDataSync(dataFile: string): GameData {
+    const data = fs.readFileSync(dataFile, "utf-8");
+
+    return JSON.parse(data);
+  }
+
+  private static getDataFile(): Promise<string> {
+    return resolveWorkingFolder().then((workingFolder) => {
+      const dataFile = getDataFilePath(workingFolder);
+
+      this.ensureGameDataFileSync(dataFile);
+
+      return dataFile;
+    });
   }
 
   private static writeGameDataSync(dataFile: string, gameData: GameData): void {
@@ -50,14 +61,22 @@ export class GameService {
   }
 
   static async getGameData(): Promise<GameData> {
-    const workingFolder = await resolveWorkingFolder();
-    const dataFile = getDataFilePath(workingFolder);
+    const dataFile = await this.getDataFile();
+
     return this.readGameDataSync(dataFile);
   }
 
+  static async getGameRevision(): Promise<GameRevision> {
+    const dataFile = await this.getDataFile();
+    const stat = fs.statSync(dataFile);
+
+    return {
+      mtimeMs: stat.mtimeMs,
+    };
+  }
+
   static async updateGame(opts: { id: string; patches: Patch[] }): Promise<{ success: boolean }> {
-    const workingFolder = await resolveWorkingFolder();
-    const dataFile = getDataFilePath(workingFolder);
+    const dataFile = await this.getDataFile();
     const gameData = this.readGameDataSync(dataFile);
 
     // Apply patches using Immer

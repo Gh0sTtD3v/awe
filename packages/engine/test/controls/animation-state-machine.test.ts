@@ -141,6 +141,7 @@ describe("AnimationStateMachine", () => {
 
     const jumpPlay = playCalls.at(-1);
     expect(jumpPlay?.clip).toBe("jump");
+    expect(jumpPlay?.opts?.persist).toBe(true);
 
     const callback = jumpPlay?.opts?.callback as undefined | ((opts: { type: string }) => void);
     expect(typeof callback).toBe("function");
@@ -198,21 +199,25 @@ describe("AnimationStateMachine", () => {
     });
 
     expect(playCalls.at(-1)?.opts?.fadeIn).toBe(0.2);
+    expect(playCalls.at(-1)?.opts?.persist).toBe(true);
 
     machine.setContext({ toRun: true });
     machine.update(1 / 60);
     expect(machine.currentState).toBe("run");
     expect(playCalls.at(-1)?.opts?.fadeIn).toBe(0.5);
+    expect(playCalls.at(-1)?.opts?.persist).toBe(true);
 
     machine.setContext({ toRun: false, toDash: true });
     machine.update(1 / 60);
     expect(machine.currentState).toBe("dash");
     expect(playCalls.at(-1)?.opts?.fadeIn).toBe(0.33);
+    expect(playCalls.at(-1)?.opts?.persist).toBe(true);
 
     machine.setContext({ toDash: false, toIdle: true });
     machine.update(1 / 60);
     expect(machine.currentState).toBe("idle");
     expect(playCalls.at(-1)?.opts?.fadeIn).toBe(0.2);
+    expect(playCalls.at(-1)?.opts?.persist).toBe(true);
   });
 
   it("enabled toggle: does not process pending events while disabled, and preserves the queue until re-enabled", () => {

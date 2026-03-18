@@ -5,6 +5,7 @@ import { ComponentData, GameData } from "../../types/game-data";
 import { Failure, Result, Success } from "../result";
 import { ClientGameService } from "../../services/client-game-service";
 import { GameTreeModel } from "./game-tree-model";
+import { deepEqual } from "../js";
 
 const sp = new URLSearchParams(window.location.search);
 
@@ -18,6 +19,12 @@ export interface StoreOpts {
   gameData: GameData;
   userId: string;
   isAnonymous: boolean;
+}
+
+export interface SyncRemoteGameDataResult {
+  changed: boolean;
+  componentsChanged: boolean;
+  skipped: boolean;
 }
 
 type UpdateCallback = (res: Result<true>) => unknown;
@@ -159,6 +166,54 @@ export class GameDataStore {
   isPending(id: string) {
     //
     return this.isLocalPending(id) || this.isFlushingPending(id);
+  }
+
+  hasPendingChanges() {
+    return (
+      this.localPatchSet.length > 0 ||
+      this.taskQueue.length > 0 ||
+      this.isFlushing
+    );
+  }
+
+  syncRemoteGameData(nextGameData: GameData): SyncRemoteGameDataResult {
+    if (this.hasPendingChanges()) {
+      return {
+        changed: false,
+        componentsChanged: false,
+        skipped: true,
+      };
+    }
+
+    const currentGameData = this._gameData;
+    const componentsChanged = !deepEqual(
+      currentGameData.components,
+      nextGameData.components
+    );
+    const changed = !deepEqual(currentGameData, nextGameData);
+
+    if (!changed) {
+      return {
+        changed: false,
+        componentsChanged: false,
+        skipped: false,
+      };
+    }
+
+    const gameData = { ...nextGameData } as GameData;
+
+    freeze(gameData, true);
+
+    this.baseState = gameData;
+    this._gameData = gameData;
+
+    this.emitter.emit(STATE_EVENT, this.gameData);
+
+    return {
+      changed: true,
+      componentsChanged,
+      skipped: false,
+    };
   }
 
   updateGameData = (recipe: (state: Draft<GameData>) => void) => {

@@ -38,13 +38,13 @@ The guides in this folder focus on **game logic patterns and workflows** (script
 
 Quick-reference examples in `references/examples/`:
 
-| File                            | Description                                          |
-| ------------------------------- | ---------------------------------------------------- |
-| `static-scene-minimal.json`     | Minimal scene setup                                  |
-| `game-script-template.md`       | Game script lifecycle template                       |
-| `collision-handling.md`         | Collision and sensor events                          |
-| `physics-config.md`             | Physics and rigidbody configuration                  |
-| `input-system.md`               | Declarative input system (keyboard, gamepad, touch)  |
-| `interaction-lookat.md`         | Interaction prompts                                  |
-| `spawn-collectibles.md`         | Spawning items via template duplication              |
-| `npc-animation.md`             | NPC animation with AnimationStateMachine             |
+| File                        | Description                                         |
+| --------------------------- | --------------------------------------------------- |
+| `static-scene-minimal.json` | Minimal scene setup                                 |
+| `game-script-template.md`   | Game script lifecycle template                      |
+| `collision-handling.md`     | Collision and sensor events                         |
+| `physics-config.md`         | Physics and rigidbody configuration                 |
+| `input-system.md`           | Declarative input system (keyboard, gamepad, touch) |
+| `interaction-lookat.md`     | Interaction prompts                                 |
+| `spawn-collectibles.md`     | Spawning items via template duplication             |
+| `npc-animation.md`          | NPC animation with AnimationStateMachine            |
