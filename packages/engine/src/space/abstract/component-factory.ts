@@ -51,7 +51,10 @@ export class ComponentFactory<T extends Component3D> {
 
     static setDataConfig(opts: Partial<DataSchemaConfig>) {
         //
-        Object.assign(this.dataConfig, opts);
+        this.dataConfig = {
+            ...this.dataConfig,
+            ...opts,
+        };
     }
 
     static getDefaultData() {
