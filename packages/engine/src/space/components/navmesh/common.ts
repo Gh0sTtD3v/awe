@@ -3,6 +3,7 @@ import {
     RecastConfig,
     vec3,
 } from "@recast-navigation/core";
+import { getDefaultParams } from "./data";
 
 export const getBoundingBox = (
     positions: ArrayLike<number>,
@@ -83,14 +84,17 @@ export type OffMeshConnectionGeneratorParams = {
     offMeshConnections?: OffMeshConnectionParams[];
 };
 
-export const convertConfigUnits = (config: Partial<RecastConfig>) => {
+export const convertConfigUnits = (config: Partial<RecastConfig> = {}) => {
     //
-    const result = { ...config };
+    const result = {
+        ...getDefaultParams(),
+        ...config,
+    } as Partial<RecastConfig>;
 
-    result.walkableHeight = Math.ceil(config.walkableHeight / config.ch);
-    result.walkableClimb = Math.floor(config.walkableClimb / config.ch);
-    result.walkableRadius = Math.ceil(config.walkableRadius / config.cs);
-    result.maxEdgeLen = Math.floor(config.maxEdgeLen / config.cs);
+    result.walkableHeight = Math.ceil(result.walkableHeight! / result.ch!);
+    result.walkableClimb = Math.floor(result.walkableClimb! / result.ch!);
+    result.walkableRadius = Math.ceil(result.walkableRadius! / result.cs!);
+    result.maxEdgeLen = Math.floor(result.maxEdgeLen! / result.cs!);
 
     return result;
 };
