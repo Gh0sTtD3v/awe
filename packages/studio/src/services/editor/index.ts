@@ -1249,6 +1249,16 @@ export class WorldEditorService {
     }
   }
 
+  async setGridViewer(enabled: boolean) {
+    await EngineFacade.editor.ready;
+
+    EngineFacade.editor.updatePreferences({
+      grid: {
+        gridViewer: enabled,
+      },
+    });
+  }
+
   private _onDrawerBatch = async (opts) => {
     //
     if (opts.base.data.type == "batch") {

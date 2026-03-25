@@ -4,6 +4,7 @@ import Events from "../editor-events";
 
 export interface EnabledToolsState {
     drawer: boolean;
+    gridViewer: boolean;
 }
 
 export class EnabledToolsStateObservable extends WorldObservable<EnabledToolsState> {
@@ -11,6 +12,7 @@ export class EnabledToolsStateObservable extends WorldObservable<EnabledToolsSta
         super(
             {
                 drawer: false,
+                gridViewer: false,
             },
             [
                 {

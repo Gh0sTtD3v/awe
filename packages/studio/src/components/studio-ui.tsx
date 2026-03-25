@@ -16,6 +16,7 @@ import {
 import { ContentTabProvider } from "../contexts/content-tab-context";
 import { useContentTab } from "../contexts/content-tab-context";
 import { TokenProvider } from "../contexts/token-context";
+import { useWorldToolsState } from "../hooks/use-world-tools-state";
 import logoSrc from "../assets/logo.png";
 
 function StudioUI_Child() {
@@ -36,6 +37,7 @@ function StudioUI_Child() {
   } = useContentTab();
 
   const { editor } = useEditorService();
+  const toolsState = useWorldToolsState();
 
   const countByType = useMemo(() => {
     if (!isEditorReady) return;
@@ -127,6 +129,19 @@ function StudioUI_Child() {
         </div>
 
         <div className="flex items-center gap-2">
+          <StudioButton
+            label="Grid"
+            title={toolsState.gridViewer ? "Hide editor grid" : "Show editor grid"}
+            onClick={() => {
+              if (!isEditorReady) return;
+              void editor.setGridViewer(!toolsState.gridViewer);
+            }}
+            className="px-[10px] py-0"
+            faded={!toolsState.gridViewer}
+          >
+            <SpriteIcon id="studio/layers" width={18} height={18} />
+          </StudioButton>
+
           <StudioButton
             title="Run the experience"
             onClick={() => {

@@ -190,11 +190,13 @@ export class Grid extends Augmented {
 
     set enabled(val) {
         //
-        if (val === this._enabled) return;
+        const changed = val !== this._enabled;
 
         this._enabled = val;
 
         this._mesh.visible = val;
+
+        if (!changed) return;
 
         if (val) {
             this.addEvents();

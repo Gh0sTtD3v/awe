@@ -135,15 +135,26 @@ export class EngineEdit {
   }
 
   updatePreferences(preferences: {
-    grid: { gridViewer: boolean; gridFlipping: boolean };
-    navigation: { allowResetWorld: boolean; versionRollback: boolean };
+    grid?: { gridViewer?: boolean; gridFlipping?: boolean };
+    navigation?: { allowResetWorld?: boolean; versionRollback?: boolean };
   }) {
     // console.log("preference update in engine edit", preferences);
+    if (!this.grid) {
+      void this.ready.then(() => {
+        this.updatePreferences(preferences);
+      });
+      return;
+    }
+
     if (preferences.grid) {
       if (preferences.grid.gridViewer != null) {
         this.grid.enabled = preferences.grid.gridViewer;
 
         this.grid._mesh.visible = preferences.grid.gridViewer;
+
+        emitter.emit(Events.TOOL_ENABLED_CHANGED, {
+          gridViewer: preferences.grid.gridViewer,
+        });
       }
 
       if (preferences.grid.gridFlipping != null) {

@@ -1,9 +1,9 @@
 {
+  "id": "football-demo",
   "creatorId": "anon",
   "editors": [
     "anon"
   ],
-  "id": "football-demo",
   "components": {
     "vrm-anims": {
       "name": "VRM Animations",
@@ -123,9 +123,9 @@
       "type": "model",
       "kit": "cyber",
       "position": {
-        "x": 0,
-        "y": 1.0101083374023436,
-        "z": 0
+        "x": -0.038253479003905966,
+        "y": -0.14669044792652164,
+        "z": -0.0000053405761732960855
       },
       "scale": {
         "x": 1.12,
@@ -133,6 +133,7 @@
         "z": 1.12
       },
       "url": "/assets/soccer_field.glb",
+      "fixedTransform": true,
       "receiveShadow": true,
       "castShadow": true
     },
@@ -248,7 +249,7 @@
         "z": 0
       },
       "displayInEditor": true,
-      "_version": 1773345540299,
+      "_version": 1774455808450,
       "display": false
     },
     "bounds-right": {
@@ -812,7 +813,5 @@
       "_version": 1773344921074
     }
   },
-  "params": {},
-  "createdAt": 1741795200000,
-  "updatedAt": 1773349925359
+  "updatedAt": 1774455808965
 }
