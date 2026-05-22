@@ -138,6 +138,7 @@ export default class Water extends PipeLineMesh {
 
 			#include <beginnormal_vertex>
 			#include <defaultnormal_vertex>
+      #include <begin_vertex>
 			#include <logdepthbuf_vertex>
 			#include <fog_vertex>
 			#include <shadowmap_vertex>
