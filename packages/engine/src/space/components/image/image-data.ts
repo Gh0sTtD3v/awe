@@ -126,4 +126,47 @@ export interface ImageComponentData extends Component3DData {
    * Defaults to `"LinearFilter"`.
    */
   magFilter?: string;
+
+  /**
+   * Keyboard key that triggers the interaction overlay.
+   * When set and the player is within focusDistance, an info card is shown.
+   * Valid values: `""`, `"E"`, `"F"`, `"G"`, `"I"`. Defaults to `""` (disabled).
+   */
+  actionKey?: string;
+
+  /**
+   * Distance from the image at which the interaction becomes available.
+   * Only applies when actionKey is set. Defaults to `9`.
+   */
+  focusDistance?: number;
+
+  /**
+   * Title displayed on the info label. Only shown when actionKey is set.
+   */
+  title?: string;
+
+  /**
+   * Description displayed on the info label. Only shown when actionKey is set.
+   */
+  description?: string;
+
+  /**
+   * Artist name displayed on the info label. Only shown when actionKey is set.
+   */
+  artist?: string;
+
+  /**
+   * Background color of the info card as a CSS hex string. Defaults to `"#091117"`.
+   */
+  infoBgColor?: string;
+
+  /**
+   * Text color of the info card as a CSS hex string. Defaults to `"#ffffff"`.
+   */
+  infoTextColor?: string;
+
+  /**
+   * Opacity of the info card background (0–100). Defaults to `75`.
+   */
+  infoOpacity?: number;
 }

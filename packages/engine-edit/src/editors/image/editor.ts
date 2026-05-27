@@ -92,6 +92,72 @@ export class ImageComponentEditor extends Component3DEditor<ImageComponent> {
                     },
                 },
             },
+            interaction: {
+                type: "folder",
+                label: "Interaction",
+                children: {
+                    actionKey: {
+                        type: "select",
+                        label: "Action Key",
+                        value: [this.data, "actionKey"],
+                        items: ["", "E", "F", "G", "I"],
+                    },
+                    focusDistance: {
+                        type: "number",
+                        label: "Interaction Distance",
+                        value: [this.data, "focusDistance"],
+                        min: 1,
+                        max: 50,
+                        step: 0.5,
+                        visible: () => !!this.data.actionKey,
+                    },
+                },
+            },
+            info: {
+                type: "folder",
+                label: "Info",
+                children: {
+                    title: {
+                        type: "text",
+                        label: "Title",
+                        value: [this.data, "title"],
+                        visible: () => !!this.data.actionKey,
+                    },
+                    description: {
+                        type: "text",
+                        label: "Description",
+                        value: [this.data, "description"],
+                        visible: () => !!this.data.actionKey,
+                    },
+                    artist: {
+                        type: "text",
+                        label: "Artist",
+                        value: [this.data, "artist"],
+                        visible: () => !!this.data.actionKey,
+                    },
+                    infoBgColor: {
+                        type: "color",
+                        label: "Info BG Color",
+                        value: [this.data, "infoBgColor"],
+                        visible: () => !!this.data.actionKey,
+                    },
+                    infoTextColor: {
+                        type: "color",
+                        label: "Info Text Color",
+                        value: [this.data, "infoTextColor"],
+                        visible: () => !!this.data.actionKey,
+                    },
+                    infoOpacity: {
+                        type: "number",
+                        label: "Info Opacity",
+                        value: [this.data, "infoOpacity"],
+                        min: 0,
+                        max: 100,
+                        step: 1,
+                        visible: () => !!this.data.actionKey,
+                    },
+                },
+            },
             transform: getTransformUI(this),
         },
     };

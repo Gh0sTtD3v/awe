@@ -4,6 +4,20 @@ import { XYZ } from "../types";
 /**
  * @public
  *
+ * Button configuration for video overlay.
+ */
+export interface VideoButton {
+  /** Action type: "redirect" opens a new tab, "popup" opens an iframe overlay. */
+  action: "popup" | "redirect";
+  /** URL to open. */
+  link: string;
+  /** Button label text. */
+  text: string;
+}
+
+/**
+ * @public
+ *
  * Configuration data for {@link VideoComponent}.
  *
  * Configures a video displayed in 3D space. Options include video playback controls (autoplay, volume, muting),
@@ -82,8 +96,6 @@ export interface VideoComponentData extends Component3DData {
 
   /**
    * Whether the video has a decorative border frame. Defaults to `false`.
-   * When enabled, border appearance is controlled by {@link borderColor}, {@link borderSize},
-   * {@link borderDepth}, and {@link borderOpacity}.
    */
   hasBorder?: boolean;
 
@@ -136,7 +148,63 @@ export interface VideoComponentData extends Component3DData {
   curvedAngle: number;
 
   /**
+   * Distance (in world units) at which the video file begins loading.
+   * Until the player is within this range, only the preview image is shown.
+   * Range: 1 to 100. Defaults to `20`.
+   */
+  loadDistance?: number;
+
+  /**
    * @internal
    */
   muted?: boolean;
+
+  /**
+   * Keyboard key that triggers the interaction overlay.
+   * When set and the player is within focusDistance, an info card is shown.
+   * Valid values: `""`, `"E"`, `"F"`, `"G"`, `"I"`. Defaults to `""` (disabled).
+   */
+  actionKey?: string;
+
+  /**
+   * Distance from the video at which the interaction becomes available.
+   * Only applies when actionKey is set. Defaults to `9`.
+   */
+  focusDistance?: number;
+
+  /**
+   * Title displayed on the info label. Only shown when actionKey is set.
+   */
+  title?: string;
+
+  /**
+   * Description displayed on the info label. Only shown when actionKey is set.
+   */
+  description?: string;
+
+  /**
+   * Artist name displayed on the info label. Only shown when actionKey is set.
+   */
+  artist?: string;
+
+  /**
+   * Background color of the info card as a CSS hex string. Defaults to `"#091117"`.
+   */
+  infoBgColor?: string;
+
+  /**
+   * Text color of the info card as a CSS hex string. Defaults to `"#ffffff"`.
+   */
+  infoTextColor?: string;
+
+  /**
+   * Opacity of the info card background (0–100). Defaults to `75`.
+   */
+  infoOpacity?: number;
+
+  /**
+   * Up to 3 buttons shown in the fullscreen overlay.
+   * Each button can either open a URL in a new tab ("redirect") or in an iframe popup ("popup").
+   */
+  buttons?: VideoButton[];
 }

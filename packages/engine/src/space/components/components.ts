@@ -37,6 +37,7 @@ import type { ParticlesComponent } from "./particles/particles-component";
 import type { QuarksComponent } from "./quarks/quarks-component";
 import type { NavmeshComponent } from "./navmesh/navmesh-component";
 import type { ObjectComponent } from "./object/object-component";
+import type { PortalComponent } from "./portal/portal-component";
 
 /**
  * @public
@@ -79,6 +80,7 @@ export type ComponentTypeMap = {
   quarks: QuarksComponent;
   navmesh: NavmeshComponent;
   object: ObjectComponent;
+  portal: PortalComponent;
 };
 
 export type CType = keyof ComponentTypeMap;

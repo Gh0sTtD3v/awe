@@ -80,6 +80,13 @@ export interface EnterSpaceOpts {
   hot?: boolean;
 
   /**
+   * Enable chunk-based world loading.
+   * When true, only global components load initially;
+   * spatial chunks stream in as the camera moves.
+   */
+  chunked?: boolean;
+
+  /**
    * Asset resolver configuration.
    *
    * @remarks

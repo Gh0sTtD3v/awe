@@ -11,7 +11,7 @@ if (typeof window !== "undefined") {
 }
 
 import SpriteIcon from "../ui/sprite";
-import { useWorldItems } from "../hooks/use-world-items";
+import { useWorldItems, useGroupedWorldItems } from "../hooks/use-world-items";
 import { useEventCallback } from "../hooks/use-event-callback";
 import { useCurrentGameData } from "../contexts/game-data-context";
 import { SearchInput } from "../ui/search-input";
@@ -841,6 +841,7 @@ const WorldItemCollapse = ({
               items={item.children}
               parentChildrenIds={parentChildrenIds}
             />
+          
           </div>
         )
       }
@@ -1014,6 +1015,8 @@ const LoopCheck = React.memo<any>(
 
 const BASE_WIDTH = 243;
 const NULLIFY_ID = "__nullify";
+const GLOBAL_CATS = new Set(["avatar", "vrm-anims"]);
+const PRESET_CATS = new Set(["water", "reflector", "background", "envmap", "lighting", "fog", "postprocessing"]);
 
 export default function WorldItems({
   count,
@@ -1315,14 +1318,46 @@ export default function WorldItems({
               <LoopCheck
                 // @ts-ignore
                 wrapper={scrollableWrapper}
-                items={filteredItems}
+                items={filteredItems.filter(i => i && GLOBAL_CATS.has(i.type))}
                 parentChildrenIds={childrenIds}
               />
+      
+              <CollapsibleSection label="Presets" items={filteredItems.filter(i => i && PRESET_CATS.has(i.type))} wrapper={scrollableWrapper} childrenIds={childrenIds} />
+              <CollapsibleSection label="Portals" items={filteredItems.filter(i => i?.type === "portal")} wrapper={scrollableWrapper} childrenIds={childrenIds} />
+              <CollapsibleSection label="Chunk Data" items={filteredItems.filter(i => i && !GLOBAL_CATS.has(i.type) && !PRESET_CATS.has(i.type) && i.type !== "portal")} wrapper={scrollableWrapper} childrenIds={childrenIds} />
+        
             </ScrollableSection>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+const SECTION_STYLE = {
+  padding: "6px 10px", fontSize: "11px", fontWeight: 600,
+  color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const,
+  letterSpacing: "0.05em", borderBottom: "1px solid rgba(255,255,255,0.06)",
+  cursor: "pointer", userSelect: "none" as const,
+  display: "flex", alignItems: "center", gap: "6px",
+};
+
+function CollapsibleSection({ label, items, wrapper, childrenIds, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (items.length === 0) return null;
+
+  return (
+    <>
+      <div style={SECTION_STYLE} onClick={() => setOpen(!open)}>
+        <span style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s", fontSize: "8px" }}>▼</span>
+        {label}
+        <span style={{ opacity: 0.5, fontWeight: 400 }}>({items.length})</span>
+      </div>
+      {open && (<>
+        <LoopCheck wrapper={wrapper} items={items} parentChildrenIds={childrenIds} />
+      </>)}
+    </>
   );
 }
 

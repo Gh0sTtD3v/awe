@@ -1,5 +1,6 @@
 import { Space } from "./space";
 import { ComponentManager } from "./components/index";
+import { ChunkManager } from "./chunk-manager";
 import { Physics } from "../physics/index";
 import { DEBUG_PHYSICS } from "../internal/constants";
 import { ComponentsRegistry } from "./registry/index";
@@ -26,7 +27,13 @@ class SpaceFactory {
       throw new Error("Space already exists (dispose it first)");
     }
 
-    const componentData = this._buildTree(opts.game.components);
+    // When chunked, only build global components initially.
+    // Chunk-specific components are streamed in by ChunkManager.
+    const components = opts.chunked
+      ? ChunkManager.filterGlobals(opts.game.components)
+      : opts.game.components;
+
+    const componentData = this._buildTree(components);
 
     // TO DO
     // Load recursively inside the actual config into the components, instead of calling the factory directly
@@ -39,12 +46,12 @@ class SpaceFactory {
     // Create space lifecycle
     space._lifecycle = new SpaceLifecycle(space);
 
-    const { components } =
+    const { components: componentDefs } =
       opts.runtime === "headless"
         ? await import("./components/components-core")
         : await import("./components/components-web");
 
-    space.registry = new ComponentsRegistry({ space, components });
+    space.registry = new ComponentsRegistry({ space, components: componentDefs });
 
     const physics = Physics.get({
       type: "rapier",
@@ -66,6 +73,13 @@ class SpaceFactory {
 
     // Initialize space lifecycle after components are built
     space._lifecycle.init();
+
+    // Initialize chunk manager when chunked
+    if (opts.chunked) {
+      const chunks = new ChunkManager();
+      space.chunks = chunks;
+      chunks.init(space);
+    }
 
     if (opts.runtime !== "headless") {
       const { Hot } = await import("./hot-reload");

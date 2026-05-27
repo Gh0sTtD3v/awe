@@ -6,6 +6,7 @@ import emitter from "../internal/engine-emitter";
 import Camera from "../camera";
 import Scene from "../internal/scene";
 import { ComponentManager } from "./components";
+import { ChunkManager } from "./chunk-manager";
 import ScreenshotRendering from "../internal/screenshot";
 import AugmentedGroup from "../internal/events/augmented-group";
 import { ComponentsRegistry } from "./registry";
@@ -26,6 +27,7 @@ import {
  */
 export class Space extends AugmentedGroup {
   components: ComponentManager | null = null;
+  chunks: ChunkManager | null = null;
   registry: ComponentsRegistry | null = null;
   physics: PhysicsEngine | null = null;
   options: SpaceOpts | null;
@@ -180,6 +182,8 @@ export class Space extends AugmentedGroup {
     this._wasDisposed = true;
 
     this._scheduler.dispose();
+    this.chunks?.dispose();
+    this.chunks = null;
     this.components = null;
 
     this.physics = null;

@@ -23,10 +23,30 @@ export interface AddedAssetGroup {
   children: ComponentInfo[];
 }
 
+export interface GroupedWorldItems {
+  globals: ComponentInfo[];
+  presets: ComponentInfo[];
+  portals: ComponentInfo[];
+  chunkData: ComponentInfo[];
+}
+
 type ComponentData = GameData["components"][string];
 
 const DEFAULT_MODEL_IMAGE =
   "https://cyber.mypinata.cloud/ipfs/QmdMuK7WHQtmhRWK5weDfdptXg6iSnu9Rox2wfYqGkFNBd";
+
+const GLOBAL_TYPES = new Set(["avatar", "vrm-anims"]);
+const PRESET_TYPES = new Set([
+  "water", "reflector", "background", "envmap",
+  "lighting", "fog", "postprocessing",
+]);
+
+function getItemCategory(comp: ComponentData): keyof GroupedWorldItems {
+  if (GLOBAL_TYPES.has(comp.type)) return "globals";
+  if (PRESET_TYPES.has(comp.type)) return "presets";
+  if (comp.type === "portal") return "portals";
+  return "chunkData";
+}
 
 export function useWorldItems() {
   const { store } = useCurrentGameData();
@@ -50,12 +70,10 @@ export function useWorldItems() {
   }, [library3D]);
 
   const result = useMemo(() => {
-    //
 
     function getPreviewImg(component: ComponentData) {
       let factory = cTypeMap[component.type];
 
-      // In case you want to update the image in info.image, you can find the file to update at packages/enginee/src/space/components/<componentType>/index.ts and update the image property in the info object.
       let image = factory.info.image;
 
       if (component.type === "image") {
@@ -99,8 +117,29 @@ export function useWorldItems() {
       return item;
     }
 
-    return components.map(formatComponent);
+    return components.map(formatComponent).filter(Boolean);
   }, [components, cTypeMap, libraryByUrl]);
 
   return result;
+}
+
+export function useGroupedWorldItems(): GroupedWorldItems {
+  const items = useWorldItems();
+
+  return useMemo(() => {
+    const grouped: GroupedWorldItems = {
+      globals: [],
+      presets: [],
+      portals: [],
+      chunkData: [],
+    };
+
+    for (const item of items) {
+      if (!item) continue;
+      const category = getItemCategory(item.data);
+      grouped[category].push(item);
+    }
+
+    return grouped;
+  }, [items]);
 }

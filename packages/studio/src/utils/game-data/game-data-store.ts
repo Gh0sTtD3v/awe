@@ -83,6 +83,7 @@ class Update {
 type Task = () => Promise<any>;
 
 const STATE_EVENT = "state-event";
+const CHUNK_CHANGE_EVENT = "chunk-change";
 
 export class GameDataStore {
   //
@@ -103,6 +104,10 @@ export class GameDataStore {
   emitter = new Emitter();
 
   _newSpace = false;
+
+  _chunkKey: string | null = null;
+
+  private _switchingChunk = false;
 
   private _treeModel: GameTreeModel;
 
@@ -140,12 +145,21 @@ export class GameDataStore {
     return this._gameData;
   }
 
+  get chunkKey() {
+    return this._chunkKey;
+  }
+
   subscribe = (cb) => {
     //
 
     this.emitter.on(STATE_EVENT, cb);
 
     return () => this.emitter.off(STATE_EVENT, cb);
+  };
+
+  onChunkChange = (cb: (key: string) => void) => {
+    this.emitter.on(CHUNK_CHANGE_EVENT, cb);
+    return () => this.emitter.off(CHUNK_CHANGE_EVENT, cb);
   };
 
   getState = () => {
@@ -226,6 +240,51 @@ export class GameDataStore {
     });
   };
 
+  /**
+   * Switch to a different chunk.
+   * Flushes pending changes, then loads the new chunk data.
+   */
+  async switchChunk(targetKey: string): Promise<void> {
+    if (this._switchingChunk) return;
+    if (targetKey === this._chunkKey) return;
+
+    this._switchingChunk = true;
+
+    try {
+      // Flush any pending changes for the current chunk
+      clearTimeout(this.flushTimeout);
+      await this.flushPatches();
+
+      // Wait for tasks to finish
+      while (this.isFlushing) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+
+      // Fetch new chunk data (globals + target chunk components)
+      const nextGameData = await ClientGameService.switchChunk(targetKey);
+
+      const prevGameData = this._gameData;
+
+      const gameData = { ...nextGameData } as GameData;
+      freeze(gameData, true);
+
+      this.baseState = gameData;
+      this._gameData = gameData;
+      this._chunkKey = targetKey;
+
+      this.emitter.emit(STATE_EVENT, this.gameData);
+      this.emitter.emit(CHUNK_CHANGE_EVENT, targetKey);
+
+      console.log(`Switched to chunk: ${targetKey}`);
+    }
+    catch (err) {
+      console.error("Failed to switch chunk:", err);
+    }
+    finally {
+      this._switchingChunk = false;
+    }
+  }
+
   private updateLocal(
     recipe: (state: Draft<GameData>) => void,
     resolve?: (v?: unknown) => void,
@@ -295,8 +354,6 @@ export class GameDataStore {
           toPersist.flatMap((u) => u.cbs)
         );
 
-        // console.log("flush patches", patches);
-
         this.taskQueue.push(task);
 
         this.flushTasks();
@@ -324,6 +381,7 @@ export class GameDataStore {
             await ClientGameService.updateGame({
               id: this.gameData.id,
               patches: next.patches as any,
+              chunkKey: this._chunkKey ?? undefined,
             });
           } else {
             //

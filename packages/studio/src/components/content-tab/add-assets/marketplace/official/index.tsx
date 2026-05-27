@@ -18,6 +18,8 @@ const childCategoryItems = [
   },
 ];
 
+const ITEM_TYPES = new Set(["terrain", "text", "portal"]);
+
 export default function Official({ width }) {
   //
   const [childCategory, setChildCategory] = useState([]);
@@ -46,9 +48,9 @@ export default function Official({ width }) {
     const hasWorldSettings = childCategory.includes("worldsettings");
 
     if (hasItems && !hasWorldSettings) {
-      result = result.filter((it) => ["terrain", "text"].includes(it.type));
+      result = result.filter((it) => ITEM_TYPES.has(it.type));
     } else if (hasWorldSettings && !hasItems) {
-      result = result.filter((it) => !["terrain", "text"].includes(it.type));
+      result = result.filter((it) => !ITEM_TYPES.has(it.type));
     }
 
     const ordering = {
@@ -69,7 +71,8 @@ export default function Official({ width }) {
       rain: 15,
       text: 16,
       iframe: 17,
-      //particles: 18,
+      portal: 18,
+      //particles: 19,
     };
 
     result = result.sort((a, b) => {

@@ -45,6 +45,13 @@ export class VideoComponentFactory extends DefaultComponentFactory<VideoComponen
       displayMode: "flat",
       curvedAngle: Math.PI / 4,
       muted: false,
+      loadDistance: 20,
+      actionKey: "",
+      focusDistance: 9,
+      infoBgColor: "#091117",
+      infoTextColor: "#ffffff",
+      infoOpacity: 75,
+      buttons: [],
       meta: {
         addedBy: "",
         placeholder: "",

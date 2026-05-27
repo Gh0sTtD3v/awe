@@ -20,6 +20,10 @@ export interface SpaceOpts {
     /** Runtime profile ("web" | "headless") */
     runtime?: RuntimeProfile;
     /** Additional loading options */
+    /** Enable chunk-based loading. When true, only global components are
+     *  loaded initially; spatial chunks are streamed in at runtime. */
+    chunked?: boolean;
+    /** Additional loading options */
     loadOpts?: {
         /**
          * Enable loose mode for more permissive loading.

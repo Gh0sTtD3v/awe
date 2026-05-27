@@ -1,6 +1,7 @@
 // Re-export Space and component types
 export { Space } from "./space";
 export { ComponentManager } from "./components/index";
+export { ChunkManager } from "./chunk-manager";
 export { Formats } from "./formats";
 export { SpaceEvents } from "./space-events";
 export type { SpaceEventHandlers, SpaceEventListeners } from "./space-events";
@@ -44,6 +45,7 @@ export { ModelComponent } from "./components/model/model-component";
 export { NavmeshComponent } from "./components/navmesh/navmesh-component";
 export { ObjectComponent } from "./components/object/object-component";
 export { ParticlesComponent } from "./components/particles/particles-component";
+export { PortalComponent } from "./components/portal/portal-component";
 export { PostProcessingComponent } from "./components/postprocessing/post-pro-component";
 export { QuarksComponent } from "./components/quarks/quarks-component";
 export { RainComponent } from "./components/rain/rain-component";

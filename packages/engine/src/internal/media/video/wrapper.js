@@ -94,7 +94,7 @@ export default class VideoWrapper extends Object3D {
 
         if (this._isPlaying == false) {
             //
-            this.videoData.video.play();
+            this.videoData.video.play().catch(() => {});
 
             this.mesh.diffuseMaterials.material.map =
                 this.videoData.videoTexture;

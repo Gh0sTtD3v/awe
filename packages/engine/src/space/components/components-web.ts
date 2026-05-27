@@ -37,6 +37,7 @@ import { AudioComponentFactory } from "./audio";
 import { InteractionComponentFactory } from "./interaction";
 import { InstancedMeshComponentFactory } from "./instancedmesh";
 import { SplineComponentFactory } from "./spline";
+import { PortalComponentFactory } from "./portal";
 
 export const components: Array<typeof ComponentFactory<any>> = [
   // core (web variants)
@@ -53,6 +54,7 @@ export const components: Array<typeof ComponentFactory<any>> = [
   InteractionComponentFactory,
   InstancedMeshComponentFactory,
   SplineComponentFactory,
+  PortalComponentFactory,
   BackgroundComponentFactory,
   LightingComponentFactory,
   WaterComponentFactory,

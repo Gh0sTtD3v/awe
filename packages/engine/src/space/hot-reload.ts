@@ -78,8 +78,11 @@ export function applyGameDataToSpace(
     nextGameData.components
   );
 
+  // Create as persistent so the editor can select/edit them
   diff.added.forEach((id) => {
-    space.components.create(nextGameData.components[id]);
+    space.components._createInternal(nextGameData.components[id], {
+      persistent: true,
+    });
   });
 
   diff.removed.forEach((id) => {

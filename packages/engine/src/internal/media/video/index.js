@@ -1,3 +1,5 @@
+// @ts-check
+
 import { SRGBColorSpace, VideoTexture } from "three";
 
 import Textures from "../../textures";
@@ -7,130 +9,149 @@ import Wrapper from './wrapper';
 import { Assets } from "../../resources/assets";
 
 export class VideoFactory {
-    constructor() {
-        this.instances = {};
+	constructor() {
+		this.instances = {};
+	}
 
-        // globalThis.VideoFactory = this;
-    }
+	/**
+	 * Get a video wrapper with preview only (no video element loaded).
+	 * Use loadVideo() later to attach the actual video.
+	 */
+	async getPreviewOnly(parent, data) {
+		if (Textures.isLock(data.preview) == true) {
+			await Textures.loadOnce({ name: data.preview, url: data.preview });
+		}
 
-    async get(parent, data) {
-        if (Textures.isLock(data.preview) == true) {
-            await Textures.loadOnce({ name: data.preview, url: data.preview });
-        }
+		if (this.instances[data.url + data.preview] == null) {
+			var preview = data.preview;
 
-        if (this.instances[data.url + data.preview] == null) {
-            var preview = data.preview;
+			if (preview == null || preview.endsWith(".mp4")) {
+				preview = Assets.textures.impact;
+			}
 
-            // check if preview isnt null and if the preview extension includes .mp4
-            if (preview == null || preview.endsWith(".mp4")) {
-                preview = Assets.textures.impact;
-            }
+			const previewTexture = await Textures.loadOnce({
+				name: preview,
+				url: preview,
+			});
 
-            const previewTexture = await Textures.loadOnce({
-                name: preview,
-                url: preview,
-            });
+			previewTexture.colorSpace = SRGBColorSpace;
 
-            previewTexture.colorSpace = SRGBColorSpace;
+			previewTexture.ratio =
+				previewTexture.source.data.width /
+				previewTexture.source.data.height;
 
-            previewTexture.ratio =
-                previewTexture.source.data.width /
-                previewTexture.source.data.height;
+			Textures.unlock(preview);
 
-            Textures.unlock(preview);
+			this.instances[data.url + data.preview] = {
+				previewTexture: previewTexture,
+				content: [],
+			};
+		}
 
-            this.instances[data.url + data.preview] = {
-                previewTexture: previewTexture,
-                content: [],
-            };
-        }
+		var wrapper = new Wrapper(
+			this.instances[data.url + data.preview],
+			{ video: null, videoTexture: null },
+			data
+		);
 
-        let video, videoTexture;
+		// Set scaleRatio from preview texture when no video is loaded
+		wrapper.scaleRatio = this.instances[data.url + data.preview].previewTexture.ratio || 1;
 
-        if (data.url) {
-            //
-            video = await this.getVideo(data.url);
+		this.instances[data.url + data.preview].content.push(wrapper);
 
-            videoTexture = new VideoTexture(video);
+		parent.add(wrapper);
 
-            videoTexture.colorSpace = SRGBColorSpace;
+		return wrapper;
+	}
 
-            videoTexture.generateMipmaps = false;
-        }
+	/**
+	 * Load the actual video element and attach it to an existing wrapper.
+	 * Returns the video element for audio setup.
+	 */
+	async loadVideo(wrapper, url) {
+		if (wrapper.videoData?.video) return wrapper.videoData.video;
 
-        var wrapper = new Wrapper(
-            this.instances[data.url + data.preview],
-            { video: video, videoTexture: videoTexture },
-            data
-        );
+		const video = await this.getVideo(url);
+		const videoTexture = new VideoTexture(video);
+		videoTexture.colorSpace = SRGBColorSpace;
+		videoTexture.generateMipmaps = false;
 
-        this.instances[data.url + data.preview].content.push(wrapper);
+		wrapper.videoData = { video, videoTexture };
+		wrapper.scaleRatio = video.videoWidth / video.videoHeight;
+		wrapper.scale.set(wrapper.scaleRatio, 1, 1);
 
-        parent.add(wrapper);
+		return video;
+	}
 
-        return wrapper;
-    }
+	/**
+	 * Original combined method — loads preview + video together.
+	 * Kept for backwards compatibility.
+	 */
+	async get(parent, data) {
+		const wrapper = await this.getPreviewOnly(parent, data);
 
-    dispose(instance) {
-        //
-    }
+		if (data.url) {
+			await this.loadVideo(wrapper, data.url);
+		}
 
-    disposeAll() {
-        for (let url in this.instances) {
-            let i = 0;
+		return wrapper;
+	}
 
-            while (i < this.instances[url].content.length) {
-                if (this.instances[url].content[i].parent) {
-                    this.instances[url].content[i].parent.remove(
-                        this.instances[url].content[i]
-                    );
-                }
+	dispose(instance) {
+		//
+	}
 
-                this.instances[url].content[i].dispose();
+	disposeAll() {
+		for (let url in this.instances) {
+			let i = 0;
 
-                this.instances[url].content[i] = null;
+			while (i < this.instances[url].content.length) {
+				if (this.instances[url].content[i].parent) {
+					this.instances[url].content[i].parent.remove(
+						this.instances[url].content[i]
+					);
+				}
 
-                Textures.remove(url);
+				this.instances[url].content[i].dispose();
 
-                i++;
-            }
-        }
+				this.instances[url].content[i] = null;
 
-        this.instances = {};
-    }
+				Textures.remove(url);
 
-    async getVideo(url) {
-        //
-        var video = document.createElement("video");
+				i++;
+			}
+		}
 
-        video.crossOrigin = "anonymous";
-        video.playsInline = true;
-        video.muted = true;
-        video.loop = true;
+		this.instances = {};
+	}
 
-        video.src = url;
+	async getVideo(url) {
+		//
+		var video = document.createElement("video");
 
-        var ps = new Promise((resolve, reject) => {
-            video.onloadeddata = (event) => {
-                resolve();
-            };
+		video.crossOrigin = "anonymous";
+		video.playsInline = true;
+		video.muted = true;
+		video.loop = true;
 
-            // video.onloadedmetadata = (event) => {
-            //     //
-            //     console.log("onloadedmetadata", event);
-            // };
+		video.src = url;
 
-            video.onerror = (event) => {
-                console.error("video.onerror", event);
+		var ps = new Promise((resolve, reject) => {
+			video.onloadeddata = (event) => {
+				resolve();
+			};
 
-                reject();
-            };
-        });
+			video.onerror = (event) => {
+				console.error("video.onerror", event);
 
-        video.load();
+				reject();
+			};
+		});
 
-        await ps;
+		video.load();
 
-        return video;
-    }
+		await ps;
+
+		return video;
+	}
 }

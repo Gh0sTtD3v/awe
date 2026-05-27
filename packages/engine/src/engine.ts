@@ -224,6 +224,7 @@ export class Engine {
       externalApi: opts.externalApi ?? {},
       loadOpts: {},
       hot: opts.hot,
+      chunked: opts.chunked,
       runtime,
     });
 
