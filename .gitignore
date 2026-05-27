@@ -96,3 +96,6 @@ sw.*
 logs/
 
 scripts/migration.ts
+
+# apps
+apps/*
