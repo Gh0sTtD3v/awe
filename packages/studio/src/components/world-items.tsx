@@ -27,6 +27,7 @@ import DragSource from "./drag-source";
 import Tip from "../ui/tip";
 import { useOnClickOutside } from "../hooks/use-on-click-outside";
 import { showConfirm, showError } from "../modals/context";
+import { GLOBAL_TYPES, PRESET_TYPES } from "@oncyberio/world-config";
 
 import { RenameField } from "./rename-field";
 import { useWorldItemsPanel } from "../hooks/use-world-items-panel";
@@ -1015,8 +1016,8 @@ const LoopCheck = React.memo<any>(
 
 const BASE_WIDTH = 243;
 const NULLIFY_ID = "__nullify";
-const GLOBAL_CATS = new Set(["avatar", "vrm-anims"]);
-const PRESET_CATS = new Set(["water", "reflector", "background", "envmap", "lighting", "fog", "postprocessing"]);
+const GLOBAL_CATS = GLOBAL_TYPES;
+const PRESET_CATS = PRESET_TYPES;
 
 export default function WorldItems({
   count,

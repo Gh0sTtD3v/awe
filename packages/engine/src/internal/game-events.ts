@@ -85,6 +85,14 @@ export const GameEvents = {
    * Callback: `(payload: { portalId: string; avatar: unknown }) => void`
    */
   PORTAL_OPEN: "portal_open",
+
+  // ─── Token gate ──────────────────────────────────────────────────────
+  /**
+   * Something entered a token gate's area. The host game decides whether the
+   * player may stay — and must enforce that on its server.
+   * Callback: `(payload: { gateId: string; avatar: unknown }) => void`
+   */
+  TOKEN_GATE_ENTER: "token_gate_enter",
 } as const;
 
 /**
@@ -157,6 +165,12 @@ export interface GameEventListeners {
   /** Player entered a portal; open the destination directory. */
   [GameEvents.PORTAL_OPEN]: (payload: {
     portalId: string;
+    avatar: unknown;
+  }) => void;
+
+  /** Something entered a token gate's area. */
+  [GameEvents.TOKEN_GATE_ENTER]: (payload: {
+    gateId: string;
     avatar: unknown;
   }) => void;
 

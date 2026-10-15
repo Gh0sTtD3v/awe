@@ -1,5 +1,6 @@
 import { Store } from "@/hooks/use-store";
 import type { PortalEntry } from "./portals";
+import type { ScreenState } from "../../shared/screens";
 
 export type InfoTab = "players" | "chunk" | "destinations";
 
@@ -9,6 +10,28 @@ export interface PlayerInfo {
   y: number;
   z: number;
   isLocal: boolean;
+  /** Highest role; `roleName` is empty for players with only `everyone`. */
+  roleId: string;
+  roleName: string;
+  roleColor: string;
+  /** Moderation rank: you can act only on players ranked below you. */
+  rolePosition: number;
+}
+
+/** What the local player may do, as the server resolved it. */
+export interface SelfAccess {
+  isOwner: boolean;
+  permissions: string[];
+  rolePosition: number;
+}
+
+/** The video screen the local player is standing at. */
+export interface NearScreen {
+  id: string;
+  label: string;
+  items: { title: string; url: string }[];
+  /** Shared playback, with `at` on this client's clock. Null until the server sends it. */
+  state: ScreenState | null;
 }
 
 export interface ChunkInfo {
@@ -28,6 +51,25 @@ export interface InfoState {
   chunkLoading: boolean;
   chunkInfo: ChunkInfo | null;
   portals: PortalEntry[];
+  /** Shown briefly when a token gate or members-only chunk turns the player away. */
+  gateNotice: GateNotice | null;
+  self: SelfAccess | null;
+  /** Set when a moderator removed this player; the game is over for this session. */
+  removed: { reason: string } | null;
+  /** Feedback for the local moderator's last kick or ban. */
+  modMessage: { text: string; at: number } | null;
+  nearScreen: NearScreen | null;
+  screenPanelOpen: boolean;
+}
+
+export interface GateNotice {
+  kind: "gate" | "chunk";
+  /** Gate label or chunk title. */
+  label: string;
+  /** Gates: e.g. "≥ 100 ROIDS". Chunks: the allowed role names, comma separated. */
+  requirement: string;
+  /** Bumped on every denial so the same notice can re-show. */
+  at: number;
 }
 
 export const infoStore = new Store<InfoState>({
@@ -38,6 +80,12 @@ export const infoStore = new Store<InfoState>({
   chunkLoading: false,
   chunkInfo: null,
   portals: [],
+  gateNotice: null,
+  self: null,
+  removed: null,
+  modMessage: null,
+  nearScreen: null,
+  screenPanelOpen: false,
 });
 
 export function openInfo(tab?: InfoTab) {
@@ -56,18 +104,103 @@ export function setInfoTab(tab: InfoTab) {
   infoStore.update({ tab });
 }
 
+/**
+ * Both setters below run once per frame from the game loop. `Store.update`
+ * always allocates a new state object and notifies, so writing unconditionally
+ * would re-render every subscriber at frame rate. Bail out when nothing
+ * actually changed.
+ */
+
+function samePlayers(a: PlayerInfo[], b: PlayerInfo[]) {
+  if (a.length !== b.length) return false;
+
+  return a.every((p, i) => {
+    const q = b[i];
+    return (
+      p.sessionId === q.sessionId &&
+      p.x === q.x &&
+      p.y === q.y &&
+      p.z === q.z &&
+      p.isLocal === q.isLocal &&
+      p.roleId === q.roleId &&
+      p.roleName === q.roleName &&
+      p.roleColor === q.roleColor &&
+      p.rolePosition === q.rolePosition
+    );
+  });
+}
+
 export function setPlayers(players: PlayerInfo[]) {
+  if (samePlayers(infoStore.state.players, players)) return;
   infoStore.update({ players });
 }
 
-export function setChunk(
-  chunkKey: string | null,
-  chunkLoading: boolean,
-  chunkInfo: ChunkInfo | null,
-) {
-  infoStore.update({ chunkKey, chunkLoading, chunkInfo });
+export function setChunk(chunkKey: string | null, chunkInfo: ChunkInfo | null) {
+  const state = infoStore.state;
+
+  if (state.chunkKey === chunkKey && state.chunkInfo === chunkInfo) return;
+
+  infoStore.update({ chunkKey, chunkInfo });
+}
+
+/**
+ * Driven by ChunkManager's transition callbacks rather than the polled sync
+ * above — a chunk can finish loading inside a single poll interval, which
+ * would leave the indicator stuck on or never show it at all.
+ */
+export function setChunkLoading(chunkLoading: boolean) {
+  if (infoStore.state.chunkLoading === chunkLoading) return;
+  infoStore.update({ chunkLoading });
 }
 
 export function setPortals(portals: PortalEntry[]) {
   infoStore.update({ portals });
+}
+
+export function showGateNotice(label: string, requirement: string, kind: GateNotice["kind"] = "gate") {
+  infoStore.update({ gateNotice: { kind, label, requirement, at: Date.now() } });
+}
+
+export function setSelfAccess(self: SelfAccess | null) {
+  infoStore.update({ self });
+}
+
+export function setRemoved(reason: string) {
+  infoStore.update({ removed: { reason }, isOpen: false });
+}
+
+export function showModMessage(text: string) {
+  infoStore.update({ modMessage: { text, at: Date.now() } });
+}
+
+export function clearGateNotice() {
+  if (infoStore.state.gateNotice) infoStore.update({ gateNotice: null });
+}
+
+/** Polled from the game loop; only notifies when the screen or its playback changed. */
+export function setNearScreen(nearScreen: NearScreen | null) {
+  const prev = infoStore.state.nearScreen;
+  if (
+    prev === nearScreen ||
+    (prev &&
+      nearScreen &&
+      prev.id === nearScreen.id &&
+      prev.label === nearScreen.label &&
+      prev.state === nearScreen.state &&
+      prev.items.length === nearScreen.items.length &&
+      prev.items.every((it, i) => it.title === nearScreen.items[i].title && it.url === nearScreen.items[i].url))
+  ) {
+    return;
+  }
+  infoStore.update((s) => ({
+    ...s,
+    nearScreen,
+    // Walking away closes the controls.
+    screenPanelOpen: nearScreen ? s.screenPanelOpen : false,
+  }));
+}
+
+export function setScreenPanelOpen(screenPanelOpen: boolean) {
+  if (infoStore.state.screenPanelOpen === screenPanelOpen) return;
+  infoStore.update({ screenPanelOpen });
 }

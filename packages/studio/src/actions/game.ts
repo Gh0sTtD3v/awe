@@ -6,8 +6,11 @@ import {
   GameRevision,
   GameService,
   type ChunkConfig,
-  type Role,
 } from "../server/game-service";
+import { getAccessStore, requirePermission } from "../server/access";
+
+// Reads stay open — the scene is served from public/ anyway. Every write
+// checks the caller's permission first.
 
 export async function getGameData(chunkKey?: string): Promise<GameData> {
   return GameService.getGameData(chunkKey);
@@ -22,6 +25,7 @@ export async function updateGame(opts: {
   patches: Patch[];
   chunkKey?: string;
 }): Promise<{ success: boolean }> {
+  await requirePermission("build");
   return GameService.updateGame(opts);
 }
 
@@ -41,13 +45,11 @@ export async function setChunkConfig(
   key: string,
   config: ChunkConfig,
 ): Promise<{ success: boolean }> {
-  return GameService.setChunkConfig(key, config);
-}
+  await requirePermission("manage_world");
 
-export async function getRoles(): Promise<Role[]> {
-  return GameService.getRoles();
-}
+  // Only real roles can guard a chunk.
+  const roleIds = new Set((await getAccessStore().read()).roles.map((r) => r.id));
+  const auth = (Array.isArray(config?.auth) ? config.auth : []).filter((id) => roleIds.has(id));
 
-export async function setRoles(roles: Role[]): Promise<{ success: boolean }> {
-  return GameService.setRoles(roles);
+  return GameService.setChunkConfig(key, { ...config, auth });
 }

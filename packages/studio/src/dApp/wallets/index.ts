@@ -6,9 +6,13 @@ export type { WalletAdapter, WalletConnection, WalletType };
 // EVM Adapter
 export * from "./evm-adapter";
 
+// Cosmos Adapter (Keplr)
+export * from "./cosmos-adapter";
+
 // Factory functions
 import type { Blockchain } from "../nfts/types";
 import { getEvmWalletAdapter } from "./evm-adapter";
+import { getCosmosWalletAdapter } from "./cosmos-adapter";
 import { getWalletType, isEvmChain } from "./types";
 import type { WalletAdapter, WalletConnection, WalletType } from "./types";
 
@@ -31,6 +35,8 @@ export async function getAdapterByType(
   switch (walletType) {
     case "evm":
       return getEvmWalletAdapter();
+    case "cosmos":
+      return getCosmosWalletAdapter();
     default:
       throw new Error(`Unsupported wallet type: ${walletType}`);
   }

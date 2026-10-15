@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@oncyberio/engine": "workspace:*",
+    "@oncyberio/world-config": "workspace:*",
     "gsap": "^3.12.2",
     "typescript": "^5"
   },

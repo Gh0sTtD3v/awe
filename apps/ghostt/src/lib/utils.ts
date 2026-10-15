@@ -1,6 +1,7 @@
 //
 
 import { Engine, EnterSpaceOpts, CreateSpaceResult } from "@oncyberio/engine";
+import { setChunkLoading } from "./info-store";
 
 export interface LoadGameOpts {
   /**
@@ -56,6 +57,13 @@ export async function createGame(opts: LoadGameOpts): Promise<CreateSpaceResult>
     mode: "game",
     game,
     assets: { baseUrl },
+    chunked: true,
+    chunkOpts: {
+      // Drives the loading indicator. Event-driven rather than polled so a
+      // fast chunk can't slip between two frames of the info sync.
+      onTransitionStart: async () => setChunkLoading(true),
+      onTransitionEnd: () => setChunkLoading(false),
+    },
     userReady: Promise.resolve({ id: "demo", name: "Demo User" }),
   });
 }

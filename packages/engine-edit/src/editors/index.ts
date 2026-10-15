@@ -31,6 +31,8 @@ import { VRMAnimComponentEditor } from "./vrmanims/editor";
 import { WaterEditor } from "./water/editor";
 import { WaveEditor } from "./wave/editor";
 import { PortalComponentEditor } from "./portal/editor";
+import { TokenGateComponentEditor } from "./token-gate/editor";
+import { VideoScreenComponentEditor } from "./video-screen/editor";
 
 export function registerAllEditors() {
   registerEditor("audio", AudioEditor);
@@ -54,6 +56,8 @@ export function registerAllEditors() {
   registerEditor("navmesh", NavmeshComponentEditor);
   registerEditor("object", ObjectEditor);
   registerEditor("portal", PortalComponentEditor);
+  registerEditor("token-gate", TokenGateComponentEditor);
+  registerEditor("video-screen", VideoScreenComponentEditor);
   registerEditor("postprocessing", PostProcessingEditor);
   registerEditor("quarks", QuarksComponentEditor);
   registerEditor("reflector", ReflectorEditor);

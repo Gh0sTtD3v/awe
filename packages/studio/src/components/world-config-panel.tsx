@@ -4,24 +4,30 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ClientGameService } from "../services/client-game-service";
 import { useContentTab } from "../contexts/content-tab-context";
 import { useCurrentGameData } from "../contexts/game-data-context";
+import { useAccess } from "../contexts/access-context";
 import { ImageInput } from "./gui/controls/image-input";
-import type { ChunkConfig, Role } from "../server/game-service";
+import { RolesTab } from "./settings/roles-tab";
+import { MembersTab } from "./settings/members-tab";
+import { ErrorNote, inputCls, labelCls } from "./settings/ui";
+import type { ChunkConfig } from "../server/game-service";
+import { EVERYONE_ROLE_ID, type Role } from "../server/access/types";
+import type { Permission } from "../server/access/permissions";
 
-type TabId = "chunk" | "roles";
+type TabId = "chunk" | "roles" | "members";
 
-const PERMISSIONS: { key: keyof Role["permissions"]; label: string; desc: string }[] = [
-  { key: "administrator", label: "Administrator", desc: "Full access — implies all other permissions." },
-  { key: "moderate", label: "Moderate Members", desc: "Kick or mute other members." },
-  { key: "speak", label: "Speak", desc: "Use voice within chunks." },
-  { key: "build", label: "Build", desc: "Edit the scene." },
+/** Each tab shows only to people holding one of its permissions. */
+const TABS: { id: TabId; label: string; needs: Permission[] }[] = [
+  { id: "chunk", label: "Chunk", needs: ["manage_world"] },
+  { id: "roles", label: "Roles", needs: ["manage_roles"] },
+  { id: "members", label: "Members", needs: ["manage_members", "ban_members"] },
 ];
 
-const inputCls =
-  "w-full rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/30";
-const labelCls = "block text-xs uppercase tracking-wide text-white/40 mb-1";
-
 export function WorldConfigPanel() {
-  const [tab, setTab] = useState<TabId>("chunk");
+  const { can } = useAccess();
+  const tabs = TABS.filter((t) => t.needs.some(can));
+  const [chosen, setTab] = useState<TabId | null>(null);
+  const tab = tabs.find((t) => t.id === chosen)?.id ?? tabs[0]?.id ?? null;
+
   const { setActiveTab } = useContentTab();
   const { gameData } = useCurrentGameData();
   const initialChunk = (gameData as any)?._chunkKey ?? null;
@@ -40,20 +46,18 @@ export function WorldConfigPanel() {
 
       <div className="flex flex-1 min-h-0">
         <nav className="w-48 shrink-0 border-r border-white/10 p-3 flex flex-col gap-1">
-          <TabButton active={tab === "chunk"} onClick={() => setTab("chunk")}>
-            Chunk
-          </TabButton>
-          <TabButton active={tab === "roles"} onClick={() => setTab("roles")}>
-            Roles
-          </TabButton>
+          {tabs.map((t) => (
+            <TabButton key={t.id} active={tab === t.id} onClick={() => setTab(t.id)}>
+              {t.label}
+            </TabButton>
+          ))}
         </nav>
 
         <div className="flex-1 min-w-0 overflow-y-auto p-6">
-          {tab === "chunk" ? (
-            <ChunkConfigTab initialChunk={initialChunk} />
-          ) : (
-            <RolesTab />
-          )}
+          {tab === "chunk" && <ChunkConfigTab initialChunk={initialChunk} />}
+          {tab === "roles" && <RolesTab />}
+          {tab === "members" && <MembersTab />}
+          {!tab && <p className="text-sm text-white/40">You don't have permission to change world settings.</p>}
         </div>
       </div>
     </div>
@@ -90,6 +94,7 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
   const [config, setConfig] = useState<ChunkConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -146,10 +151,16 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
     if (!config || !chunkKey) return;
     setSaving(true);
     setSaved(false);
-    await ClientGameService.setChunkConfig(chunkKey, config);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    setError(null);
+    try {
+      await ClientGameService.setChunkConfig(chunkKey, config);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch {
+      setError("Couldn't save. You may not have the Manage World permission.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -234,7 +245,7 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
               </p>
             ) : (
               <div className="space-y-1.5">
-                {roles.map((r) => (
+                {roles.filter((r) => r.id !== EVERYONE_ROLE_ID).map((r) => (
                   <label
                     key={r.id}
                     className="flex items-center gap-2 text-sm cursor-pointer"
@@ -256,171 +267,10 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
             )}
           </div>
 
+          {error && <ErrorNote onClose={() => setError(null)}>{error}</ErrorNote>}
           <SaveBar saving={saving} saved={saved} onSave={save} />
         </>
       )}
-    </div>
-  );
-}
-
-// ── Roles tab (Discord-style) ───────────────────────────────────────────────
-
-function RolesTab() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    ClientGameService.getRoles().then((r) => {
-      if (!alive) return;
-      setRoles(r);
-      setSelectedId(r[0]?.id ?? null);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const selected = roles.find((r) => r.id === selectedId) ?? null;
-
-  const addRole = () => {
-    const role: Role = {
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `role-${Date.now()}`,
-      name: "new role",
-      color: "#99aab5",
-      permissions: {},
-    };
-    setRoles((rs) => [...rs, role]);
-    setSelectedId(role.id);
-  };
-
-  const deleteRole = (id: string) => {
-    setRoles((rs) => rs.filter((r) => r.id !== id));
-    setSelectedId((cur) => (cur === id ? null : cur));
-  };
-
-  const patchSelected = (patch: Partial<Role>) =>
-    setRoles((rs) => rs.map((r) => (r.id === selectedId ? { ...r, ...patch } : r)));
-
-  const togglePerm = (key: keyof Role["permissions"]) =>
-    setRoles((rs) =>
-      rs.map((r) =>
-        r.id === selectedId
-          ? { ...r, permissions: { ...r.permissions, [key]: !r.permissions[key] } }
-          : r,
-      ),
-    );
-
-  const save = async () => {
-    setSaving(true);
-    setSaved(false);
-    await ClientGameService.setRoles(roles);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex gap-4 flex-1 min-h-0">
-        <div className="w-52 shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <span className={labelCls + " mb-0"}>Roles</span>
-            <button
-              onClick={addRole}
-              className="rounded-md bg-white/10 px-2 py-0.5 text-xs hover:bg-white/20"
-            >
-              + Add
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {roles.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setSelectedId(r.id)}
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${
-                  r.id === selectedId ? "bg-white/10" : "hover:bg-white/5"
-                }`}
-              >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ background: r.color }}
-                />
-                <span className="truncate">{r.name}</span>
-              </button>
-            ))}
-            {roles.length === 0 && (
-              <p className="text-xs text-white/40 px-2">No roles yet.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0 border-l border-white/10 pl-4">
-          {!selected ? (
-            <p className="text-sm text-white/40">Select or add a role.</p>
-          ) : (
-            <div className="space-y-4 max-w-md">
-              <div>
-                <label className={labelCls}>Role name</label>
-                <input
-                  className={inputCls}
-                  value={selected.name}
-                  onChange={(e) => patchSelected({ name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>Color</label>
-                <input
-                  type="color"
-                  value={selected.color}
-                  onChange={(e) => patchSelected({ color: e.target.value })}
-                  className="h-9 w-16 rounded bg-transparent cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>Permissions</label>
-                <div className="space-y-2">
-                  {PERMISSIONS.map((p) => (
-                    <label
-                      key={p.key}
-                      className="flex items-start justify-between gap-3 rounded-lg bg-black/30 px-3 py-2 cursor-pointer"
-                    >
-                      <span>
-                        <span className="block text-sm">{p.label}</span>
-                        <span className="block text-xs text-white/40">{p.desc}</span>
-                      </span>
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={!!selected.permissions[p.key]}
-                        onChange={() => togglePerm(p.key)}
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => deleteRole(selected.id)}
-                className="text-xs text-red-400/80 hover:text-red-400"
-              >
-                Delete role
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="pt-4">
-        <SaveBar saving={saving} saved={saved} onSave={save} />
-      </div>
     </div>
   );
 }

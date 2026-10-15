@@ -10,8 +10,12 @@ const compiler: NextConfig["compiler"] =
     : undefined;
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@oncyberio/engine", "@oncyberio/engine-edit"],
-  serverExternalPackages: ["draco3dgltf", "sharp"],
+  transpilePackages: [
+    "@oncyberio/engine",
+    "@oncyberio/engine-edit",
+    "@oncyberio/world-config",
+  ],
+  serverExternalPackages: ["draco3dgltf", "sharp", "@privy-io/node"],
   compiler,
   experimental: {
     serverActions: {

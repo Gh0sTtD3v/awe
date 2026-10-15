@@ -217,20 +217,65 @@ function ChunkTab() {
 }
 
 function PlayerRow({ player }: { player: PlayerInfo }) {
+  const { self } = useStore(infoStore);
+
+  // Mirrors the server: only players ranked below you. The server re-checks.
+  const outranks = !!self && !player.isLocal && player.rolePosition < self.rolePosition;
+  const canKick = outranks && self.permissions.includes("kick_members");
+  const canBan = outranks && self.permissions.includes("ban_members");
+
   return (
     <div style={S.Row}>
       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+        {player.roleColor && (
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: player.roleColor,
+              marginRight: 6,
+            }}
+          />
+        )}
         {shortId(player.sessionId)}
         {player.isLocal && (
           <span style={{ color: "rgba(169,169,169,0.9)" }}> (you)</span>
         )}
       </span>
-      {!player.isLocal && (
-        <TeleportButton
-          onClick={() => getScript()?.teleportToPlayer(player.sessionId)}
-        />
-      )}
+      <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {canKick && (
+          <ModButton label="Kick" onClick={() => getScript()?.kickPlayer(player.sessionId)} />
+        )}
+        {canBan && (
+          <ModButton label="Ban" onClick={() => getScript()?.banPlayer(player.sessionId)} />
+        )}
+        {!player.isLocal && (
+          <TeleportButton
+            onClick={() => getScript()?.teleportToPlayer(player.sessionId)}
+          />
+        )}
+      </span>
     </div>
+  );
+}
+
+function ModButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <span
+      onClick={onClick}
+      style={{
+        cursor: "pointer",
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        border: "1px solid rgba(255,120,120,0.4)",
+        color: "rgba(255,170,170,0.95)",
+      }}
+    >
+      {label}
+    </span>
   );
 }
 
@@ -260,10 +305,12 @@ function Chevron({ open }: { open: boolean }) {
 
 function PlayerGroup({
   label,
+  color,
   members,
   defaultOpen,
 }: {
   label: string;
+  color?: string;
   members: PlayerInfo[];
   defaultOpen: boolean;
 }) {
@@ -271,7 +318,7 @@ function PlayerGroup({
   return (
     <div>
       <div style={S.GroupHeader} onClick={() => setOpen((o) => !o)}>
-        <span>
+        <span style={color ? { color } : undefined}>
           {label}
           <span style={S.GroupCount}>{members.length}</span>
         </span>
@@ -296,20 +343,30 @@ function PlayerGroup({
 function PlayersTab() {
   const { players } = useStore(infoStore);
 
-  // Roles aren't tracked yet — everyone lands in Guest for now.
-  const groups: { label: string; members: PlayerInfo[] }[] = [
-    { label: "Owner / Mod", members: [] },
-    { label: "Speaker", members: [] },
-    { label: "Guest", members: players },
-  ];
+  // Discord-style member list: one group per highest role, highest rank first,
+  // then everyone without a role.
+  const byRole = new Map<string, { label: string; color: string; rank: number; members: PlayerInfo[] }>();
+  for (const p of players) {
+    const id = p.roleName ? p.roleId : "everyone";
+    const group = byRole.get(id) ?? {
+      label: p.roleName || "Everyone",
+      color: p.roleName ? p.roleColor : "",
+      rank: p.roleName ? p.rolePosition : -1,
+      members: [],
+    };
+    group.members.push(p);
+    byRole.set(id, group);
+  }
+  const groups = [...byRole.values()].sort((a, b) => b.rank - a.rank);
 
   return (
     <div style={S.Section}>
       {groups.map((g, i) => (
-        <div key={g.label}>
+        <div key={`${g.rank}-${g.label}`}>
           {i > 0 && <div style={S.Divider} />}
           <PlayerGroup
             label={g.label}
+            color={g.color}
             members={g.members}
             defaultOpen={g.members.length > 0}
           />

@@ -28,15 +28,41 @@ import {
   setPlayers,
   setChunk,
   openInfo,
+  showGateNotice,
+  setSelfAccess,
+  setRemoved,
+  showModMessage,
   type PlayerInfo,
 } from "@/lib/info-store";
+import { getAccessToken } from "@/lib/auth-bridge";
+import { ScreenSync } from "@/lib/screen-sync";
 import { connectToRoom, disconnectFromRoom } from "@/multiplayer/client";
 import {
   createPlayersReplica,
   type PlayersReplica,
 } from "@/multiplayer/players-replica";
-import { PLAYER_UPDATE_MESSAGE } from "../../shared/messages";
+import { posToChunkKey } from "@oncyberio/world-config";
+import {
+  ACCESS_SELF_MESSAGE,
+  AUTH_UPDATE_MESSAGE,
+  BANNED_CLOSE_CODE,
+  CHUNK_DENIED_MESSAGE,
+  GATE_ACCESS_MESSAGE,
+  GATE_DENIED_MESSAGE,
+  KICKED_CLOSE_CODE,
+  MOD_BAN_MESSAGE,
+  MOD_KICK_MESSAGE,
+  MOD_RESULT_MESSAGE,
+  PLAYER_UPDATE_MESSAGE,
+  type AccessSelfMessage,
+  type ChunkDeniedMessage,
+  type GateAccessMessage,
+  type GateDeniedMessage,
+  type ModResultMessage,
+} from "../../shared/messages";
+import { describeRequirement, gateFromComponent } from "../../shared/gates";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
+import type { ScreenAction } from "../../shared/screens";
 
 // --- Input definitions ---
 const GAMEPLAY_INPUTS = {
@@ -155,6 +181,10 @@ export function getScript(): GameScript | null {
 // How often (ms) to push player/chunk snapshots to the info UI store.
 const INFO_SYNC_INTERVAL = 200;
 
+// The local fallback and the server denial both fire for the same intrusion;
+// only act on the first.
+const GATE_EXIT_COOLDOWN = 1000;
+
 export class GameScript {
   private space: Space | null = null;
   private cleanup: (() => void) | null = null;
@@ -163,7 +193,15 @@ export class GameScript {
   private localPlayerAvatar: AvatarComponent | null = null;
   private timeSinceLastBroadcast = 0;
   private portalCleanup: (() => void) | null = null;
+  private gateCleanup: (() => void) | null = null;
   private timeSinceInfoSync = 0;
+  private screenSync: ScreenSync | null = null;
+
+  /** gateId → may enter, as decided by the server. Missing means no. */
+  private gateAccess: Record<string, boolean> = {};
+  /** Members-only chunks by key → may enter. Missing = public. */
+  private chunkAccess: Record<string, boolean> = {};
+  private lastGateExitAt = 0;
 
   // Control primitives
   private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
@@ -190,9 +228,48 @@ export class GameScript {
         throw new Error("[Game] Player avatar template not found");
       }
 
-      const room = await connectToRoom();
+      let room: Room<any>;
+      try {
+        room = await connectToRoom(await getAccessToken());
+      } catch (err: any) {
+        if (err?.code === BANNED_CLOSE_CODE) setRemoved("You are banned from this world.");
+        throw err;
+      }
       this.room = room;
       console.log("[MP] Connected, sessionId:", room.sessionId);
+
+      // Token gates: the server decides; we open doors and show the way out.
+      room.onMessage(GATE_ACCESS_MESSAGE, (msg: GateAccessMessage) => {
+        this.gateAccess = msg.access ?? {};
+        this.applyGateDoors();
+      });
+      room.onMessage(GATE_DENIED_MESSAGE, (msg: GateDeniedMessage) => {
+        void this.leaveGate(msg.exit, msg.label, msg.requirement);
+      });
+
+      // Roles: what we may do, and members-only chunks we were turned away from.
+      room.onMessage(ACCESS_SELF_MESSAGE, (msg: AccessSelfMessage) => {
+        this.chunkAccess = msg.chunks ?? {};
+        setSelfAccess({
+          isOwner: msg.isOwner,
+          permissions: msg.permissions ?? [],
+          rolePosition: msg.rolePosition ?? 0,
+        });
+      });
+      room.onMessage(CHUNK_DENIED_MESSAGE, (msg: ChunkDeniedMessage) => {
+        this.chunkAccess[msg.chunkKey] = false;
+        void this.leaveRestricted(msg.exit, msg.title, msg.roles.join(", "), "chunk");
+      });
+      room.onMessage(MOD_RESULT_MESSAGE, (msg: ModResultMessage) => {
+        showModMessage(msg.ok ? "Done." : (msg.error ?? "Refused."));
+      });
+      room.onLeave((code: number) => {
+        if (code === KICKED_CLOSE_CODE) setRemoved("You were removed by a moderator.");
+        if (code === BANNED_CLOSE_CODE) setRemoved("You are banned from this world.");
+      });
+
+      // Video screens follow the playback the server shares.
+      this.screenSync = new ScreenSync(room, this.space);
 
       this.playersReplica = createPlayersReplica(
         room,
@@ -296,6 +373,20 @@ export class GameScript {
         }
       });
 
+      // Fast local fallback: don't wait for the server round-trip to turn a
+      // player without access around. The server still enforces it.
+      this.gateCleanup = this.space._onEngineEvent(
+        "token_gate_enter",
+        ({ gateId, avatar }) => {
+          if (avatar !== this.localPlayerAvatar) return;
+          if (this.gateAccess[gateId] === true) return;
+
+          const gate = gateFromComponent(this.space?.components.byId(gateId)?.data);
+          if (!gate) return;
+          void this.leaveGate(gate.exit, gate.label, describeRequirement(gate.requirement));
+        },
+      );
+
       await reveal();
     } catch (error) {
       this.dispose();
@@ -305,6 +396,8 @@ export class GameScript {
 
   dispose() {
     // Disconnect from multiplayer
+    this.screenSync?.dispose();
+    this.screenSync = null;
     this.playersReplica?.dispose();
     this.playersReplica = null;
     this.room = null;
@@ -314,6 +407,9 @@ export class GameScript {
 
     this.portalCleanup?.();
     this.portalCleanup = null;
+    this.gateCleanup?.();
+    this.gateCleanup = null;
+    this.gateAccess = {};
 
     // Clean up space event handlers
     this.cleanup?.();
@@ -422,17 +518,98 @@ export class GameScript {
           y: p.y,
           z: p.z,
           isLocal: sessionId === localId,
+          roleId: p.roleId ?? "everyone",
+          roleName: p.roleName ?? "",
+          roleColor: p.roleColor ?? "",
+          rolePosition: p.rolePosition ?? 0,
         });
       });
       setPlayers(players);
     }
 
+    // Loading state is pushed by the chunk transition callbacks, not polled.
     const chunks = this.space?.chunks ?? null;
-    setChunk(
-      chunks?.currentKey ?? null,
-      chunks?.isLoading ?? false,
-      chunks?.currentInfo ?? null,
-    );
+    setChunk(chunks?.currentKey ?? null, chunks?.currentInfo ?? null);
+
+    // Chunks stream doors in and out; keep newly loaded ones in step.
+    this.applyGateDoors();
+
+    // ...and screens: pick up new ones, and find the one the player is at.
+    this.screenSync?.update(this.localPlayerAvatar?.position ?? null);
+  }
+
+  /**
+   * Doors of gates the player may enter are passable and hidden; every other
+   * door stays solid. Purely local — each client simulates only its own
+   * player, and the server rejects positions inside a gate regardless.
+   */
+  private applyGateDoors(): void {
+    const components = this.space?.components;
+    if (!components) return;
+
+    for (const gate of components.byType("token-gate")) {
+      const doorTag = String((gate.data as any).doorTag ?? "").trim();
+      if (!doorTag) continue;
+
+      const open = this.gateAccess[gate.data.id] === true;
+      for (const door of components.byTag(doorTag) as any[]) {
+        if (door.rigidBody && door.rigidBody.enabled === open) {
+          door.rigidBody.enabled = !open;
+        }
+        if (door.visible === open) door.visible = !open;
+      }
+    }
+  }
+
+  /** Send the local player out of a gate they may not enter. */
+  private leaveGate(
+    exit: { x: number; y: number; z: number },
+    label: string,
+    requirement: string,
+  ): Promise<void> {
+    return this.leaveRestricted(exit, label, requirement, "gate");
+  }
+
+  /** Show why, and go back to `exit` (if known) — gates and members-only chunks alike. */
+  private async leaveRestricted(
+    exit: { x: number; y: number; z: number } | null,
+    label: string,
+    requirement: string,
+    kind: "gate" | "chunk",
+  ): Promise<void> {
+    const now = performance.now();
+    if (now - this.lastGateExitAt < GATE_EXIT_COOLDOWN) return;
+    this.lastGateExitAt = now;
+
+    showGateNotice(label, requirement, kind);
+    if (exit) await this.travelTo(exit);
+  }
+
+  /** Moderation: the server checks permission and rank and replies with `mod:result`. */
+  kickPlayer(sessionId: string): void {
+    this.room?.send(MOD_KICK_MESSAGE, { sessionId });
+  }
+
+  banPlayer(sessionId: string): void {
+    this.room?.send(MOD_BAN_MESSAGE, { sessionId });
+  }
+
+  /** Video screens: the server checks Control Screens and shares the result with everyone. */
+  controlScreen(screenId: string, action: ScreenAction): void {
+    this.screenSync?.control(screenId, action);
+  }
+
+  screenTime(screenId: string): { time: number; duration: number } {
+    return this.screenSync?.timeOf(screenId) ?? { time: 0, duration: 0 };
+  }
+
+  /**
+   * Sign-in changed (log in, log out, Keplr linked): send the server a fresh
+   * token so it re-decides gate access.
+   */
+  async refreshAuth(): Promise<void> {
+    if (!this.room) return;
+    this.room.send(AUTH_UPDATE_MESSAGE, { accessToken: await getAccessToken() });
   }
 
   onDispose = () => {
@@ -471,17 +648,26 @@ export class GameScript {
    * Move the local player to a world position. When the chunk system is
    * enabled the destination chunk is streamed in via {@link ChunkManager};
    * otherwise (full scene loaded) we teleport the avatar directly.
+   *
+   * Returns false if the trip was abandoned because the destination chunk
+   * could not be loaded — the player is left where they were.
    */
-  async travelTo(pos: { x: number; y: number; z: number }): Promise<void> {
+  async travelTo(pos: { x: number; y: number; z: number }): Promise<boolean> {
     const avatar = this.localPlayerAvatar as any;
-    if (!avatar?.rigidBody) return;
+    if (!avatar?.rigidBody) return false;
+
+    // Don't stream in a members-only chunk the server will refuse anyway.
+    const key = posToChunkKey(pos);
+    if (this.chunkAccess[key] === false) {
+      showGateNotice("That destination", "", "chunk");
+      return false;
+    }
 
     const target = new Vector3(pos.x, pos.y, pos.z);
     const chunks = this.space?.chunks;
 
     if (chunks) {
-      await chunks.travelTo(target, avatar);
-      return;
+      return chunks.travelTo(target, avatar);
     }
 
     // No chunking: direct teleport (assets already present).
@@ -490,6 +676,7 @@ export class GameScript {
     avatar.position.copy(target);
     avatar.rigidBody.enabled = true;
     avatar.rigidBody.teleport(target, avatar.quaternion);
+    return true;
   }
 
   /** Teleport the local player to another player's current position. */

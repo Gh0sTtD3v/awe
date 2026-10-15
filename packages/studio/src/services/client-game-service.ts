@@ -6,11 +6,24 @@ import {
   listChunks,
   getChunkConfig,
   setChunkConfig,
-  getRoles,
-  setRoles,
 } from "../actions/game";
+import { getAuthStatus } from "../actions/auth";
+import {
+  addMember,
+  createRole,
+  deleteRole,
+  getMyAccess,
+  listAccess,
+  listRoles,
+  removeMember,
+  reorderRoles,
+  setBanned,
+  setMemberRoles,
+  updateRole,
+} from "../actions/access";
 
 export const ClientGameService = {
+  getAuthStatus,
   getGameData,
   getGameRevision,
   updateGame,
@@ -18,6 +31,15 @@ export const ClientGameService = {
   listChunks,
   getChunkConfig,
   setChunkConfig,
-  getRoles,
-  setRoles,
+  getRoles: listRoles,
+  getMyAccess,
+  listAccess,
+  createRole,
+  updateRole,
+  deleteRole,
+  reorderRoles,
+  addMember,
+  setMemberRoles,
+  removeMember,
+  setBanned,
 };

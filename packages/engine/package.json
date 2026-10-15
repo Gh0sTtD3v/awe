@@ -24,6 +24,7 @@
     "headless:check": "tsx --import tsconfig-paths/register scripts/headless-check.ts"
   },
   "dependencies": {
+    "@oncyberio/world-config": "workspace:*",
     "@dimforge/rapier3d-compat": "0.11.2",
     "@pixiv/three-vrm": "^2.0.6",
     "@pixiv/three-vrm-springbone": "^2.0.6",

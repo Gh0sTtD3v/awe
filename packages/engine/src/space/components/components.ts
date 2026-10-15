@@ -38,6 +38,8 @@ import type { QuarksComponent } from "./quarks/quarks-component";
 import type { NavmeshComponent } from "./navmesh/navmesh-component";
 import type { ObjectComponent } from "./object/object-component";
 import type { PortalComponent } from "./portal/portal-component";
+import type { TokenGateComponent } from "./token-gate/token-gate-component";
+import type { VideoScreenComponent } from "./video-screen/video-screen-component";
 
 /**
  * @public
@@ -81,6 +83,8 @@ export type ComponentTypeMap = {
   navmesh: NavmeshComponent;
   object: ObjectComponent;
   portal: PortalComponent;
+  "token-gate": TokenGateComponent;
+  "video-screen": VideoScreenComponent;
 };
 
 export type CType = keyof ComponentTypeMap;

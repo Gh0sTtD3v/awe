@@ -3,6 +3,7 @@ import { useCurrentGameData } from "../contexts/game-data-context";
 import { useComponentTypesMap } from "./component-hooks";
 import { use3DLibrary } from "./use-3d-library";
 import { GameData } from "../types/game-data";
+import { isGlobalType, isPresetType } from "@oncyberio/world-config";
 
 export interface ComponentInfo {
   id: string;
@@ -35,15 +36,9 @@ type ComponentData = GameData["components"][string];
 const DEFAULT_MODEL_IMAGE =
   "https://cyber.mypinata.cloud/ipfs/QmdMuK7WHQtmhRWK5weDfdptXg6iSnu9Rox2wfYqGkFNBd";
 
-const GLOBAL_TYPES = new Set(["avatar", "vrm-anims"]);
-const PRESET_TYPES = new Set([
-  "water", "reflector", "background", "envmap",
-  "lighting", "fog", "postprocessing",
-]);
-
 function getItemCategory(comp: ComponentData): keyof GroupedWorldItems {
-  if (GLOBAL_TYPES.has(comp.type)) return "globals";
-  if (PRESET_TYPES.has(comp.type)) return "presets";
+  if (isGlobalType(comp.type)) return "globals";
+  if (isPresetType(comp.type)) return "presets";
   if (comp.type === "portal") return "portals";
   return "chunkData";
 }

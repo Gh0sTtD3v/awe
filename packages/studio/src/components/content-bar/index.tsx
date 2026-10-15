@@ -2,6 +2,7 @@ import Tip from "../../ui/tip";
 import { useEffect, useState } from "react";
 import { StudioButton } from "../studio-button";
 import { useContentTab } from "../../contexts/content-tab-context";
+import { useAccess } from "../../contexts/access-context";
 
 function ContentBarButton({ tipLabel, children }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -38,6 +39,9 @@ export function ContentBar() {
   } = useContentTab();
 
   const [highlight, setHighlight] = useState(false);
+  const { can } = useAccess();
+  const canOpenSettings =
+    can("manage_world") || can("manage_roles") || can("manage_members") || can("ban_members");
 
   useEffect(() => {
     if (highlight) {
@@ -50,22 +54,24 @@ export function ContentBar() {
 
   return (
     <div className="w-[71px] max-h-full bg-studio-black border border-[#121212] shadow-[0px_-4px_12px_0px_rgba(32,32,32,0.4)_inset] pointer-events-auto p-2 flex flex-col gap-2 rounded-[14px] mr-1">
-      <ContentBarButton tipLabel="Settings">
-        <StudioButton
-          size="l"
-          title="Settings"
-          onClick={() => setActiveTab(activeTab === "settings" ? null : "settings")}
-          className={activeTab === "settings" ? "content-bar-active" : ""}
-        >
-          <img
-            src="https://img.icons8.com/windows/32/settings--v1.png"
-            width={24}
-            height={24}
-            alt="Settings"
-            style={{ filter: "invert(1)" }}
-          />
-        </StudioButton>
-      </ContentBarButton>
+      {canOpenSettings && (
+        <ContentBarButton tipLabel="Settings">
+          <StudioButton
+            size="l"
+            title="Settings"
+            onClick={() => setActiveTab(activeTab === "settings" ? null : "settings")}
+            className={activeTab === "settings" ? "content-bar-active" : ""}
+          >
+            <img
+              src="https://img.icons8.com/windows/32/settings--v1.png"
+              width={24}
+              height={24}
+              alt="Settings"
+              style={{ filter: "invert(1)" }}
+            />
+          </StudioButton>
+        </ContentBarButton>
+      )}
       <ContentBarButton tipLabel="World settings">
         <StudioButton
           gradientStart="#62CE20"

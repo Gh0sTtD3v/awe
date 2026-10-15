@@ -78,7 +78,7 @@ class SpaceFactory {
     if (opts.chunked) {
       const chunks = new ChunkManager();
       space.chunks = chunks;
-      chunks.init(space);
+      chunks.init(space, opts.chunkOpts);
     }
 
     if (opts.runtime !== "headless") {

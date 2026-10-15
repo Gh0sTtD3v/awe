@@ -3,7 +3,7 @@ import type { Blockchain } from "../nfts/types";
 /**
  * Wallet type categories for different blockchain ecosystems
  */
-export type WalletType = "evm";
+export type WalletType = "evm" | "cosmos";
 
 /**
  * Unified wallet connection result returned by all adapters

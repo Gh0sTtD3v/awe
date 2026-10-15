@@ -1,0 +1,276 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Client, type Room } from "@colyseus/sdk";
+import type { Server } from "colyseus";
+import type { GameState } from "../shared/game-state";
+import {
+  ACCESS_SELF_MESSAGE,
+  BANNED_CLOSE_CODE,
+  CHUNK_DENIED_MESSAGE,
+  GATE_ACCESS_MESSAGE,
+  KICKED_CLOSE_CODE,
+  MOD_BAN_MESSAGE,
+  MOD_KICK_MESSAGE,
+  MOD_RESULT_MESSAGE,
+  PLAYER_UPDATE_MESSAGE,
+  SCREEN_CONTROL_MESSAGE,
+  SCREEN_DURATION_MESSAGE,
+  SCREEN_REFUSED_MESSAGE,
+  SCREEN_STATE_MESSAGE,
+  type AccessSelfMessage,
+  type ChunkDeniedMessage,
+  type GateAccessMessage,
+  type ModResultMessage,
+  type ScreenRefusedMessage,
+  type ScreenStateMessage,
+} from "../shared/messages";
+
+/**
+ * Roles enforced by the real Colyseus room. Privy mode with a fake Privy
+ * client: the access token *is* the user's DID, so each connection can be a
+ * different person. Roles and members come from a temp access file.
+ */
+
+const OWNER = "did:privy:owner";
+const ADMIN = "did:privy:admin";
+const MOD = "did:privy:mod";
+const GUEST = "did:privy:guest";
+const TROLL = "did:privy:troll";
+const RESTRICTED = { x: 10_000, y: 0, z: 0 }; // chunk 1_0_0
+const PORT = 2900 + Math.floor(Math.random() * 300);
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ghostt-access-"));
+const accessFile = path.join(tmp, "access.json");
+
+let server: Server;
+let access: typeof import("@oncyberio/studio/server-gating");
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function until<T>(read: () => T | undefined, timeout = 5000): Promise<T> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const value = read();
+    if (value != null && value !== false) return value;
+    await sleep(25);
+  }
+  throw new Error("Timed out waiting");
+}
+
+interface Player {
+  room: Room<any, GameState>;
+  self: AccessSelfMessage[];
+  gates: GateAccessMessage[];
+  denials: ChunkDeniedMessage[];
+  results: ModResultMessage[];
+  screens: ScreenStateMessage[];
+  refused: ScreenRefusedMessage[];
+  leftWith: number | null;
+}
+
+async function join(token: string): Promise<Player> {
+  const room = await new Client(`ws://localhost:${PORT}`).joinOrCreate<GameState>("game", { accessToken: token });
+  const p: Player = { room, self: [], gates: [], denials: [], results: [], screens: [], refused: [], leftWith: null };
+  room.onMessage(SCREEN_STATE_MESSAGE, (m: ScreenStateMessage) => p.screens.push(m));
+  room.onMessage(SCREEN_REFUSED_MESSAGE, (m: ScreenRefusedMessage) => p.refused.push(m));
+  room.onMessage(ACCESS_SELF_MESSAGE, (m: AccessSelfMessage) => p.self.push(m));
+  room.onMessage(GATE_ACCESS_MESSAGE, (m: GateAccessMessage) => p.gates.push(m));
+  room.onMessage(CHUNK_DENIED_MESSAGE, (m: ChunkDeniedMessage) => p.denials.push(m));
+  room.onMessage(MOD_RESULT_MESSAGE, (m: ModResultMessage) => p.results.push(m));
+  room.onLeave((code: number) => {
+    p.leftWith = code;
+  });
+  await until(() => p.self[0]);
+  return p;
+}
+
+function move(p: Player, at: { x: number; y: number; z: number }) {
+  p.room.send(PLAYER_UPDATE_MESSAGE, { ...at, rotY: 0, anim: "idle" });
+}
+
+const stateOf = (p: Player) => p.room.state.players.get(p.room.sessionId)!;
+
+let guest: Player;
+let mod: Player;
+let admin: Player;
+
+beforeAll(async () => {
+  // A members-only chunk, and a token gate nobody holds the tokens for.
+  fs.writeFileSync(
+    path.join(tmp, "chunk-config.json"),
+    JSON.stringify({ "1_0_0": { info: { title: "Vault" }, auth: ["vip"] } }),
+  );
+  fs.mkdirSync(path.join(tmp, "chunks"));
+  fs.writeFileSync(
+    path.join(tmp, "chunks", "0_0_0.json"),
+    JSON.stringify({
+      id: "0_0_0",
+      assets: {
+        "gate-1": {
+          id: "gate-1",
+          type: "token-gate",
+          position: { x: 10, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 4, y: 4, z: 4 },
+          requirementType: "cft20",
+          ticker: "ROIDS",
+          minAmount: "100",
+          exitOffset: { x: -6, y: 0, z: 0 },
+        },
+        cinema: {
+          id: "cinema",
+          type: "video-screen",
+          position: { x: -20, y: 2, z: 0 },
+          playlist: [{ title: "One", url: "https://example.com/1.mp4" }, { title: "Two", url: "https://example.com/2.mp4" }],
+          loop: "all",
+          volume: 0.5,
+        },
+      },
+    }),
+  );
+  fs.writeFileSync(path.join(tmp, "holdings.json"), "{}");
+  fs.writeFileSync(
+    accessFile,
+    JSON.stringify({
+      version: 1,
+      roles: [
+        { id: "admin", name: "Admin", color: "#ff0000", position: 4, permissions: { administrator: true } },
+        { id: "moderator", name: "Moderator", color: "#0000ff", position: 3, permissions: { kick_members: true, ban_members: true, control_screens: true } },
+        { id: "vip", name: "VIP", color: "#00ff00", position: 1, permissions: {} },
+        { id: "everyone", name: "everyone", color: "#999999", position: 0, permissions: { speak: true } },
+      ],
+      members: [
+        { subject: ADMIN, roleIds: ["admin"], addedAt: 1 },
+        { subject: MOD, roleIds: ["moderator"], addedAt: 1 },
+      ],
+    }),
+  );
+
+  process.env.AWE_AUTH_MODE = "privy";
+  process.env.AWE_OWNER_ID = OWNER;
+  process.env.AWE_ACCESS_FILE = accessFile;
+  process.env.AWE_DATA_DIR = tmp;
+  process.env.AWE_HOLDINGS_FILE = path.join(tmp, "holdings.json");
+
+  access = await import("@oncyberio/studio/server-gating");
+  access.setPrivyClient({
+    utils: () => ({
+      auth: () => ({
+        verifyAccessToken: async (token: string) => ({ user_id: token, app_id: "test", expiration: 0, session_id: token }),
+      }),
+    }),
+    users: () => ({ _get: async () => ({ linked_accounts: [] }) }),
+  });
+
+  const { Server } = await import("colyseus");
+  const { GameRoom } = await import("../server/game-room");
+  server = new Server();
+  server.define("game", GameRoom);
+  await server.listen(PORT);
+
+  [guest, mod, admin] = await Promise.all([join(GUEST), join(MOD), join(ADMIN)]);
+});
+
+afterAll(async () => {
+  for (const p of [guest, mod, admin]) await p?.room.leave().catch(() => {});
+  await server?.gracefullyShutdown(false);
+  const { getGateRegistry } = await import("../server/game-room");
+  getGateRegistry().close();
+  access?.setPrivyClient(null);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+describe("roles on the game server", () => {
+  it("tells each player what they may do and shows their top role", async () => {
+    expect(guest.self[0]).toMatchObject({ isOwner: false, chunks: { "1_0_0": false } });
+    expect(admin.self[0].chunks).toEqual({ "1_0_0": true });
+    expect(mod.self[0].permissions.sort()).toEqual(["ban_members", "control_screens", "kick_members", "speak"]);
+
+    await until(() => stateOf(mod)?.roleName === "Moderator");
+    expect(stateOf(mod)).toMatchObject({ roleColor: "#0000ff", rolePosition: 2 });
+    expect(stateOf(guest).roleName).toBe("");
+  });
+
+  it("keeps players without a role out of a members-only chunk", async () => {
+    move(guest, { x: 0, y: 0, z: 0 });
+    await until(() => stateOf(guest).x === 0);
+
+    move(guest, RESTRICTED);
+    const denial = await until(() => guest.denials[0]);
+    expect(denial).toMatchObject({ chunkKey: "1_0_0", title: "Vault", roles: ["VIP"], exit: { x: 0, y: 0, z: 0 } });
+
+    await sleep(150);
+    expect(stateOf(guest).x).toBe(0);
+  });
+
+  it("lets administrators through chunk rules and token gates", async () => {
+    expect(admin.gates.at(-1)!.access).toEqual({ "gate-1": true });
+    expect(guest.gates.at(-1)!.access).toEqual({ "gate-1": false });
+
+    move(admin, RESTRICTED);
+    await until(() => stateOf(admin).x === RESTRICTED.x);
+    move(admin, { x: 10, y: 0, z: 0 }); // inside the gate (a teleport, from far away)
+    await until(() => stateOf(admin).x === 10);
+  });
+
+  it("applies a role given in the studio to a player already online", async () => {
+    const before = guest.self.length;
+    await access.getAccessStore().update((d) => ({
+      ...d,
+      members: [...d.members, { subject: GUEST, roleIds: ["vip"], addedAt: Date.now() }],
+    }));
+
+    const fresh = await until(() => guest.self.slice(before).find((m) => m.chunks["1_0_0"]));
+    expect(fresh.roleIds).toEqual(["vip", "everyone"]);
+
+    await sleep(1100); // denial throttle
+    move(guest, RESTRICTED);
+    await until(() => stateOf(guest).x === RESTRICTED.x);
+  });
+
+  it("shares video screens: only Control Screens may change them, and they move on by themselves", async () => {
+    const cinema = () => guest.screens.at(-1)?.screens.cinema;
+    expect(guest.screens[0].screens.cinema).toMatchObject({ index: -1, playing: false, volume: 0.5, loop: "all" });
+
+    guest.room.send(SCREEN_CONTROL_MESSAGE, { screenId: "cinema", action: "select", index: 1 });
+    expect((await until(() => guest.refused[0])).error).toMatch(/Control Screens/);
+
+    mod.room.send(SCREEN_CONTROL_MESSAGE, { screenId: "cinema", action: "select", index: 1 });
+    await until(() => cinema()?.index === 1 && cinema()!.playing);
+    expect(admin.screens.at(-1)!.screens.cinema.index).toBe(1);
+
+    // Any viewer reports the length; the server then advances at the end, wrapping around.
+    guest.room.send(SCREEN_DURATION_MESSAGE, { screenId: "cinema", index: 1, duration: 0.3 });
+    await until(() => cinema()?.index === 0 && cinema()!.duration === 0);
+  });
+
+  it("refuses moderation without the permission or against a higher rank", async () => {
+    guest.room.send(MOD_KICK_MESSAGE, { sessionId: mod.room.sessionId });
+    expect((await until(() => guest.results[0])).ok).toBe(false);
+
+    mod.room.send(MOD_KICK_MESSAGE, { sessionId: admin.room.sessionId });
+    expect(await until(() => mod.results[0])).toMatchObject({ ok: false, error: "Their highest role isn't below yours." });
+    expect(admin.leftWith).toBeNull();
+  });
+
+  it("lets a moderator kick a lower-ranked player", async () => {
+    const victim = await join(TROLL);
+    mod.room.send(MOD_KICK_MESSAGE, { sessionId: victim.room.sessionId });
+
+    expect(await until(() => victim.leftWith)).toBe(KICKED_CLOSE_CODE);
+    expect(mod.results.at(-1)).toEqual({ ok: true });
+  });
+
+  it("bans by account, so they can't come back", async () => {
+    const victim = await join(TROLL);
+    mod.room.send(MOD_BAN_MESSAGE, { sessionId: victim.room.sessionId });
+
+    expect(await until(() => victim.leftWith)).toBe(BANNED_CLOSE_CODE);
+    const data = await access.getAccessStore().read();
+    expect(data.members.find((m) => m.subject === TROLL)).toMatchObject({ banned: true, addedBy: MOD });
+
+    await expect(join(TROLL)).rejects.toThrow(/banned/);
+  });
+});

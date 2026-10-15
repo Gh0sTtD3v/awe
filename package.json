@@ -21,6 +21,9 @@
     "tools:check": "pnpm --filter tools check",
     "tools:test": "pnpm --filter tools test",
     "studio:check": "pnpm --filter @oncyberio/studio check",
+    "studio:test": "pnpm --filter @oncyberio/studio test",
+    "world-config:check": "pnpm --filter @oncyberio/world-config check",
+    "world-config:test": "pnpm --filter @oncyberio/world-config test",
     "create-game": "pnpm --filter create-oncyber-app exec tsx src/index.ts --local"
   },
   "devDependencies": {

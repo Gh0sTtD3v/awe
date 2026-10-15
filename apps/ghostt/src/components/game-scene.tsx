@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { GameUI } from "@/components/game-ui";
 import { GameCanvas } from "@/components/game-canvas";
 import { GameScript } from "@/lib/game-script";
+import { AuthBridge } from "@/components/auth-bridge";
 
 export interface GameSceneProps {
   onLoad?: () => void;
@@ -51,6 +52,7 @@ export function GameScene({ onLoad }: GameSceneProps) {
 
   return (
     <div className="relative h-screen w-screen">
+      <AuthBridge />
       <GameCanvas />
       {sceneReady && <GameUI />}
     </div>

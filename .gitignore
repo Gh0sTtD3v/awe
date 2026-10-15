@@ -99,3 +99,5 @@ scripts/migration.ts
 
 # apps
 # apps/*
+# server-side world data (holdings, roles & members)
+.data/

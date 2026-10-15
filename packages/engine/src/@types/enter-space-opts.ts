@@ -87,6 +87,27 @@ export interface EnterSpaceOpts {
   chunked?: boolean;
 
   /**
+   * Chunk streaming options, used only when {@link chunked} is true.
+   */
+  chunkOpts?: {
+    /**
+     * Resolves a chunk key to the URL its data is fetched from. Defaults to
+     * the statically-served `/data/chunks/<key>.json`. Hosts that gate chunks
+     * behind an authenticated route override this.
+     */
+    chunkUrl?: (key: string) => string;
+    /** Called when the host denies access to a chunk (HTTP 403). */
+    onForbidden?: (key: string) => void;
+    /**
+     * Awaited before the outgoing chunk is unloaded — use it to show a loading
+     * indicator or fade the screen out.
+     */
+    onTransitionStart?: () => Promise<void>;
+    /** Called once the incoming chunk is in place, including on failure. */
+    onTransitionEnd?: () => void;
+  };
+
+  /**
    * Asset resolver configuration.
    *
    * @remarks

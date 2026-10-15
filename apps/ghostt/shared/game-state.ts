@@ -8,6 +8,12 @@ export class PlayerState extends Schema {
   @type("float32") rotY: number = 0;
   @type("string") anim: string = "idle";
   @type("float64") updatedAt: number = 0;
+  /** The player's highest role, for the Players list. Empty name = only `everyone`. */
+  @type("string") roleId: string = "everyone";
+  @type("string") roleName: string = "";
+  @type("string") roleColor: string = "";
+  /** Rank used for moderation: higher outranks lower; the owner is highest. */
+  @type("float64") rolePosition: number = 0;
 }
 
 export class GameState extends Schema {

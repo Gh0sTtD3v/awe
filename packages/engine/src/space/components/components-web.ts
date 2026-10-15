@@ -38,6 +38,8 @@ import { InteractionComponentFactory } from "./interaction";
 import { InstancedMeshComponentFactory } from "./instancedmesh";
 import { SplineComponentFactory } from "./spline";
 import { PortalComponentFactory } from "./portal";
+import { TokenGateComponentFactory } from "./token-gate";
+import { VideoScreenComponentFactory } from "./video-screen";
 
 export const components: Array<typeof ComponentFactory<any>> = [
   // core (web variants)
@@ -55,6 +57,8 @@ export const components: Array<typeof ComponentFactory<any>> = [
   InstancedMeshComponentFactory,
   SplineComponentFactory,
   PortalComponentFactory,
+  TokenGateComponentFactory,
+  VideoScreenComponentFactory,
   BackgroundComponentFactory,
   LightingComponentFactory,
   WaterComponentFactory,

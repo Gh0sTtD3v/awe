@@ -225,6 +225,7 @@ export class Engine {
       loadOpts: {},
       hot: opts.hot,
       chunked: opts.chunked,
+      chunkOpts: opts.chunkOpts,
       runtime,
     });
 

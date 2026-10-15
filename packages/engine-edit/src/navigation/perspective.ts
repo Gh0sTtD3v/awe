@@ -13,6 +13,8 @@ import { EngineEvents } from "@oncyberio/engine/internal/engine-events";
 
 import Events from "../editor-events";
 
+import { CHUNK_SIZE, posToChunkKey } from "@oncyberio/world-config";
+
 import { Euler, Spherical, Vector3 } from "three";
 
 import { isInFrustum, lookAtDistance } from "../utils/three";
@@ -80,12 +82,10 @@ export class PerspectiveControls {
   _currentChunkKey: string | null = null;
   _chunkReady = false;
 
-  static CHUNK_SIZE = 10_000;
+  static CHUNK_SIZE = CHUNK_SIZE;
 
   static posToChunkKey(pos: { x: number; y: number; z: number }): string {
-    const s = PerspectiveControls.CHUNK_SIZE;
-    const h = s / 2;
-    return `${Math.floor((pos.x + h) / s)}_${Math.floor((pos.y + h) / s)}_${Math.floor((pos.z + h) / s)}`;
+    return posToChunkKey(pos);
   }
 
   constructor(

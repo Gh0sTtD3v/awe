@@ -12,6 +12,7 @@
     "@oncyberio/engine": "workspace:*",
     "@oncyberio/engine-edit": "workspace:*",
     "@oncyberio/studio": "workspace:*",
+    "@oncyberio/world-config": "workspace:*",
     "@colyseus/schema": "^4",
     "colyseus": "^0.17",
     "@colyseus/sdk": "^0.17",

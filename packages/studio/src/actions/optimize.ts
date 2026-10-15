@@ -2,6 +2,7 @@
 
 import { OptimizeService, type OptimizeAssetResult, type OOAsset } from "@oncyberio/tools";
 import { resolveWorkingFolder } from "../server/working-folder-service";
+import { requirePermission } from "../server/access";
 
 /**
  * Server action to optimize a 3D asset
@@ -17,6 +18,7 @@ export async function optimizeAssetAction(
     useMeshOpt?: boolean;
   }
 ): Promise<OptimizeAssetResult> {
+  await requirePermission("upload_assets");
   const finalCompressionOptions = {
     useWeld: true,
     useDraco: true,
@@ -37,6 +39,7 @@ export async function optimizeAssetAction(
  * @returns URL to the optimized VRM file
  */
 export async function optimizeVRMAction(formData: FormData): Promise<string> {
+  await requirePermission("upload_assets");
   const file = formData.get("vrm") as File;
   const id = formData.get("id") as string;
 

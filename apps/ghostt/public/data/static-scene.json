@@ -1248,9 +1248,51 @@
         "colliderType": "MESH"
       },
       "_version": 1780325600171
+    },
+    "token-gate-t4lEbtaGbvlt7doTgZPXd": {
+      "type": "token-gate",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": 9.819104832526783e-17,
+        "y": 2.799999999999998,
+        "z": 3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 3,
+        "z": 4
+      },
+      "requirementType": "cft20",
+      "ticker": "",
+      "collection": "",
+      "minAmount": "1",
+      "exitOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 4
+      },
+      "doorTag": "",
+      "label": "",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "fixed",
+        "colliderType": "cube",
+        "isSensor": true
+      },
+      "id": "token-gate-t4lEbtaGbvlt7doTgZPXd",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1792081316967
     }
   },
   "params": {},
   "createdAt": 1768925468915,
-  "updatedAt": 1785416887709
+  "updatedAt": 1792081317575
 }

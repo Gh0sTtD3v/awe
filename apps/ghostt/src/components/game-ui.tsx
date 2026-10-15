@@ -4,6 +4,11 @@ import { gameStore } from "../lib/game-store";
 import { startGame } from "../lib/game-script";
 import { useStore } from "@/hooks/use-store";
 import { InfoCard } from "./info-card";
+import { ChunkLoading } from "./chunk-loading";
+import { AccountPanel } from "./account-panel";
+import { GateNotice } from "./gate-notice";
+import { ModMessage, RemovedOverlay } from "./moderation-notice";
+import { ScreenControls } from "./screen-controls";
 
 function StartScreen() {
   const state = useStore(gameStore);
@@ -43,12 +48,31 @@ function InfoOverlay() {
   return <InfoCard />;
 }
 
+function ScreenOverlay() {
+  const state = useStore(gameStore);
+  if (!state.started) return null;
+  return <ScreenControls />;
+}
+
+function ChunkLoadingOverlay() {
+  const state = useStore(gameStore);
+  // The start screen covers the initial load already.
+  if (!state.started) return null;
+  return <ChunkLoading />;
+}
+
 export function GameUI() {
   return (
     <>
       <StartScreen />
       <PauseIndicator />
       <InfoOverlay />
+      <ChunkLoadingOverlay />
+      <ScreenOverlay />
+      <AccountPanel />
+      <GateNotice />
+      <ModMessage />
+      <RemovedOverlay />
     </>
   );
 }

@@ -23,6 +23,13 @@ export interface SpaceOpts {
     /** Enable chunk-based loading. When true, only global components are
      *  loaded initially; spatial chunks are streamed in at runtime. */
     chunked?: boolean;
+    /** Chunk streaming options, used only when {@link chunked} is true. */
+    chunkOpts?: {
+        chunkUrl?: (key: string) => string;
+        onForbidden?: (key: string) => void;
+        onTransitionStart?: () => Promise<void>;
+        onTransitionEnd?: () => void;
+    };
     /** Additional loading options */
     loadOpts?: {
         /**

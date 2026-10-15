@@ -4,21 +4,14 @@ import { applyPatches, enablePatches, Patch } from "immer";
 import { GameData } from "../types/game-data";
 import { DEFAULT_SCENE } from "../lib/default-game-data";
 import { resolveWorkingFolder } from "./working-folder-service";
+import {
+  isGlobalComponent,
+  isGlobalType,
+  isPresetType,
+  posToChunkKey,
+} from "@oncyberio/world-config";
 
 enablePatches();
-
-const CHUNK_SIZE = 10_000;
-
-/** Always in static file, never unloaded */
-const GLOBAL_TYPES = new Set([
-  "avatar", "vrm-anims",
-]);
-
-/** Singletons — defaults in static file, per-chunk overrides in presets */
-const PRESET_TYPES = new Set([
-  "water", "reflector", "background", "envmap",
-  "lighting", "fog", "postprocessing",
-]);
 
 function getDataFilePath(workingFolder: string): string {
   return path.join(workingFolder, "data/static-scene.json");
@@ -34,10 +27,6 @@ function getPortalsIndexPath(workingFolder: string): string {
 
 function getChunkConfigPath(workingFolder: string): string {
   return path.join(workingFolder, "data/chunk-config.json");
-}
-
-function getRolesPath(workingFolder: string): string {
-  return path.join(workingFolder, "data/roles.json");
 }
 
 /**
@@ -60,18 +49,8 @@ export interface ChunkConfig {
   auth: string[];
 }
 
-/** A world-global, Discord-style role. */
-export interface Role {
-  id: string;
-  name: string;
-  color: string;
-  permissions: {
-    administrator?: boolean;
-    moderate?: boolean;
-    speak?: boolean;
-    build?: boolean;
-  };
-}
+/** Roles and members live in the access store, outside public/. */
+export type { Role } from "./access/types";
 
 function defaultChunkInfo(): ChunkInfo {
   return { title: "Info" };
@@ -102,11 +81,6 @@ export interface PortalIndexEntry {
   chunkKey: string;
 }
 
-function posToChunkKey(pos: { x: number; y: number; z: number }): string {
-  const h = CHUNK_SIZE / 2;
-  return `${Math.floor((pos.x + h) / CHUNK_SIZE)}_${Math.floor((pos.y + h) / CHUNK_SIZE)}_${Math.floor((pos.z + h) / CHUNK_SIZE)}`;
-}
-
 function splitComponents(components: Record<string, any>) {
   const globals: Record<string, any> = {};
   const presets: Record<string, any> = {};
@@ -114,13 +88,13 @@ function splitComponents(components: Record<string, any>) {
 
   for (const [id, comp] of Object.entries(components)) {
     // Globals: always in static file
-    if (GLOBAL_TYPES.has(comp.type)) {
+    if (isGlobalType(comp.type)) {
       globals[id] = comp;
       continue;
     }
 
-    // Presets: singletons stay in static but also captured for chunk overrides
-    if (PRESET_TYPES.has(comp.type)) {
+    // Presets: singletons stay in static and are the per-chunk override base
+    if (isPresetType(comp.type)) {
       globals[id] = comp;
       presets[id] = comp;
       continue;
@@ -340,24 +314,23 @@ export class GameService {
     return { success: true };
   }
 
-  static async getRoles(): Promise<Role[]> {
+  /** Drop a deleted role from every chunk's access list. */
+  static async removeRoleFromChunks(roleId: string): Promise<void> {
     const dataFile = await this.getDataFile();
     const workingFolder = path.dirname(path.dirname(dataFile));
-    const filePath = getRolesPath(workingFolder);
-    if (!fs.existsSync(filePath)) return [];
-    try {
-      return this.readJsonSync(filePath) as Role[];
-    }
-    catch {
-      return [];
-    }
-  }
 
-  static async setRoles(roles: Role[]): Promise<{ success: boolean }> {
-    const dataFile = await this.getDataFile();
-    const workingFolder = path.dirname(path.dirname(dataFile));
-    this.writeJsonSync(getRolesPath(workingFolder), roles);
-    return { success: true };
+    const map = this.readChunkConfigMap(workingFolder);
+    let changed = false;
+    for (const config of Object.values(map)) {
+      if (Array.isArray(config.auth) && config.auth.includes(roleId)) {
+        config.auth = config.auth.filter((id) => id !== roleId);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    this.writeJsonSync(getChunkConfigPath(workingFolder), map);
+    this.generateChunkFiles(workingFolder, this.readJsonSync(dataFile) as GameData);
   }
 
   static async getGameData(chunkKey?: string): Promise<GameData> {
@@ -374,12 +347,7 @@ export class GameService {
     // Build globals: GLOBAL_TYPES + PRESET_TYPES + anything without position
     const globalComponents: Record<string, any> = {};
     for (const [id, comp] of Object.entries(fullData.components ?? {})) {
-      if (
-        GLOBAL_TYPES.has(comp.type) ||
-        PRESET_TYPES.has(comp.type) ||
-        !comp.position ||
-        typeof comp.position?.x !== "number"
-      ) {
+      if (isGlobalComponent(comp)) {
         globalComponents[id] = comp;
       }
     }
