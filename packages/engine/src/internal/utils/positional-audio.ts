@@ -18,6 +18,7 @@ import audioListener from "./globals/audio-listener";
 import volumerange from "./volume-range";
 import { DEBUG_AUDIO } from "../constants";
 import { disposeObject3D } from "./dispose";
+import Camera from "../../camera";
 
 export const LOAD_AUDIO_CLOSE_DIST = 15;
 
@@ -38,6 +39,16 @@ const _position = new Vector3();
 const _quaternion = new Quaternion();
 const _scale = new Vector3();
 const _orientation = new Vector3();
+const _listenerPos = new Vector3();
+
+/**
+ * The listener must ride on the active camera, or spatial sources never get a
+ * position to compare against and stay silent. Follows camera switches.
+ */
+function attachListener() {
+    const camera = Camera.current;
+    if (camera && audioListener.parent !== camera) camera.add(audioListener);
+}
 
 export class PositionalAudio extends THREE_PositionalAudio {
     //
@@ -222,6 +233,8 @@ export class PositionalAudio extends THREE_PositionalAudio {
 
     onUpdate = () => {
         //
+        attachListener();
+
         if (
             !audioListener.parent ||
             this._muted ||
@@ -251,7 +264,7 @@ export class PositionalAudio extends THREE_PositionalAudio {
         }
 
         const currentDistance = _position.distanceTo(
-            audioListener.parent.position
+            audioListener.getWorldPosition(_listenerPos)
         );
 
         let diff = currentDistance - refDistance;

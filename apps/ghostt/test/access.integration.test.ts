@@ -19,6 +19,14 @@ import {
   SCREEN_DURATION_MESSAGE,
   SCREEN_REFUSED_MESSAGE,
   SCREEN_STATE_MESSAGE,
+  MOD_MUTE_MESSAGE,
+  VOICE_CONFIG_MESSAGE,
+  VOICE_JOIN_MESSAGE,
+  VOICE_PEERS_MESSAGE,
+  VOICE_SIGNAL_MESSAGE,
+  type VoiceConfigMessage,
+  type VoicePeersMessage,
+  type VoiceSignalIn,
   type AccessSelfMessage,
   type ChunkDeniedMessage,
   type GateAccessMessage,
@@ -67,12 +75,18 @@ interface Player {
   results: ModResultMessage[];
   screens: ScreenStateMessage[];
   refused: ScreenRefusedMessage[];
+  voiceConfig: VoiceConfigMessage[];
+  voicePeers: VoicePeersMessage[];
+  signals: VoiceSignalIn[];
   leftWith: number | null;
 }
 
 async function join(token: string): Promise<Player> {
   const room = await new Client(`ws://localhost:${PORT}`).joinOrCreate<GameState>("game", { accessToken: token });
-  const p: Player = { room, self: [], gates: [], denials: [], results: [], screens: [], refused: [], leftWith: null };
+  const p: Player = { room, self: [], gates: [], denials: [], results: [], screens: [], refused: [], voiceConfig: [], voicePeers: [], signals: [], leftWith: null };
+  room.onMessage(VOICE_CONFIG_MESSAGE, (m: VoiceConfigMessage) => p.voiceConfig.push(m));
+  room.onMessage(VOICE_PEERS_MESSAGE, (m: VoicePeersMessage) => p.voicePeers.push(m));
+  room.onMessage(VOICE_SIGNAL_MESSAGE, (m: VoiceSignalIn) => p.signals.push(m));
   room.onMessage(SCREEN_STATE_MESSAGE, (m: ScreenStateMessage) => p.screens.push(m));
   room.onMessage(SCREEN_REFUSED_MESSAGE, (m: ScreenRefusedMessage) => p.refused.push(m));
   room.onMessage(ACCESS_SELF_MESSAGE, (m: AccessSelfMessage) => p.self.push(m));
@@ -244,6 +258,34 @@ describe("roles on the game server", () => {
     // Any viewer reports the length; the server then advances at the end, wrapping around.
     guest.room.send(SCREEN_DURATION_MESSAGE, { screenId: "cinema", index: 1, duration: 0.3 });
     await until(() => cinema()?.index === 0 && cinema()!.duration === 0);
+  });
+
+  it("pairs nearby players in voice, relays their handshake only between them, and lets moderators mute", async () => {
+    expect(mod.voiceConfig[0].iceServers[0].urls).toContain("stun:stun.l.google.com:19302");
+
+    // mod is at the origin, admin at x=10, guest far away in the Vault.
+    for (const p of [mod, admin, guest]) p.room.send(VOICE_JOIN_MESSAGE, { on: true });
+    const peers = await until(() => mod.voicePeers.at(-1)?.peers.length ? mod.voicePeers.at(-1)!.peers : undefined);
+    expect(peers).toEqual([{ sessionId: admin.room.sessionId, initiator: mod.room.sessionId < admin.room.sessionId, canSpeak: true }]);
+    await until(() => stateOf(mod).inVoice);
+
+    const offer = { type: "description", sdp: { type: "offer", sdp: "v=0" } };
+    mod.room.send(VOICE_SIGNAL_MESSAGE, { to: admin.room.sessionId, signal: offer });
+    mod.room.send(VOICE_SIGNAL_MESSAGE, { to: guest.room.sessionId, signal: offer });
+    expect(await until(() => admin.signals[0])).toEqual({ from: mod.room.sessionId, signal: offer });
+    await sleep(200);
+    expect(guest.signals).toEqual([]);
+
+    // The guest (no Mute Members) can't; the admin can, and listeners learn it.
+    guest.room.send(MOD_MUTE_MESSAGE, { sessionId: mod.room.sessionId, muted: true });
+    expect((await until(() => guest.results.at(-1))).ok).toBe(false);
+    admin.room.send(MOD_MUTE_MESSAGE, { sessionId: mod.room.sessionId, muted: true });
+    await until(() => admin.voicePeers.at(-1)?.peers.find((p) => p.sessionId === mod.room.sessionId)?.canSpeak === false);
+    await until(() => stateOf(mod).voiceMuted);
+
+    for (const p of [mod, admin, guest]) p.room.send(VOICE_JOIN_MESSAGE, { on: false });
+    await until(() => mod.voicePeers.at(-1)?.peers.length === 0);
+    guest.results.length = 0;
   });
 
   it("refuses moderation without the permission or against a higher rank", async () => {

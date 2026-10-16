@@ -116,7 +116,7 @@ export function defaultAccessData(): AccessData {
         name: "Moderator",
         color: "#3498db",
         position: 3,
-        permissions: { kick_members: true, ban_members: true, speak: true, control_screens: true },
+        permissions: { kick_members: true, ban_members: true, mute_members: true, speak: true, control_screens: true },
       },
       { id: "builder", name: "Builder", color: "#2ecc71", position: 2, permissions: { build: true, upload_assets: true } },
       { id: "speaker", name: "Speaker", color: "#f1c40f", position: 1, permissions: { speak: true } },

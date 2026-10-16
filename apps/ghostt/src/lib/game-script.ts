@@ -36,6 +36,7 @@ import {
 } from "@/lib/info-store";
 import { getAccessToken } from "@/lib/auth-bridge";
 import { ScreenSync } from "@/lib/screen-sync";
+import { VoiceClient } from "@/lib/voice-client";
 import { connectToRoom, disconnectFromRoom } from "@/multiplayer/client";
 import {
   createPlayersReplica,
@@ -52,6 +53,7 @@ import {
   KICKED_CLOSE_CODE,
   MOD_BAN_MESSAGE,
   MOD_KICK_MESSAGE,
+  MOD_MUTE_MESSAGE,
   MOD_RESULT_MESSAGE,
   PLAYER_UPDATE_MESSAGE,
   type AccessSelfMessage,
@@ -196,6 +198,7 @@ export class GameScript {
   private gateCleanup: (() => void) | null = null;
   private timeSinceInfoSync = 0;
   private screenSync: ScreenSync | null = null;
+  private voice: VoiceClient | null = null;
 
   /** gateId → may enter, as decided by the server. Missing means no. */
   private gateAccess: Record<string, boolean> = {};
@@ -255,6 +258,7 @@ export class GameScript {
           permissions: msg.permissions ?? [],
           rolePosition: msg.rolePosition ?? 0,
         });
+        this.voice?.setCanSpeak((msg.permissions ?? []).includes("speak"));
       });
       room.onMessage(CHUNK_DENIED_MESSAGE, (msg: ChunkDeniedMessage) => {
         this.chunkAccess[msg.chunkKey] = false;
@@ -270,6 +274,8 @@ export class GameScript {
 
       // Video screens follow the playback the server shares.
       this.screenSync = new ScreenSync(room, this.space);
+      // Proximity voice: the server pairs nearby players, audio goes peer to peer.
+      this.voice = new VoiceClient(room, this.space);
 
       this.playersReplica = createPlayersReplica(
         room,
@@ -398,6 +404,8 @@ export class GameScript {
     // Disconnect from multiplayer
     this.screenSync?.dispose();
     this.screenSync = null;
+    this.voice?.dispose();
+    this.voice = null;
     this.playersReplica?.dispose();
     this.playersReplica = null;
     this.room = null;
@@ -522,6 +530,8 @@ export class GameScript {
           roleName: p.roleName ?? "",
           roleColor: p.roleColor ?? "",
           rolePosition: p.rolePosition ?? 0,
+          inVoice: !!p.inVoice,
+          voiceMuted: !!p.voiceMuted,
         });
       });
       setPlayers(players);
@@ -592,6 +602,20 @@ export class GameScript {
 
   banPlayer(sessionId: string): void {
     this.room?.send(MOD_BAN_MESSAGE, { sessionId });
+  }
+
+  /** Voice chat. `joinVoice` must run from a click (microphone and audio need a user gesture). */
+  joinVoice(): Promise<void> {
+    return this.voice?.join() ?? Promise.resolve();
+  }
+
+  leaveVoice(): void {
+    this.voice?.leave();
+  }
+
+  /** Moderation: silence a lower-ranked player in voice for everyone. The server checks. */
+  mutePlayer(sessionId: string, muted: boolean): void {
+    this.room?.send(MOD_MUTE_MESSAGE, { sessionId, muted });
   }
 
   /** Video screens: the server checks Control Screens and shares the result with everyone. */

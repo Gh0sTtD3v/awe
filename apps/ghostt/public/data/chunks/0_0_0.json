@@ -326,9 +326,9 @@
       "kit": "cyber",
       "name": "",
       "position": {
-        "x": 9.819104832526783e-17,
-        "y": 2.799999999999998,
-        "z": 3
+        "x": 11.881122620466023,
+        "y": 5.180861763700179,
+        "z": -22.041958181826676
       },
       "rotation": {
         "x": 0,
@@ -336,9 +336,9 @@
         "z": 0
       },
       "scale": {
-        "x": 4,
-        "y": 3,
-        "z": 4
+        "x": 13.815631369867129,
+        "y": 10.361723527400347,
+        "z": 13.815631369867129
       },
       "requirementType": "cft20",
       "ticker": "",
@@ -362,6 +362,42 @@
         "placeholderId": null
       },
       "_version": 1792081316967
+    },
+    "video-screen-i448-3MaYvnhciGtFwXnI": {
+      "type": "video-screen",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": 0.4553450749518507,
+        "y": 2.7855000393899108,
+        "z": -19.88243840273742
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.333333333333333,
+        "y": 3,
+        "z": 1
+      },
+      "label": "Screen1",
+      "playlist": [],
+      "autoPlay": false,
+      "loop": "all",
+      "volume": 0.75,
+      "audioType": "spatial",
+      "audioRange": 15,
+      "loadDistance": 40,
+      "controlDistance": 8,
+      "backgroundColor": "#000000",
+      "idleImage": "",
+      "id": "video-screen-i448-3MaYvnhciGtFwXnI",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1792086452638
     }
   },
   "auth": [],

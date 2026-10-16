@@ -12,6 +12,7 @@ import {
   type PlayerInfo,
 } from "@/lib/info-store";
 import { getScript } from "@/lib/game-script";
+import { voiceStore } from "@/lib/voice-store";
 import * as S from "./info-styles";
 
 const ICON =
@@ -223,6 +224,8 @@ function PlayerRow({ player }: { player: PlayerInfo }) {
   const outranks = !!self && !player.isLocal && player.rolePosition < self.rolePosition;
   const canKick = outranks && self.permissions.includes("kick_members");
   const canBan = outranks && self.permissions.includes("ban_members");
+  const canMute = outranks && player.inVoice && self.permissions.includes("mute_members");
+  const speaking = useStore(voiceStore).speaking[player.sessionId] === true;
 
   return (
     <div style={S.Row}>
@@ -240,11 +243,29 @@ function PlayerRow({ player }: { player: PlayerInfo }) {
           />
         )}
         {shortId(player.sessionId)}
+        {player.inVoice && (
+          <span
+            title={player.voiceMuted ? "Muted by a moderator" : speaking ? "Talking" : "In voice"}
+            style={{
+              marginLeft: 6,
+              fontSize: 11,
+              color: player.voiceMuted ? "rgba(255,120,120,0.9)" : speaking ? "#4ade80" : "rgba(169,169,169,0.7)",
+            }}
+          >
+            {player.voiceMuted ? "🔇" : speaking ? "🔊" : "🎙"}
+          </span>
+        )}
         {player.isLocal && (
           <span style={{ color: "rgba(169,169,169,0.9)" }}> (you)</span>
         )}
       </span>
       <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {canMute && (
+          <ModButton
+            label={player.voiceMuted ? "Unmute" : "Mute"}
+            onClick={() => getScript()?.mutePlayer(player.sessionId, !player.voiceMuted)}
+          />
+        )}
         {canKick && (
           <ModButton label="Kick" onClick={() => getScript()?.kickPlayer(player.sessionId)} />
         )}

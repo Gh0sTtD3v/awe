@@ -9,6 +9,7 @@ import { AccountPanel } from "./account-panel";
 import { GateNotice } from "./gate-notice";
 import { ModMessage, RemovedOverlay } from "./moderation-notice";
 import { ScreenControls } from "./screen-controls";
+import { VoiceControls } from "./voice-controls";
 
 function StartScreen() {
   const state = useStore(gameStore);
@@ -51,7 +52,12 @@ function InfoOverlay() {
 function ScreenOverlay() {
   const state = useStore(gameStore);
   if (!state.started) return null;
-  return <ScreenControls />;
+  return (
+    <>
+      <ScreenControls />
+      <VoiceControls />
+    </>
+  );
 }
 
 function ChunkLoadingOverlay() {

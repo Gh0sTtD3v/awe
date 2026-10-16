@@ -14,6 +14,10 @@ export class PlayerState extends Schema {
   @type("string") roleColor: string = "";
   /** Rank used for moderation: higher outranks lower; the owner is highest. */
   @type("float64") rolePosition: number = 0;
+  /** In voice chat. */
+  @type("boolean") inVoice: boolean = false;
+  /** Silenced in voice by a moderator (for this session). */
+  @type("boolean") voiceMuted: boolean = false;
 }
 
 export class GameState extends Schema {

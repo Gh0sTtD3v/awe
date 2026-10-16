@@ -16,6 +16,9 @@ export interface PlayerInfo {
   roleColor: string;
   /** Moderation rank: you can act only on players ranked below you. */
   rolePosition: number;
+  inVoice: boolean;
+  /** Silenced in voice by a moderator. */
+  voiceMuted: boolean;
 }
 
 /** What the local player may do, as the server resolved it. */
@@ -125,7 +128,9 @@ function samePlayers(a: PlayerInfo[], b: PlayerInfo[]) {
       p.roleId === q.roleId &&
       p.roleName === q.roleName &&
       p.roleColor === q.roleColor &&
-      p.rolePosition === q.rolePosition
+      p.rolePosition === q.rolePosition &&
+      p.inVoice === q.inVoice &&
+      p.voiceMuted === q.voiceMuted
     );
   });
 }

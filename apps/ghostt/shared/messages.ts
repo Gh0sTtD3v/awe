@@ -1,4 +1,5 @@
 import type { ScreenState } from "./screens";
+import type { VoicePeer, VoiceSignal } from "./voice";
 
 export const PLAYER_UPDATE_MESSAGE = "player:update";
 
@@ -142,6 +143,61 @@ export const SCREEN_REFUSED_MESSAGE = "screen:refused";
 export interface ScreenRefusedMessage {
   screenId: string;
   error: string;
+}
+
+// ── Voice chat ───────────────────────────────────────────────────────────────
+
+/** Server → client on join: how to reach other players. */
+export const VOICE_CONFIG_MESSAGE = "voice:config";
+
+export interface VoiceConfigMessage {
+  iceServers: { urls: string | string[]; username?: string; credential?: string }[];
+}
+
+/** Client → server: the player joined or left voice chat. */
+export const VOICE_JOIN_MESSAGE = "voice:join";
+
+export interface VoiceJoinMessage {
+  on: boolean;
+}
+
+export function isVoiceJoinMessage(value: unknown): value is VoiceJoinMessage {
+  return value != null && typeof value === "object" && typeof (value as VoiceJoinMessage).on === "boolean";
+}
+
+/** Server → client: the full list of players this client should be connected to. */
+export const VOICE_PEERS_MESSAGE = "voice:peers";
+
+export interface VoicePeersMessage {
+  peers: VoicePeer[];
+}
+
+/**
+ * WebRTC handshake, relayed by the server between connected pairs only.
+ * Client → server: `{ to, signal }`. Server → client: `{ from, signal }`.
+ */
+export const VOICE_SIGNAL_MESSAGE = "voice:signal";
+
+export interface VoiceSignalOut {
+  to: string;
+  signal: VoiceSignal;
+}
+
+export interface VoiceSignalIn {
+  from: string;
+  signal: VoiceSignal;
+}
+
+/** Client → server: a moderator mutes or unmutes a player in voice. Replies with `mod:result`. */
+export const MOD_MUTE_MESSAGE = "mod:mute";
+
+export interface ModMuteMessage {
+  sessionId: string;
+  muted: boolean;
+}
+
+export function isModMuteMessage(value: unknown): value is ModMuteMessage {
+  return isModActionMessage(value) && typeof (value as ModMuteMessage).muted === "boolean";
 }
 
 /** Close codes for players removed by moderation. */

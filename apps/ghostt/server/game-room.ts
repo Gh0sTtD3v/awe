@@ -40,6 +40,15 @@ import {
   SCREEN_REFUSED_MESSAGE,
   SCREEN_STATE_MESSAGE,
   isScreenDurationMessage,
+  MOD_MUTE_MESSAGE,
+  VOICE_CONFIG_MESSAGE,
+  VOICE_JOIN_MESSAGE,
+  VOICE_PEERS_MESSAGE,
+  VOICE_SIGNAL_MESSAGE,
+  isModMuteMessage,
+  isVoiceJoinMessage,
+  type VoicePeersMessage,
+  type VoiceSignalIn,
   type AccessSelfMessage,
   type ChunkDeniedMessage,
   type GateAccessMessage,
@@ -59,6 +68,12 @@ import {
 } from "../shared/gates";
 import { GateRegistry, type ChunkRule } from "./gate-registry";
 import { ScreenDirector } from "./screen-director";
+import { VoiceDirector } from "./voice-director";
+import { voiceConfigFor } from "./voice-config";
+import { isVoiceSignal } from "../shared/voice";
+
+/** How often voice connections are re-planned from player positions. */
+const VOICE_UPDATE_MS = 1000;
 
 /** Don't spam a client stuck inside a gate with denials. */
 const DENIED_THROTTLE_MS = 1000;
@@ -116,9 +131,11 @@ export class GameRoom extends Room<{ state: GameState }> {
   private sessions = new Map<string, GateSession>();
   private unsubscribers: (() => void)[] = [];
   private screens = new ScreenDirector((changed) => this.broadcast(SCREEN_STATE_MESSAGE, screenMessage(changed)));
+  private voice = new VoiceDirector();
 
   onCreate() {
     this.setPatchRate(NETWORK_TICK_INTERVAL);
+    this.clock.setInterval(() => this.updateVoice(), VOICE_UPDATE_MS);
     this.screens.setDefs(this.gates.screens());
 
     // Gates or chunk rules edited in the studio, or roles, members and bans
@@ -210,6 +227,28 @@ export class GameRoom extends Room<{ state: GameState }> {
       if ("error" in result) refuse(result.error);
     },
 
+    [VOICE_JOIN_MESSAGE]: (client: Client, payload: unknown) => {
+      if (!isVoiceJoinMessage(payload)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player || player.inVoice === payload.on) return;
+      player.inVoice = payload.on;
+      this.updateVoice();
+    },
+
+    [VOICE_SIGNAL_MESSAGE]: (client: Client, payload: unknown) => {
+      const { to, signal } = (payload ?? {}) as { to?: unknown; signal?: unknown };
+      if (typeof to !== "string" || !isVoiceSignal(signal)) return;
+      // Only between players the server paired: no reaching strangers across the map.
+      if (!this.voice.connected(client.sessionId, to)) return;
+      this.clients
+        .find((c) => c.sessionId === to)
+        ?.send(VOICE_SIGNAL_MESSAGE, { from: client.sessionId, signal } satisfies VoiceSignalIn);
+    },
+
+    [MOD_MUTE_MESSAGE]: (client: Client, payload: unknown) => {
+      if (isModMuteMessage(payload)) this.muteInVoice(client, payload.sessionId, payload.muted);
+    },
+
     [SCREEN_DURATION_MESSAGE]: (_client: Client, payload: unknown) => {
       if (isScreenDurationMessage(payload)) {
         this.screens.reportDuration(payload.screenId, payload.index, payload.duration);
@@ -248,6 +287,7 @@ export class GameRoom extends Room<{ state: GameState }> {
 
     console.log("[Server] Player joined:", client.sessionId);
     client.send(SCREEN_STATE_MESSAGE, screenMessage(this.screens.all()));
+    client.send(VOICE_CONFIG_MESSAGE, voiceConfigFor(client.sessionId));
     await this.refreshAccess(client);
   }
 
@@ -256,6 +296,8 @@ export class GameRoom extends Room<{ state: GameState }> {
     const session = this.sessions.get(client.sessionId);
     if (session?.authTimer) clearTimeout(session.authTimer);
     this.sessions.delete(client.sessionId);
+    this.voice.remove(client.sessionId);
+    this.updateVoice();
     console.log("[Server] Player left:", client.sessionId);
   }
 
@@ -385,6 +427,48 @@ export class GameRoom extends Room<{ state: GameState }> {
       roles,
       exit: session.lastAccepted,
     } satisfies ChunkDeniedMessage);
+  }
+
+  /** Re-plan voice connections and tell each client whose peer list changed. */
+  private updateVoice() {
+    const members: { sessionId: string; x: number; y: number; z: number }[] = [];
+    this.state.players.forEach((p, sessionId) => {
+      if (p.inVoice) members.push({ sessionId, x: p.x, y: p.y, z: p.z });
+    });
+
+    const changed = this.voice.update(members, (id) => this.canSpeak(id));
+    for (const [sessionId, peers] of changed) {
+      this.clients.find((c) => c.sessionId === sessionId)?.send(VOICE_PEERS_MESSAGE, { peers } satisfies VoicePeersMessage);
+    }
+  }
+
+  /** Heard by others: has Speak and isn't muted by a moderator. Listeners enforce it. */
+  private canSpeak(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    const player = this.state.players.get(sessionId);
+    return !!session && !!player && !player.voiceMuted && hasPermission(session.roles, "speak");
+  }
+
+  /** Same rules as kicking: the permission, and a target ranked below you. */
+  private muteInVoice(client: Client, targetSessionId: string, muted: boolean) {
+    const reply = (msg: ModResultMessage) => client.send(MOD_RESULT_MESSAGE, msg);
+
+    const actor = this.sessions.get(client.sessionId);
+    const target = this.sessions.get(targetSessionId);
+    const player = this.state.players.get(targetSessionId);
+    if (!actor || !target || !player) return reply({ ok: false, error: "That player has left." });
+    if (targetSessionId === client.sessionId) return reply({ ok: false, error: "You can't do that to yourself." });
+    if (!hasPermission(actor.roles, "mute_members")) {
+      return reply({ ok: false, error: "You need the Mute Members permission." });
+    }
+    if (target.roles.isOwner || rankOf(target.roles) >= rankOf(actor.roles)) {
+      return reply({ ok: false, error: "Their highest role isn't below yours." });
+    }
+
+    player.voiceMuted = muted;
+    this.updateVoice();
+    console.log(`[Moderation] ${client.sessionId} ${muted ? "muted" : "unmuted"} ${targetSessionId}`);
+    reply({ ok: true });
   }
 
   /**

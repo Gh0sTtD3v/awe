@@ -56,10 +56,16 @@ export const PERMISSIONS = [
     description: "Ban and unban lower-ranked members.",
   },
   {
+    id: "mute_members",
+    category: "Members",
+    label: "Mute Members",
+    description: "Silence lower-ranked players in voice chat for everyone.",
+  },
+  {
     id: "speak",
     category: "In-game",
     label: "Speak",
-    description: "Use voice and chat (once the world has them).",
+    description: "Talk in voice chat. Without it, players can still listen.",
   },
   {
     id: "control_screens",
