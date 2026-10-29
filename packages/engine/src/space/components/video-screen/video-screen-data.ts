@@ -27,8 +27,10 @@ export interface VideoScreenItem {
  * {@link VideoScreenComponent.applyPlayback}.
  */
 export interface VideoScreenPlayback {
-	/** Playlist index, or -1 when nothing is loaded. */
+	/** Playlist index, or -1 when nothing is loaded. While an ad plays, the video that follows it. */
 	index: number;
+	/** Index into `ads` of the ad playing before the video, or -1. */
+	ad?: number;
 	playing: boolean;
 	/** Playback position in seconds at time `at`. */
 	position: number;
@@ -66,6 +68,17 @@ export interface VideoScreenComponentData extends Component3DData {
 
 	/** The videos this screen can play, in order. */
 	playlist?: VideoScreenItem[];
+
+	/** Ads; when there are any, one plays (in turn) before every video. */
+	ads?: VideoScreenItem[];
+
+	/**
+	 * Who may control this screen, besides players with Control Screens:
+	 * the id of a token gate whose holders may (e.g. the apartment it hangs
+	 * in), or `"everyone"`. Empty: only players with Control Screens.
+	 * Enforced by the game server.
+	 */
+	controlGate?: string;
 
 	/** Start the first video as soon as the world opens. Defaults to `false`. */
 	autoPlay?: boolean;

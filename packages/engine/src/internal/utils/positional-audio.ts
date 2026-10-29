@@ -28,6 +28,9 @@ const DECAY_FACTOR = 0.05;
 
 const VOLUME_SCALE = 1.84;
 
+/** With `edgeFade`, the share of the range (from its edge inwards) over which sound fades out. */
+const EDGE_FADE = 0.4;
+
 export const AUDIO_TYPES = {
     SPATIAL: "spatial",
     AMBIENT: "ambient",
@@ -64,6 +67,13 @@ export class PositionalAudio extends THREE_PositionalAudio {
     private _isOutsideRange = null;
     private _rangeDebug: Mesh<CylinderGeometry, MeshBasicMaterial>;
     private _forceRangeDebug = false;
+
+    /**
+     * Full volume within the range, fading out towards its edge. Without it
+     * (the default), the whole range plays at a gain that shrinks as the
+     * range grows, which makes large ranges very quiet.
+     */
+    edgeFade = false;
 
     constructor() {
         //
@@ -275,10 +285,12 @@ export class PositionalAudio extends THREE_PositionalAudio {
 
             this._rangeDebug.material.color.set(0x00ff00);
 
-            let decayedGain = Math.min(
-                1,
-                1 / (DECAY_FACTOR * refDistance * refDistance)
-            );
+            let decayedGain = this.edgeFade
+                ? Math.min(1, -diff / (EDGE_FADE * refDistance))
+                : Math.min(
+                      1,
+                      1 / (DECAY_FACTOR * refDistance * refDistance)
+                  );
 
             this._spatialGain.gain.setTargetAtTime(
                 decayedGain,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ClientGameService } from "../services/client-game-service";
 import { useContentTab } from "../contexts/content-tab-context";
 import { useCurrentGameData } from "../contexts/game-data-context";
@@ -87,7 +87,34 @@ function TabButton({
 
 // ── Chunk tab ──────────────────────────────────────────────────────────────
 
+/**
+ * Open the game in a new tab as a member holding only this role (plus
+ * @everyone), Discord's "View server as role". The game server honours it
+ * only for administrators.
+ */
+function PreviewRoleButton({ roleId, name }: { roleId: string; name: string }) {
+  return (
+    <button
+      type="button"
+      title={`Play as ${name}`}
+      aria-label={`Play as ${name}`}
+      onClick={() => {
+        const url = new URL("/", window.location.origin);
+        url.searchParams.set("previewRole", roleId);
+        window.open(url.toString(), "_blank");
+      }}
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+    >
+      <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden>
+        <path d="M4 2.5v11l9-5.5z" />
+      </svg>
+    </button>
+  );
+}
+
 function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
+  const { can } = useAccess();
+  const canPreview = can("administrator");
   const [chunks, setChunks] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [chunkKey, setChunkKey] = useState<string>("");
@@ -95,6 +122,10 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Public = no roles listed. Restricted with nothing ticked yet is allowed while editing. */
+  const [restricted, setRestricted] = useState(false);
+  /** The roles last ticked, restored when switching back from Public. */
+  const lastAuth = useRef<string[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -121,7 +152,10 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
     }
     let alive = true;
     ClientGameService.getChunkConfig(chunkKey).then((c) => {
-      if (alive) setConfig(c);
+      if (!alive) return;
+      setConfig(c);
+      setRestricted(c.auth.length > 0);
+      lastAuth.current = c.auth;
     });
     return () => {
       alive = false;
@@ -146,6 +180,19 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
         auth: has ? c.auth.filter((id) => id !== roleId) : [...c.auth, roleId],
       };
     });
+
+  const setAccessMode = (mode: "public" | "restricted") => {
+    if ((mode === "restricted") === restricted) return;
+    setRestricted(mode === "restricted");
+    setConfig((c) => {
+      if (!c) return c;
+      if (mode === "public") {
+        lastAuth.current = c.auth;
+        return { ...c, auth: [] };
+      }
+      return { ...c, auth: lastAuth.current };
+    });
+  };
 
   const save = async () => {
     if (!config || !chunkKey) return;
@@ -238,33 +285,70 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
           </div>
 
           <div>
-            <label className={labelCls}>Access (roles allowed to enter)</label>
-            {roles.length === 0 ? (
-              <p className="text-xs text-white/40">
-                No roles defined. Empty access = public.
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {roles.filter((r) => r.id !== EVERYONE_ROLE_ID).map((r) => (
-                  <label
-                    key={r.id}
-                    className="flex items-center gap-2 text-sm cursor-pointer"
+            <label className={labelCls}>Access</label>
+            <div className="mb-2 inline-flex rounded-lg border border-white/15 p-0.5" role="radiogroup" aria-label="Access">
+              {([
+                ["public", "Public"],
+                ["restricted", "Restricted"],
+              ] as const).map(([mode, label]) => {
+                const active = (mode === "restricted") === restricted;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setAccessMode(mode)}
+                    className={`rounded-md px-3 py-1 text-sm ${
+                      active ? "bg-white text-black font-medium" : "text-white/60 hover:text-white"
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={config.auth.includes(r.id)}
-                      onChange={() => toggleAuth(r.id)}
-                    />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mb-2 text-xs text-white/40">
+              {restricted
+                ? "Only players with one of the ticked roles can enter. Admins always can."
+                : "Anyone can enter, signed in or not."}
+            </p>
+
+            <div className="space-y-1.5">
+              {/* @everyone can't be ticked: picking Public is how a chunk is opened to everyone. */}
+              <div className="flex items-center gap-2">
+                <span className={`flex flex-1 items-center gap-2 text-sm ${restricted ? "text-white/40" : ""}`}>
+                  {restricted && <input type="checkbox" checked={false} disabled aria-label="@everyone" />}
+                  <span className="h-3 w-3 rounded-full bg-white/40" />
+                  @everyone
+                </span>
+                {canPreview && <PreviewRoleButton roleId={EVERYONE_ROLE_ID} name="@everyone" />}
+              </div>
+              {roles.filter((r) => r.id !== EVERYONE_ROLE_ID).map((r) => (
+                <div key={r.id} className="flex items-center gap-2">
+                  <label className={`flex flex-1 items-center gap-2 text-sm ${restricted ? "cursor-pointer" : ""}`}>
+                    {restricted && (
+                      <input
+                        type="checkbox"
+                        checked={config.auth.includes(r.id)}
+                        onChange={() => toggleAuth(r.id)}
+                      />
+                    )}
                     <span
                       className="h-3 w-3 rounded-full"
                       style={{ background: r.color }}
                     />
                     {r.name}
                   </label>
-                ))}
-                <p className="text-xs text-white/30 pt-1">None checked = public.</p>
-              </div>
-            )}
+                  {canPreview && <PreviewRoleButton roleId={r.id} name={r.name} />}
+                </div>
+              ))}
+              {restricted && config.auth.length === 0 && (
+                <p className="pt-1 text-xs text-amber-300">
+                  Tick at least one role. With none ticked, the chunk saves as public.
+                </p>
+              )}
+            </div>
           </div>
 
           {error && <ErrorNote onClose={() => setError(null)}>{error}</ErrorNote>}

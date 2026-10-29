@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import "./studio.css";
+
+export const metadata: Metadata = {
+  title: "XION - Studio",
+};
 
 export default function RootLayout({
   children,

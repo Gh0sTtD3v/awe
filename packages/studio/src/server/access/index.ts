@@ -1,6 +1,6 @@
 import path from "node:path";
 import { getAuthMode, getDevUserId, requireIdentity } from "../auth-service";
-import { cosmosAddressOf, type GateIdentity } from "../identity";
+import { linkedAddressesOf, type GateIdentity } from "../identity";
 import { JsonAccessStore, type AccessStore } from "./json-store";
 import { normalizeSubject, resolveAccess } from "./resolve";
 import { AccessError, requirePermissionIn, type ActorContext } from "./rules";
@@ -63,9 +63,9 @@ export async function accessFor(
   identity: GateIdentity | null,
   opts: { fresh?: boolean } = {},
 ): Promise<ResolvedAccess> {
-  const cosmosAddress = await cosmosAddressOf(identity, opts);
+  const { cosmos, evm } = await linkedAddressesOf(identity, opts);
   return resolveAccess(
-    { userId: identity?.userId ?? null, cosmosAddress },
+    { userId: identity?.userId ?? null, cosmosAddress: cosmos, evmAddresses: evm },
     await getAccessStore().read(),
     getOwnerId(),
   );

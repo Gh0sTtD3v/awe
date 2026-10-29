@@ -156,24 +156,27 @@ export function isCosmosAddress(value: unknown, prefix = COSMOS_PREFIX): value i
 
 // ── JWT ──────────────────────────────────────────────────────────────────────
 
-let keysPromise: Promise<{ privateKey: KeyObject; jwk: JWK }> | null = null;
+let keysPromise: Promise<{ privateKey: KeyObject; jwk: JWK; alg: "RS256" | "ES256" }> | null = null;
 
 /**
- * ES256 key from `KEPLR_JWT_PRIVATE_KEY` (PKCS8 PEM; `\n` escapes allowed so it
- * fits on one env line). The public half is what Privy fetches from our JWKS.
+ * Signing key from `KEPLR_JWT_PRIVATE_KEY` (PKCS8 PEM; `\n` escapes allowed so
+ * it fits on one env line): an RSA key signs RS256, a P-256 key ES256. Privy's
+ * dashboard only takes RSA when given a certificate instead of our JWKS URL.
+ * The public half is what Privy fetches from our JWKS.
  */
 function getKeys() {
   if (!keysPromise) {
     keysPromise = (async () => {
       const pem = requireEnv("KEPLR_JWT_PRIVATE_KEY").replace(/\\n/g, "\n");
       const privateKey = createPrivateKey(pem);
+      const alg: "RS256" | "ES256" = privateKey.asymmetricKeyType === "rsa" ? "RS256" : "ES256";
 
       const jwk = createPublicKey(privateKey).export({ format: "jwk" }) as JWK;
       jwk.kid = await calculateJwkThumbprint(jwk);
-      jwk.alg = "ES256";
+      jwk.alg = alg;
       jwk.use = "sig";
 
-      return { privateKey, jwk };
+      return { privateKey, jwk, alg };
     })().catch((err) => {
       keysPromise = null;
       throw err;
@@ -188,10 +191,10 @@ function issuer(): string {
 
 /** A JWT Privy will exchange for a session. `sub` is the Cosmos address. */
 export async function issueJwt(address: string): Promise<string> {
-  const { privateKey, jwk } = await getKeys();
+  const { privateKey, jwk, alg } = await getKeys();
 
   return new SignJWT({})
-    .setProtectedHeader({ alg: "ES256", kid: jwk.kid, typ: "JWT" })
+    .setProtectedHeader({ alg, kid: jwk.kid, typ: "JWT" })
     .setSubject(address)
     .setIssuer(issuer())
     .setAudience(issuer())

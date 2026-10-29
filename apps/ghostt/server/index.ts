@@ -5,8 +5,10 @@ import { GameRoom } from "./game-room";
 // Privy and holdings settings live in .env.local, which tsx doesn't load.
 loadEnv();
 
+const port = Number(process.env.GAME_SERVER_PORT) || 2567;
+
 const server = new Server();
 server.define("game", GameRoom);
-server.listen(2567).then(() => {
-  console.log("[Server] Listening on port 2567");
+server.listen(port).then(() => {
+  console.log(`[Server] Listening on port ${port}`);
 });

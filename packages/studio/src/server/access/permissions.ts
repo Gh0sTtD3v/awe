@@ -59,13 +59,25 @@ export const PERMISSIONS = [
     id: "mute_members",
     category: "Members",
     label: "Mute Members",
-    description: "Silence lower-ranked players in voice chat for everyone.",
+    description: "Silence lower-ranked players in voice and text chat for everyone.",
   },
   {
     id: "speak",
     category: "In-game",
     label: "Speak",
     description: "Talk in voice chat. Without it, players can still listen.",
+  },
+  {
+    id: "broadcast_voice",
+    category: "In-game",
+    label: "Broadcast Voice",
+    description: "Go live to be heard at full volume by everyone in your chunk.",
+  },
+  {
+    id: "send_messages",
+    category: "In-game",
+    label: "Send Messages",
+    description: "Write in the text chat. Without it, players can still read it.",
   },
   {
     id: "control_screens",

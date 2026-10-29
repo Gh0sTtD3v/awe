@@ -156,14 +156,31 @@ function shortenAddress(address?: string): string | undefined {
  * Server-side source of truth for gating — never trust an address the client sends.
  */
 export async function getCosmosAddress(userId: string): Promise<string | null> {
-  if (!userId) return null;
+  return (await getLinkedAddresses(userId)).cosmos;
+}
+
+export interface LinkedAddresses {
+  /** The Keplr (Cosmos Hub) address, from sign-in with Keplr. */
+  cosmos: string | null;
+  /** Ethereum wallets on the account, lowercase: Privy's built-in one and any linked (signed for) ones. */
+  evm: string[];
+}
+
+/** Addresses linked to a user, from Privy. Empty on any failure. */
+export async function getLinkedAddresses(userId: string): Promise<LinkedAddresses> {
+  if (!userId) return { cosmos: null, evm: [] };
 
   try {
     const client = await getClient();
     const user = await client.users()._get(userId);
     const accounts: any[] = user?.linked_accounts ?? [];
-    return accounts.find((a) => a.type === "custom_auth")?.custom_user_id ?? null;
+    return {
+      cosmos: accounts.find((a) => a.type === "custom_auth")?.custom_user_id ?? null,
+      evm: accounts
+        .filter((a) => a.type === "wallet" && (a.chain_type ?? "ethereum") === "ethereum" && typeof a.address === "string")
+        .map((a) => a.address.toLowerCase()),
+    };
   } catch {
-    return null;
+    return { cosmos: null, evm: [] };
   }
 }

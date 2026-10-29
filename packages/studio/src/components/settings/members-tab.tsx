@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ClientGameService } from "../../services/client-game-service";
 import { EVERYONE_ROLE_ID, type Member } from "../../server/access/types";
 import { canManageRole, memberTopPosition, shortSubject, useAccessOverview } from "./use-access-overview";
-import { ErrorNote, inputCls, labelCls } from "./ui";
+import { ErrorNote, inputCls, labelCls, MemberName } from "./ui";
 
 /**
  * Who has which roles. Members are added by Privy user id or by Cosmos
@@ -45,7 +45,13 @@ export function MembersTab() {
 
   const q = query.trim().toLowerCase();
   const members = overview.members
-    .filter((m) => !q || m.subject.toLowerCase().includes(q) || (m.note ?? "").toLowerCase().includes(q))
+    .filter(
+      (m) =>
+        !q ||
+        m.subject.toLowerCase().includes(q) ||
+        (m.note ?? "").toLowerCase().includes(q) ||
+        (overview.profiles?.[m.subject]?.username ?? "").toLowerCase().includes(q),
+    )
     .sort((a, b) => memberTopPosition(overview, b.roleIds) - memberTopPosition(overview, a.roleIds));
 
   return (
@@ -58,7 +64,7 @@ export function MembersTab() {
           <div className="flex gap-2">
             <input
               className={inputCls}
-              placeholder="did:privy:… or cosmos1…"
+              placeholder="did:privy:…, cosmos1… or 0x…"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && subject.trim() && void add()}
@@ -93,9 +99,11 @@ export function MembersTab() {
 
       <div className="space-y-1.5">
         <div className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
-          <span className="font-mono text-xs text-white/80" title={overview.ownerId ?? ""}>
-            {overview.ownerId ? shortSubject(overview.ownerId) : "No owner set (AWE_OWNER_ID)"}
-          </span>
+          {overview.ownerId ? (
+            <MemberName subject={overview.ownerId} profile={overview.profiles?.[overview.ownerId]} />
+          ) : (
+            <span className="text-xs text-white/80">No owner set (AWE_OWNER_ID)</span>
+          )}
           <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] text-amber-200">Owner</span>
           <span className="ml-auto text-[11px] text-white/30">Set at world setup</span>
         </div>
@@ -107,9 +115,7 @@ export function MembersTab() {
           return (
             <div key={m.subject} className={`rounded-lg bg-black/30 px-3 py-2 ${m.banned ? "opacity-70" : ""}`}>
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-white/80" title={m.subject}>
-                  {shortSubject(m.subject)}
-                </span>
+                <MemberName subject={m.subject} profile={overview.profiles?.[m.subject]} />
                 {m.note && <span className="truncate text-xs text-white/40">{m.note}</span>}
                 {m.banned && (
                   <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] text-red-200">Banned</span>

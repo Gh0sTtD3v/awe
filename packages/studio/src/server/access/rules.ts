@@ -189,13 +189,16 @@ export function reorderRoles(data: AccessData, ctx: ActorContext, order: string[
 
 // ── Members ──────────────────────────────────────────────────────────────────
 
-/** A Privy DID or a Cosmos address; anything else can never match a person. */
+/** A Privy DID, a Cosmos address or an Ethereum address; anything else can never match a person. */
 export function validateSubject(raw: unknown): string {
-  if (typeof raw !== "string" || !raw.trim()) throw new AccessError("invalid", "Enter a Privy user id or cosmos1… address.");
+  if (typeof raw !== "string" || !raw.trim()) {
+    throw new AccessError("invalid", "Enter a Privy user id, cosmos1… address or 0x… wallet.");
+  }
   const subject = normalizeSubject(raw);
   if (subject.startsWith("did:privy:") && subject.length > "did:privy:".length) return subject;
   if (isCosmosAddress(subject)) return subject;
-  throw new AccessError("invalid", "Enter a Privy user id (did:privy:…) or a valid cosmos1… address.");
+  if (/^0x[0-9a-f]{40}$/.test(subject)) return subject;
+  throw new AccessError("invalid", "Enter a Privy user id (did:privy:…), a valid cosmos1… address or a 0x… wallet.");
 }
 
 function assertCanManageMember(data: AccessData, ctx: ActorContext, subject: string): void {

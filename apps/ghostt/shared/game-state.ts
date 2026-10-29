@@ -2,6 +2,10 @@ import { MapSchema, Schema, type } from "@colyseus/schema";
 
 export class PlayerState extends Schema {
   @type("string") sessionId: string = "";
+  /** Username from the player's profile. Empty when signed out or not set. */
+  @type("string") name: string = "";
+  /** Profile picture URL. Empty when there's none. */
+  @type("string") avatar: string = "";
   @type("float32") x: number = 0;
   @type("float32") y: number = 0;
   @type("float32") z: number = 0;
@@ -18,6 +22,8 @@ export class PlayerState extends Schema {
   @type("boolean") inVoice: boolean = false;
   /** Silenced in voice by a moderator (for this session). */
   @type("boolean") voiceMuted: boolean = false;
+  /** Live: heard at full volume by everyone outside rooms in the same chunk. */
+  @type("boolean") broadcasting: boolean = false;
 }
 
 export class GameState extends Schema {

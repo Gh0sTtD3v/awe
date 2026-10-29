@@ -3,13 +3,24 @@
  * requirement fields.
  */
 export interface Requirement {
-  type: "cft20" | "inscription";
-  /** CFT-20 ticker, e.g. `ROIDS`. Compared case-insensitively. */
+  type: "cft20" | "inscription" | "erc20" | "nft";
+  /** `"cosmos"` (the default) or an EVM chain id from {@link EVM_CHAINS}. */
+  chain?: string;
+  /** CFT-20 ticker, e.g. `ROIDS`. Compared case-insensitively. For ERC-20, a display symbol. */
   ticker?: string;
   /** Inscription collection id or symbol. */
   collection?: string;
-  /** Minimum CFT-20 balance in display units, e.g. `"100"` or `"0.5"`. */
+  /** ERC-20 / NFT contract address, `0x…`. */
+  contract?: string;
+  /** ERC-1155 token id; absent for ERC-721. */
+  tokenId?: string;
+  /** Minimum CFT-20 / ERC-20 balance in display units, e.g. `"100"` or `"0.5"`. */
   minAmount: string;
+}
+
+/** True for requirements checked on an EVM chain rather than Cosmos. */
+export function isEvmRequirement(requirement: Requirement): boolean {
+  return !!requirement.chain && requirement.chain !== "cosmos";
 }
 
 /**

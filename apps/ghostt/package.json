@@ -5,6 +5,10 @@
     "dev": "tsx watch server/index.ts & next dev --turbopack --port 3006",
     "dev:client": "next dev --turbopack --port 3006",
     "dev:server": "tsx watch server/index.ts",
+    "build": "next build",
+    "start": "tsx server/index.ts & next start --port 3006",
+    "start:web": "next start --port 3006",
+    "start:server": "tsx server/index.ts",
     "test": "vitest run -c vitest.config.ts",
     "test:watch": "vitest -c vitest.config.ts"
   },

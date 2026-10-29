@@ -4,6 +4,7 @@ import type { GuiGroupDescriptor } from "@oncyberio/engine/space/gui-types";
 import { VideoComponent } from "@oncyberio/engine/space/components/video/video-component";
 import { getAudioOptsUI } from "../../component-editor/ui/audio-opts-ui";
 import { LEGACY_UpgradeScale } from "../legacy";
+import { arrayItemLens } from "../../component-editor/ui/array-item-lens";
 
 /** @internal */
 export class VideoEditor extends Component3DEditor<VideoComponent> {
@@ -242,6 +243,9 @@ export class VideoEditor extends Component3DEditor<VideoComponent> {
 						label: "Buttons",
 						value: [this.data, "buttons"],
 						visible: () => !!this.data.actionKey,
+						itemType: "group",
+						createNewData: () => ({ action: "redirect", text: "", link: "" }),
+						reset: () => [],
 						itemGui: (index: number) => ({
 							type: "folder",
 							label: `Button ${index + 1}`,
@@ -249,18 +253,18 @@ export class VideoEditor extends Component3DEditor<VideoComponent> {
 								action: {
 									type: "select",
 									label: "Action",
-									value: [this.data.buttons[index], "action"],
+									value: arrayItemLens(this, "buttons", index, "action", "redirect"),
 									items: ["popup", "redirect"],
 								},
 								text: {
 									type: "text",
 									label: "Text",
-									value: [this.data.buttons[index], "text"],
+									value: arrayItemLens(this, "buttons", index, "text"),
 								},
 								link: {
 									type: "text",
 									label: "URL",
-									value: [this.data.buttons[index], "link"],
+									value: arrayItemLens(this, "buttons", index, "link"),
 								},
 							},
 						}),

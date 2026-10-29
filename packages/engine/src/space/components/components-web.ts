@@ -39,6 +39,8 @@ import { InstancedMeshComponentFactory } from "./instancedmesh";
 import { SplineComponentFactory } from "./spline";
 import { PortalComponentFactory } from "./portal";
 import { TokenGateComponentFactory } from "./token-gate";
+import { ChatZoneComponentFactory } from "./chat-zone";
+import { LiftComponentFactory } from "./lift";
 import { VideoScreenComponentFactory } from "./video-screen";
 
 export const components: Array<typeof ComponentFactory<any>> = [
@@ -58,6 +60,8 @@ export const components: Array<typeof ComponentFactory<any>> = [
   SplineComponentFactory,
   PortalComponentFactory,
   TokenGateComponentFactory,
+  ChatZoneComponentFactory,
+  LiftComponentFactory,
   VideoScreenComponentFactory,
   BackgroundComponentFactory,
   LightingComponentFactory,

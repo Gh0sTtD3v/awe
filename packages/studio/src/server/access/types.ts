@@ -35,7 +35,8 @@ export interface Member {
 }
 
 export interface AccessData {
-  version: 1;
+  /** 2 added `send_messages`, granted to `everyone` when older data is read. */
+  version: 3;
   roles: Role[];
   members: Member[];
 }

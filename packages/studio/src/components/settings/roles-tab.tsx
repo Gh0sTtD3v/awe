@@ -4,10 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import { ClientGameService } from "../../services/client-game-service";
 import { PERMISSIONS } from "../../server/access/permissions";
 import { EVERYONE_ROLE_ID, type Role } from "../../server/access/types";
-import { canManageRole, useAccessOverview } from "./use-access-overview";
-import { ErrorNote, inputCls, labelCls } from "./ui";
+import { canManageRole, memberTopPosition, useAccessOverview } from "./use-access-overview";
+import { ErrorNote, inputCls, labelCls, MemberName } from "./ui";
 
 const CATEGORIES = [...new Set(PERMISSIONS.map((p) => p.category))];
+
+/**
+ * The owner isn't a stored role (it's whoever `AWE_OWNER_ID` names), but it
+ * sits above every role, so the list shows it on top, read-only.
+ */
+const OWNER_ID = "__owner";
+const OWNER_ROLE: Role = {
+  id: OWNER_ID,
+  name: "Owner",
+  color: "#f5c542",
+  position: Number.POSITIVE_INFINITY,
+  permissions: Object.fromEntries(PERMISSIONS.map((p) => [p.id, true])),
+};
 
 /**
  * Discord-style role editor: drag to reorder, create and delete, name, colour
@@ -21,7 +34,8 @@ export function RolesTab() {
   const [dragId, setDragId] = useState<string | null>(null);
 
   const roles = overview?.roles ?? [];
-  const selected = roles.find((r) => r.id === selectedId) ?? null;
+  const isOwnerRole = selectedId === OWNER_ID;
+  const selected = isOwnerRole ? OWNER_ROLE : (roles.find((r) => r.id === selectedId) ?? null);
 
   useEffect(() => {
     if (!selectedId && roles.length) setSelectedId(roles[0].id);
@@ -46,8 +60,21 @@ export function RolesTab() {
   }
 
   const me = overview.me;
-  const editable = !!selected && canManageRole(overview, selected);
+  const editable = !!selected && !isOwnerRole && canManageRole(overview, selected);
   const ranked = roles.filter((r) => r.id !== EVERYONE_ROLE_ID);
+
+  // Members column. Mirrors the server: you can only hand out or take away
+  // roles below yours, from members ranked below you.
+  const canAssign = !!selected && me.permissions.includes("manage_members") && editable;
+  const outranks = (roleIds: string[]) => me.topPosition === null || memberTopPosition(overview, roleIds) < me.topPosition;
+  const withRole = selected ? overview.members.filter((m) => m.roleIds.includes(selected.id)) : [];
+  const withoutRole = selected ? overview.members.filter((m) => !m.roleIds.includes(selected.id) && outranks(m.roleIds)) : [];
+  const nameOf = (subject: string) => overview.profiles?.[subject]?.username ?? subject;
+  const setHasRole = (subject: string, roleIds: string[], has: boolean) => {
+    if (!selected) return;
+    const next = has ? [...roleIds, selected.id] : roleIds.filter((id) => id !== selected.id);
+    void apply(() => ClientGameService.setMemberRoles(subject, next));
+  };
 
   const createRole = async () => {
     const before = new Set(roles.map((r) => r.id));
@@ -100,6 +127,16 @@ export function RolesTab() {
           <p className="text-[11px] text-white/30 mb-2">Drag to reorder. Higher roles outrank lower ones.</p>
 
           <div className="flex-1 overflow-y-auto space-y-1">
+            <button
+              onClick={() => setSelectedId(OWNER_ID)}
+              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${
+                isOwnerRole ? "bg-white/10" : "hover:bg-white/5"
+              }`}
+            >
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: OWNER_ROLE.color }} />
+              <span className="truncate flex-1 text-left">Owner</span>
+              <span title="Set at world setup" className="text-[11px]">👑</span>
+            </button>
             {roles.map((r) => {
               const manageable = canManageRole(overview, r);
               const pinned = r.id === EVERYONE_ROLE_ID;
@@ -133,13 +170,21 @@ export function RolesTab() {
             <p className="text-sm text-white/40">Select a role.</p>
           ) : (
             <div className="space-y-4 max-w-lg">
-              {!editable && (
+              {isOwnerRole ? (
                 <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-white/50">
-                  You can't edit this role: it isn't below your highest role.
+                  The owner has every permission and outranks every role. There's exactly one, set at world setup
+                  with <code className="text-white/70">AWE_OWNER_ID</code> (a Privy id, cosmos1… or 0x… address), so it
+                  can't be edited, given or deleted here.
                 </p>
+              ) : (
+                !editable && (
+                  <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-white/50">
+                    You can't edit this role: it isn't below your highest role.
+                  </p>
+                )
               )}
 
-              {selected.id === EVERYONE_ROLE_ID ? (
+              {isOwnerRole ? null : selected.id === EVERYONE_ROLE_ID ? (
                 <p className="text-xs text-white/50">
                   Everyone has this role, signed in or not. It can't be renamed or deleted.
                 </p>
@@ -206,6 +251,7 @@ export function RolesTab() {
                 </div>
               ))}
 
+              {!isOwnerRole && (
               <div className="flex items-center justify-between pt-2">
                 {selected.id !== EVERYONE_ROLE_ID && editable ? (
                   <button onClick={remove} disabled={busy} className="text-xs text-red-400/80 hover:text-red-400">
@@ -232,9 +278,81 @@ export function RolesTab() {
                   </button>
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
+
+        {selected && (
+          <div className="w-60 shrink-0 flex flex-col border-l border-white/10 pl-4 min-h-0">
+            {isOwnerRole ? (
+              <>
+                <span className={labelCls}>Members — {overview.ownerId ? 1 : 0}</span>
+                {overview.ownerId ? (
+                  <div className="rounded-lg px-2 py-1.5">
+                    <MemberName subject={overview.ownerId} profile={overview.profiles?.[overview.ownerId]} />
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/40">No owner set. Add AWE_OWNER_ID to the world's environment.</p>
+                )}
+              </>
+            ) : selected.id === EVERYONE_ROLE_ID ? (
+              <>
+                <span className={labelCls}>Members</span>
+                <p className="text-xs text-white/40">Every player has this role.</p>
+              </>
+            ) : (
+              <>
+                <span className={labelCls}>Members — {withRole.length}</span>
+
+                {canAssign && withoutRole.length > 0 && (
+                  <select
+                    className={inputCls + " mb-2"}
+                    value=""
+                    disabled={busy}
+                    onChange={(e) => {
+                      const member = overview.members.find((m) => m.subject === e.target.value);
+                      if (member) setHasRole(member.subject, member.roleIds, true);
+                    }}
+                  >
+                    <option value="">+ Give this role to…</option>
+                    {withoutRole.map((m) => (
+                      <option key={m.subject} value={m.subject}>
+                        {nameOf(m.subject)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="flex-1 overflow-y-auto space-y-1">
+                  {withRole.length === 0 && (
+                    <p className="text-xs text-white/40">
+                      Nobody has this role yet.{canAssign ? " Add people in the Members tab first." : ""}
+                    </p>
+                  )}
+                  {withRole.map((m) => (
+                    <div key={m.subject} className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5">
+                      <span className="min-w-0 flex-1">
+                        <MemberName subject={m.subject} profile={overview.profiles?.[m.subject]} />
+                      </span>
+                      {m.banned && <span className="text-[10px] text-red-300">Banned</span>}
+                      {canAssign && outranks(m.roleIds) && (
+                        <button
+                          onClick={() => setHasRole(m.subject, m.roleIds, false)}
+                          disabled={busy}
+                          title="Remove this role"
+                          className="text-white/30 opacity-0 hover:text-red-300 group-hover:opacity-100 disabled:opacity-30"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

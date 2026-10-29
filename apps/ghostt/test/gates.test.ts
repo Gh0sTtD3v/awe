@@ -33,7 +33,7 @@ describe("gateFromComponent", () => {
     expect(gate.id).toBe("gate-1");
     expect(gate.halfSize).toEqual({ x: 2, y: 1, z: 1 });
     expect(gate.exit).toEqual({ x: 10, y: 0, z: 5 });
-    expect(gate.requirement).toEqual({ type: "cft20", ticker: "ROIDS", minAmount: "100" });
+    expect(gate.requirement).toEqual({ type: "cft20", chain: "cosmos", ticker: "ROIDS", minAmount: "100" });
     expect(gate.doorTag).toBe("vault-door");
     expect(gate.label).toBe("Vault");
   });
@@ -42,8 +42,43 @@ describe("gateFromComponent", () => {
     const gate = gateFromComponent(
       gateComponent({ requirementType: "inscription", collection: "astro-cats" }),
     )!;
-    expect(gate.requirement).toEqual({ type: "inscription", collection: "astro-cats", minAmount: "100" });
+    expect(gate.requirement).toEqual({ type: "inscription", chain: "cosmos", collection: "astro-cats", minAmount: "100" });
     expect(describeRequirement(gate.requirement)).toBe("an inscription from astro-cats");
+  });
+
+  const CONTRACT = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+
+  it("reads EVM token requirements", () => {
+    const gate = gateFromComponent(
+      gateComponent({ chain: "base", requirementType: "erc20", contract: CONTRACT, ticker: "USDC", minAmount: "5" }),
+    )!;
+    expect(gate.requirement).toEqual({
+      type: "erc20",
+      chain: "base",
+      contract: CONTRACT.toLowerCase(),
+      ticker: "USDC",
+      minAmount: "5",
+    });
+    expect(describeRequirement(gate.requirement)).toBe("≥ 5 USDC on Base");
+  });
+
+  it("reads EVM NFT requirements, with an optional ERC-1155 token id", () => {
+    const erc721 = gateFromComponent(gateComponent({ chain: "ethereum", requirementType: "nft", contract: CONTRACT }))!;
+    expect(erc721.requirement).toEqual({ type: "nft", chain: "ethereum", contract: CONTRACT.toLowerCase(), minAmount: "1" });
+    expect(describeRequirement(erc721.requirement)).toBe("an NFT from 0xa0b8…eb48 on Ethereum");
+
+    const erc1155 = gateFromComponent(
+      gateComponent({ chain: "polygon", requirementType: "nft", contract: CONTRACT, tokenId: "7" }),
+    )!;
+    expect(erc1155.requirement.tokenId).toBe("7");
+    expect(describeRequirement(erc1155.requirement)).toBe("an NFT from 0xa0b8…eb48 (token #7) on Polygon");
+  });
+
+  it("maps a Cosmos kind onto the EVM one when only the chain changed", () => {
+    expect(gateFromComponent(gateComponent({ chain: "base", contract: CONTRACT }))!.requirement.type).toBe("erc20");
+    expect(
+      gateFromComponent(gateComponent({ chain: "base", requirementType: "inscription", contract: CONTRACT }))!.requirement.type,
+    ).toBe("nft");
   });
 
   it("ignores non-gates and half-configured gates", () => {
@@ -51,6 +86,11 @@ describe("gateFromComponent", () => {
     expect(gateFromComponent(gateComponent({ ticker: "" }))).toBeNull();
     expect(gateFromComponent(gateComponent({ requirementType: "inscription", collection: " " }))).toBeNull();
     expect(gateFromComponent(null)).toBeNull();
+    expect(gateFromComponent(gateComponent({ chain: "base", contract: "" }))).toBeNull();
+    expect(gateFromComponent(gateComponent({ chain: "base", contract: "0x123" }))).toBeNull();
+    expect(
+      gateFromComponent(gateComponent({ chain: "solana", contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" })),
+    ).toBeNull();
   });
 });
 

@@ -1,8 +1,9 @@
 {
   "0_0_0": {
     "info": {
-      "title": "Info",
-      "image": "/assets/banner_gbcutout.png"
+      "title": "Lobby",
+      "image": "/assets/banner_gbcutout.png",
+      "owner": "Ghostt"
     },
     "auth": []
   }

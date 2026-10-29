@@ -9,7 +9,10 @@ import { AccountPanel } from "./account-panel";
 import { GateNotice } from "./gate-notice";
 import { ModMessage, RemovedOverlay } from "./moderation-notice";
 import { ScreenControls } from "./screen-controls";
+import { LiftControls } from "./lift-controls";
 import { VoiceControls } from "./voice-controls";
+import { ChatPanel } from "./chat-panel";
+import { RolePreviewBanner } from "./role-preview-banner";
 
 function StartScreen() {
   const state = useStore(gameStore);
@@ -55,7 +58,12 @@ function ScreenOverlay() {
   return (
     <>
       <ScreenControls />
-      <VoiceControls />
+      <LiftControls />
+      {/* Bottom-left column: chat sits on top of the voice controls, whatever their size. */}
+      <div className="pointer-events-none fixed bottom-6 left-6 z-40 flex flex-col items-start gap-2">
+        <ChatPanel />
+        <VoiceControls />
+      </div>
     </>
   );
 }
@@ -76,6 +84,7 @@ export function GameUI() {
       <ChunkLoadingOverlay />
       <ScreenOverlay />
       <AccountPanel />
+      <RolePreviewBanner />
       <GateNotice />
       <ModMessage />
       <RemovedOverlay />

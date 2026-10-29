@@ -26,6 +26,8 @@ export interface VoiceState {
   speaking: Record<string, boolean>;
   /** Peers we hold a connection to, and whether it's up. */
   peers: Record<string, "connecting" | "connected" | "failed">;
+  /** Peers broadcasting to our chunk, heard at full volume. */
+  live: Record<string, boolean>;
 }
 
 const MODE_KEY = "ghostt.voice.mode";
@@ -47,6 +49,7 @@ export const voiceStore = new Store<VoiceState>({
   level: 0,
   speaking: {},
   peers: {},
+  live: {},
 });
 
 export function setVoiceMode(mode: VoiceMode) {
@@ -71,7 +74,8 @@ export function setVoiceActivity(level: number, speaking: Record<string, boolean
   voiceStore.update({ level: rounded, speaking });
 }
 
-export function setVoicePeers(peers: VoiceState["peers"]) {
-  if (sameRecord(voiceStore.state.peers, peers)) return;
-  voiceStore.update({ peers });
+export function setVoicePeers(peers: VoiceState["peers"], live: VoiceState["live"] = {}) {
+  const s = voiceStore.state;
+  if (sameRecord(s.peers, peers) && sameRecord(s.live, live)) return;
+  voiceStore.update({ peers, live });
 }

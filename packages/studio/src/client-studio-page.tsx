@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { useEffectOnce } from "./hooks/use-effect-once";
 import { GameData } from "./types/game-data";
@@ -19,13 +19,18 @@ const StudioUI = dynamic(
   { ssr: false }
 );
 
+export interface ClientStudioPageProps {
+  /** Rendered in the top bar, left of the play button — e.g. the app's account button. */
+  headerActions?: ReactNode;
+}
+
 /** The editor is for builders only; the server refuses edits from anyone else regardless. */
-function StudioGate() {
+function StudioGate({ headerActions }: ClientStudioPageProps) {
   const { me, can } = useAccess();
   const { isAnonymous, login, loginWithKeplr, logout } = useAuth();
 
   if (!me) return null;
-  if (can("build")) return <StudioContent />;
+  if (can("build")) return <StudioContent headerActions={headerActions} />;
 
   const message = me.banned
     ? "You are banned from this world."
@@ -59,7 +64,7 @@ function StudioGate() {
   );
 }
 
-function StudioContent() {
+function StudioContent({ headerActions }: ClientStudioPageProps) {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -97,10 +102,10 @@ function StudioContent() {
     return null;
   }
 
-  return <StudioUI game={gameData} />;
+  return <StudioUI game={gameData} headerActions={headerActions} />;
 }
 
-export default function ClientStudioPage() {
+export default function ClientStudioPage({ headerActions }: ClientStudioPageProps = {}) {
   return (
     <MaestroProvider>
       <PrivyAuthProvider>
@@ -109,7 +114,7 @@ export default function ClientStudioPage() {
             <AvatarProvider>
               <DialogProvider>
                 <SpriteProvider />
-                <StudioGate />
+                <StudioGate headerActions={headerActions} />
               </DialogProvider>
             </AvatarProvider>
           </AccessProvider>

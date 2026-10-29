@@ -34,10 +34,22 @@ const SCREEN_EVENTS = {
 	ENDED: "ENDED",
 } as const;
 
-/** Seek when the video is further than this (seconds) from where it should be. */
-const MAX_DRIFT = 1;
+/**
+ * Seek when a playing video is further than this (seconds) from where it
+ * should be. Smaller drift is eased out with the playback rate instead, since
+ * every seek throws away the buffer and stalls the picture.
+ */
+const MAX_DRIFT = 3;
+/** Drift (seconds) below which a playing video is left alone. */
+const SOFT_DRIFT = 0.25;
+/** How much faster or slower a drifting video plays while it catches up. */
+const CATCH_UP_RATE = 0.05;
+/** A new playback whose position differs by more than this (seconds) is a seek. */
+const JUMP_THRESHOLD = 0.5;
 /** How often (seconds) playback is checked against the shared position. */
 const SYNC_INTERVAL = 0.5;
+/** No arrival ad for a viewer who saw an ad on this screen this recently (ms). */
+const ARRIVAL_AD_COOLDOWN_MS = 2 * 60 * 1000;
 
 const _camPos = new Vector3();
 const _screenPos = new Vector3();
@@ -53,6 +65,7 @@ function getGeometry(): PlaneGeometry {
 function idlePlayback(data: VideoScreenComponentData): VideoScreenPlayback {
 	return {
 		index: -1,
+		ad: -1,
 		playing: false,
 		position: 0,
 		at: Date.now(),
@@ -75,7 +88,9 @@ function idlePlayback(data: VideoScreenComponentData): VideoScreenPlayback {
  * video" to the game (see {@link onEnded} and {@link onDuration}).
  *
  * Videos only load within `loadDistance` of the camera, and catch up to the
- * shared position when the player comes back in range.
+ * shared position when the player comes back in range. A viewer who arrives
+ * while a video is playing first sees one of the screen's ads, just for them,
+ * then joins the video live.
  *
  * @example
  * const screen = space.components.byId("cinema") as VideoScreenComponent;
@@ -96,9 +111,17 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 	private _controlled = false;
 	private _loadedUrl: string = null;
 	private _hasFrame = false;
+	/** URL of the current video if it failed to load. */
+	private _failedUrl: string = null;
 	private _inRange = IS_EDIT_MODE;
 	private _sinceSync = SYNC_INTERVAL;
+	/** Jump straight to the expected time on the next sync: new video, or playback was changed. */
+	private _seekPending = true;
 	private _cleanup: (() => void) | null = null;
+	/** Ad playing only for this viewer before joining the video (index into `ads`), or -1. */
+	private _arrivalAd = -1;
+	/** When this viewer last finished watching an ad here. */
+	private _lastAdAt = -Infinity;
 
 	/** @internal */
 	protected async init() {
@@ -117,6 +140,8 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 			}),
 		);
 		this._screen.visible = false;
+		// Just in front of the background, so the two never z-fight.
+		this._screen.position.z = 0.002;
 		this.add(this._screen);
 
 		this._updateLook();
@@ -133,9 +158,16 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 	/** @internal */
 	async _onReady() {
 		if (IS_EDIT_MODE || this._controlled) return;
-		if (this.data.autoPlay && this.playlist.length) {
-			this._setPlayback({ ...this._playback, index: this._nextIndex(-1), playing: true, position: 0, at: Date.now() });
-		}
+		if (this.data.autoPlay && this.playlist.length) this._startVideo(0);
+	}
+
+	private _adCursor = 0;
+
+	/** Standalone only: start a video from the top, after the next ad if there are any. */
+	private _startVideo(index: number) {
+		const adCount = this.ads.length;
+		const ad = adCount > 0 ? this._adCursor++ % adCount : -1;
+		this._setPlayback({ ...this._playback, index, ad, playing: true, position: 0, at: Date.now() });
 	}
 
 	// --- Public API ---
@@ -145,14 +177,25 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		return (this.data.playlist ?? []).filter((item) => item && item.url);
 	}
 
+	/** The ads, without entries that have no URL. */
+	get ads(): VideoScreenItem[] {
+		return (this.data.ads ?? []).filter((item) => item && item.url);
+	}
+
+	/** An ad is playing (before the video at `playback.index`). */
+	get isAd(): boolean {
+		return (this._playback.ad ?? -1) >= 0 && this.ads[this._playback.ad] != null;
+	}
+
 	/** What the screen is playing, as last applied. */
 	get playback(): VideoScreenPlayback {
 		return { ...this._playback };
 	}
 
-	/** The playlist entry being played, if any. */
+	/** What's on screen: the ad, or else the playlist entry. */
 	get currentItem(): VideoScreenItem | null {
-		return this.playlist[this._playback.index] ?? null;
+		if (this._playback.index < 0) return null;
+		return this.isAd ? this.ads[this._playback.ad] : (this.playlist[this._playback.index] ?? null);
 	}
 
 	/** Where playback should be now, in seconds. */
@@ -164,6 +207,11 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 	get duration(): number {
 		const d = this._video?.duration;
 		return this._loadedUrl && Number.isFinite(d) ? d : 0;
+	}
+
+	/** The current video couldn't be loaded (missing, blocked, or no CORS headers). */
+	get loadError(): boolean {
+		return this._failedUrl != null && this._failedUrl === this._loadedUrl;
 	}
 
 	get isPlaying(): boolean {
@@ -184,24 +232,42 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		return this.on(SCREEN_EVENTS.PLAYBACK, cb);
 	}
 
-	/** Called once the length of a newly loaded video is known. */
-	onDuration(cb: (e: { index: number; duration: number }) => void) {
+	/** Called once the length of a newly loaded video or ad (`ad` ≥ 0) is known. */
+	onDuration(cb: (e: { index: number; ad: number; duration: number }) => void) {
 		return this.on(SCREEN_EVENTS.DURATION, cb);
 	}
 
 	/** Called when a video plays to its end (never while looping one). */
-	onEnded(cb: (e: { index: number }) => void) {
+	onEnded(cb: (e: { index: number; ad: number }) => void) {
 		return this.on(SCREEN_EVENTS.ENDED, cb);
 	}
 
 	// --- Playback ---
 
 	private _setPlayback(playback: VideoScreenPlayback) {
-		const prev = this._playback;
+		const prevUrl = this.currentItem?.url ?? null;
+		const prevPlaying = this._playback.playing;
+		const prevTime = this._expectedTime();
 		this._playback = { ...playback };
 		this._sinceSync = SYNC_INTERVAL; // apply on the next frame
 
-		if (prev.index !== playback.index) this._hasFrame = false;
+		// The shared playback moved on to its own ad, or stopped: drop the arrival ad and follow it.
+		if (this._arrivalAd >= 0 && (this.isAd || !this.isPlaying)) this._arrivalAd = -1;
+		if (this._arrivalAd >= 0) {
+			// Still showing the arrival ad; the video catches up once it ends.
+			this.emit(SCREEN_EVENTS.PLAYBACK, this.playback);
+			return;
+		}
+
+		// Only a different video loses the frame. Queuing a video during an ad keeps the ad on screen.
+		const urlChanged = (this.currentItem?.url ?? null) !== prevUrl;
+		if (urlChanged) this._hasFrame = false;
+
+		// Jump only when the playback really moved (a seek, play/pause, another
+		// video). Re-sent state, e.g. after a duration report, must not seek.
+		if (urlChanged || prevPlaying !== this._playback.playing || Math.abs(this._expectedTime() - prevTime) > JUMP_THRESHOLD) {
+			this._seekPending = true;
+		}
 		this.emit(SCREEN_EVENTS.PLAYBACK, this.playback);
 	}
 
@@ -210,7 +276,7 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		let time = playing ? position + Math.max(0, Date.now() - at) / 1000 : position;
 		const duration = this.duration;
 		if (duration > 0) {
-			time = loop === "one" ? time % duration : Math.min(time, duration);
+			time = loop === "one" && !this.isAd ? time % duration : Math.min(time, duration);
 		}
 		return Math.max(0, time);
 	}
@@ -240,12 +306,47 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		if (inRange !== this._inRange) {
 			this._inRange = inRange;
 			this._sinceSync = SYNC_INTERVAL;
+			if (inRange) this._startArrivalAd();
+			// Walked off mid-ad: it didn't count, so coming back shows one again.
+			else this._arrivalAd = -1;
 		}
 	}
 
+	/** Arriving at a screen mid-video: play one ad for this viewer before joining it. */
+	private _startArrivalAd() {
+		const ads = this.ads;
+		if (!ads.length || this.isAd || !this.isPlaying || !this.currentItem) return;
+		if (Date.now() - this._lastAdAt < ARRIVAL_AD_COOLDOWN_MS) return;
+		this._arrivalAd = this._adCursor++ % ads.length;
+		this._hasFrame = false;
+		this._seekPending = true;
+	}
+
+	private _endArrivalAd() {
+		this._arrivalAd = -1;
+		this._lastAdAt = Date.now();
+		this._hasFrame = false;
+		this._seekPending = true;
+		this._sinceSync = SYNC_INTERVAL;
+	}
+
+	/** What this viewer sees: the arrival ad, else the shared item. */
+	private _shownItem(): VideoScreenItem | null {
+		if (this._arrivalAd >= 0) {
+			const ad = this.ads[this._arrivalAd];
+			if (ad) return ad;
+			this._arrivalAd = -1;
+		}
+		return this.currentItem;
+	}
+
+
 	/** Bring the video element in line with the playback. */
 	private _sync() {
-		const item = this.currentItem;
+		const item = this._shownItem();
+		const arrivalAd = this._arrivalAd >= 0;
+		// Watching the shared ad counts too: no arrival ad right after it.
+		if (this._inRange && this.isAd && !arrivalAd) this._lastAdAt = Date.now();
 
 		if (!item) {
 			this._unload();
@@ -260,22 +361,18 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		if (this._loadedUrl !== item.url) {
 			this._loadedUrl = item.url;
 			this._hasFrame = false;
+			this._failedUrl = null;
+			this._seekPending = true;
 			video.src = item.url;
 			video.load();
 			return; // continue once metadata is in (see _ensureVideo)
 		}
 		if (video.readyState < 1) return;
 
-		video.loop = this._playback.loop === "one";
+		video.loop = !arrivalAd && this._playback.loop === "one" && !this.isAd;
+		this._correctDrift(video);
 
-		// A playing screen only corrects real drift; a paused one shows the exact frame.
-		const expected = this._expectedTime();
-		const drift = Math.abs(video.currentTime - expected);
-		if (drift > (this._playback.playing ? MAX_DRIFT : 0.05)) {
-			video.currentTime = expected;
-		}
-
-		if (this._playback.playing && video.paused && !video.ended) {
+		if ((arrivalAd || this._playback.playing) && video.paused && !video.ended) {
 			video.play().catch(() => {
 				// Not allowed to play with sound yet: muted video still starts.
 				if (!video.muted) {
@@ -284,8 +381,49 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 				}
 			});
 		}
-		else if (!this._playback.playing && !video.paused) {
+		else if (!arrivalAd && !this._playback.playing && !video.paused) {
 			video.pause();
+		}
+	}
+
+	/**
+	 * Keep the video at the shared position without stuttering. Seeking discards
+	 * the buffer, so it's only used to jump (a new video or a changed playback)
+	 * or to fix large drift. Small drift is eased out by playing slightly faster
+	 * or slower, and a video that is still buffering is left alone: seeking it
+	 * further ahead would only start the download over.
+	 */
+	private _correctDrift(video: HTMLVideoElement) {
+		// The arrival ad plays from the top at its own pace, whatever the loading took.
+		if (this._arrivalAd >= 0) {
+			if (this._seekPending) {
+				this._seekPending = false;
+				video.playbackRate = 1;
+				if (video.currentTime > 0.05) video.currentTime = 0;
+			}
+			return;
+		}
+
+		const expected = this._expectedTime();
+		const behind = expected - video.currentTime;
+
+		if (this._seekPending || !this._playback.playing) {
+			this._seekPending = false;
+			video.playbackRate = 1;
+			if (Math.abs(behind) > 0.05) video.currentTime = expected;
+			return;
+		}
+		if (video.seeking || video.readyState < video.HAVE_FUTURE_DATA) return;
+
+		if (Math.abs(behind) > MAX_DRIFT) {
+			video.playbackRate = 1;
+			video.currentTime = expected;
+		}
+		else if (Math.abs(behind) > SOFT_DRIFT) {
+			video.playbackRate = behind > 0 ? 1 + CATCH_UP_RATE : 1 - CATCH_UP_RATE;
+		}
+		else {
+			video.playbackRate = 1;
 		}
 	}
 
@@ -300,8 +438,13 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 
 		video.addEventListener("loadedmetadata", () => {
 			this._sinceSync = SYNC_INTERVAL;
-			if (Number.isFinite(video.duration)) {
-				this.emit(SCREEN_EVENTS.DURATION, { index: this._playback.index, duration: video.duration });
+			// The arrival ad is this viewer's alone: its length isn't the shared item's.
+			if (this._arrivalAd < 0 && Number.isFinite(video.duration)) {
+				this.emit(SCREEN_EVENTS.DURATION, {
+					index: this._playback.index,
+					ad: this.isAd ? this._playback.ad : -1,
+					duration: video.duration,
+				});
 			}
 		});
 		video.addEventListener("loadeddata", () => {
@@ -310,7 +453,11 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		});
 		video.addEventListener("ended", this._onVideoEnded);
 		video.addEventListener("error", () => {
-			if (this._loadedUrl) console.warn(`[video-screen] Can't play ${this._loadedUrl}`);
+			if (!this._loadedUrl || !video.getAttribute("src")) return;
+			this._failedUrl = this._loadedUrl;
+			// A broken ad mustn't keep the viewer from the video.
+			if (this._arrivalAd >= 0) this._endArrivalAd();
+			console.warn(`[video-screen] Can't play ${this._loadedUrl}: it's missing, or the server doesn't allow cross-origin playback.`);
 		});
 
 		this._video = video;
@@ -328,6 +475,7 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 			USER_INTERACTED.then(() => {
 				if (this._video !== video) return;
 				this._posAudio = new PositionalAudio();
+				this._posAudio.edgeFade = true;
 				this.add(this._posAudio);
 				this._posAudio.setSource(video);
 				this._updateAudioType();
@@ -338,15 +486,21 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 	}
 
 	private _onVideoEnded = () => {
-		const { index, loop } = this._playback;
-		if (loop === "one") return;
+		if (this._arrivalAd >= 0) return this._endArrivalAd();
 
-		this.emit(SCREEN_EVENTS.ENDED, { index });
+		const { index, loop } = this._playback;
+		const ad = this.isAd ? this._playback.ad : -1;
+		if (loop === "one" && ad < 0) return;
+
+		this.emit(SCREEN_EVENTS.ENDED, { index, ad });
 		if (this._controlled) return;
 
-		// On its own the screen advances through the playlist itself.
-		if (loop === "all") {
-			this._setPlayback({ ...this._playback, index: this._nextIndex(index), position: 0, at: Date.now() });
+		// On its own the screen runs the ad → video → next video sequence itself.
+		if (ad >= 0) {
+			this._setPlayback({ ...this._playback, ad: -1, position: 0, at: Date.now() });
+		}
+		else if (loop === "all") {
+			this._startVideo(this._nextIndex(index));
 		}
 		else {
 			this._setPlayback({ ...this._playback, playing: false, position: this.duration });

@@ -291,7 +291,14 @@
       "envmapIntensity": 1,
       "animations": {},
       "renderMode": "default",
-      "plugins": [],
+      "plugins": [
+        {
+          "id": "DissolveEdgePlugin",
+          "threshold": -5,
+          "edgeWidth": 0.15,
+          "edgeColor": "#ff6600"
+        }
+      ],
       "opacity": 1,
       "enableRealTimeShadow": true,
       "useTransparency": false,
@@ -301,7 +308,7 @@
       "_meta": {
         "placeholderId": null
       },
-      "_version": 1779974755626,
+      "_version": 1792319391530,
       "lock": {
         "position": true,
         "rotation": true,
@@ -326,9 +333,9 @@
       "kit": "cyber",
       "name": "",
       "position": {
-        "x": 11.881122620466023,
-        "y": 5.180861763700179,
-        "z": -22.041958181826676
+        "x": 35,
+        "y": 10,
+        "z": -30
       },
       "rotation": {
         "x": 0,
@@ -336,23 +343,23 @@
         "z": 0
       },
       "scale": {
-        "x": 13.815631369867129,
-        "y": 10.361723527400347,
-        "z": 13.815631369867129
+        "x": 30,
+        "y": 22,
+        "z": 30
       },
-      "requirementType": "cft20",
+      "requirementType": "nft",
       "ticker": "",
       "collection": "",
       "minAmount": "1",
       "exitOffset": {
         "x": 0,
-        "y": 0,
-        "z": 4
+        "y": -9.9,
+        "z": 16
       },
-      "doorTag": "",
-      "label": "",
+      "doorTag": "No 1",
+      "label": "Apartment 1",
       "collider": {
-        "enabled": true,
+        "enabled": false,
         "rigidbodyType": "fixed",
         "colliderType": "cube",
         "isSensor": true
@@ -361,16 +368,19 @@
       "_meta": {
         "placeholderId": null
       },
-      "_version": 1792081316967
+      "_version": 1793094121311,
+      "chain": "ethereum",
+      "contract": "0x8a5a0cfa9087fb8a3c0ce36abb7c320ce7821b94",
+      "tokenId": ""
     },
     "video-screen-i448-3MaYvnhciGtFwXnI": {
       "type": "video-screen",
       "kit": "cyber",
       "name": "",
       "position": {
-        "x": 0.4553450749518507,
-        "y": 2.7855000393899108,
-        "z": -19.88243840273742
+        "x": 0,
+        "y": 3,
+        "z": -50
       },
       "rotation": {
         "x": 0,
@@ -378,13 +388,34 @@
         "z": 0
       },
       "scale": {
-        "x": 5.333333333333333,
-        "y": 3,
+        "x": 10.8,
+        "y": 6,
         "z": 1
       },
-      "label": "Screen1",
-      "playlist": [],
-      "autoPlay": false,
+      "label": "Main TV",
+      "playlist": [
+        {
+          "title": "Novocaine",
+          "url": "https://brooklyn.ghostt.dev/uploads/luminary/Novocaine.mp4"
+        },
+        {
+          "title": "A Working Man",
+          "url": "https://brooklyn.ghostt.dev/uploads/luminary/AWorkingMan.mp4"
+        },
+        {
+          "title": "Death of a Unicorn",
+          "url": "https://brooklyn.ghostt.dev/uploads/luminary/DeathOfAUnicorn.mp4"
+        },
+        {
+          "title": "The Legend of Ochi",
+          "url": "https://brooklyn.ghostt.dev/uploads/luminary/TheLegendOfOchi.mp4"
+        },
+        {
+          "title": "Family Guy S23E13",
+          "url": "https://brooklyn.ghostt.dev/uploads/luminary/FamilyGuyS23E13.mp4"
+        }
+      ],
+      "autoPlay": true,
       "loop": "all",
       "volume": 0.75,
       "audioType": "spatial",
@@ -397,12 +428,91 @@
       "_meta": {
         "placeholderId": null
       },
-      "_version": 1792086452638
+      "_version": 1792763541065,
+      "ads": [
+        {
+          "title": "TGiF",
+          "url": "https://brooklyn.ghostt.dev/uploads/TGIF_Promo_2b.mp4"
+        }
+      ],
+      "controlGate": ""
+    },
+    "chat-zone-ue9ggEXdJ0f_KzWKHHEqI": {
+      "type": "chat-zone",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -10,
+        "y": 5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 12,
+        "y": 12,
+        "z": 12
+      },
+      "label": "Blue Box",
+      "id": "chat-zone-ue9ggEXdJ0f_KzWKHHEqI",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1792763574157
+    },
+    "token-gate_VjeVBP_tLEBC2k5ZSPebR": {
+      "type": "token-gate",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": 35,
+        "y": 10,
+        "z": -80
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 30,
+        "y": 22,
+        "z": 30
+      },
+      "requirementType": "nft",
+      "ticker": "",
+      "collection": "",
+      "minAmount": "1",
+      "exitOffset": {
+        "x": 0,
+        "y": -9.9,
+        "z": 16
+      },
+      "doorTag": "No 2",
+      "label": "Apartment 2",
+      "collider": {
+        "enabled": false,
+        "rigidbodyType": "fixed",
+        "colliderType": "cube",
+        "isSensor": true
+      },
+      "id": "token-gate_VjeVBP_tLEBC2k5ZSPebR",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793093477251,
+      "chain": "ethereum",
+      "contract": "0x60e4d786628fea6478f785a6d7e704777c86a7c6",
+      "tokenId": ""
     }
   },
   "auth": [],
   "info": {
-    "title": "Info",
-    "image": "/assets/banner_gbcutout.png"
+    "title": "Lobby",
+    "image": "/assets/banner_gbcutout.png",
+    "owner": "Ghostt"
   }
 }

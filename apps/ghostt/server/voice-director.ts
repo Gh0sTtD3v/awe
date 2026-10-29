@@ -25,9 +25,11 @@ export class VoiceDirector {
 
     const changed = new Map<string, VoicePeer[]>();
     const present = new Set(members.map((m) => m.sessionId));
+    const byId = new Map(members.map((m) => [m.sessionId, m]));
+    const memberOf = (id: string) => byId.get(id);
 
     for (const m of members) {
-      const peers = peersOf(m.sessionId, this.pairs, canSpeak);
+      const peers = peersOf(m.sessionId, this.pairs, canSpeak, memberOf);
       if (!samePeers(this.sent.get(m.sessionId), peers)) {
         this.sent.set(m.sessionId, peers);
         changed.set(m.sessionId, peers);

@@ -476,6 +476,10 @@ export interface GuiArrayDescriptor extends GuiCommonProps {
     itemGui: (index: number) => GuiDescriptor;
     /** Display type for items. */
     itemType?: string;
+    /** Data for a new item when "Add New" is pressed. Defaults to `{}`. */
+    createNewData?: () => any;
+    /** Value for "Reset". Defaults to `[]`. */
+    reset?: () => any[];
 }
 
 /** Key-value map editor. */

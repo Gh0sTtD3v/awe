@@ -70,12 +70,16 @@ export class ScreenDirector {
     return { ok: true };
   }
 
-  reportDuration(id: string, index: number, duration: number): void {
+  def(id: string): ScreenDef | null {
+    return this.defs.get(id) ?? null;
+  }
+
+  reportDuration(id: string, index: number, ad: number, duration: number): void {
     const def = this.defs.get(id);
     const state = this.states.get(id);
     if (!def || !state) return;
 
-    const next = withDuration(state, index, duration);
+    const next = withDuration(state, index, ad, duration);
     if (next) this.commit(def, next);
   }
 

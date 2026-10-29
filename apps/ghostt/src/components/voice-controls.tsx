@@ -5,6 +5,7 @@ import { useStore } from "@/hooks/use-store";
 import { getScript } from "../lib/game-script";
 import { infoStore } from "../lib/info-store";
 import { setVoiceMode, voiceStore } from "../lib/voice-store";
+import { chatStore } from "../lib/chat-store";
 
 function MicIcon({ off }: { off?: boolean }) {
   return (
@@ -18,21 +19,27 @@ function MicIcon({ off }: { off?: boolean }) {
 /**
  * Voice chat: join (asks for the microphone), push-to-talk on T or an open
  * mic, a level meter as sound check, and leave. Players without Speak can
- * join to listen.
+ * join to listen. Players with Broadcast Voice can go live to their chunk.
  */
 export function VoiceControls() {
   const voice = useStore(voiceStore);
-  const { self } = useStore(infoStore);
+  const { self, players } = useStore(infoStore);
+  // Inside a room (gated area or chat zone) voice is private to it.
+  const { room } = useStore(chatStore);
   const [open, setOpen] = useState(false);
   const canSpeak = !!self?.permissions.includes("speak");
   const connected = Object.values(voice.peers).filter((s) => s === "connected").length;
   const failed = Object.values(voice.peers).filter((s) => s === "failed").length;
+  const live = players.find((p) => p.isLocal)?.broadcasting ?? false;
+  const canBroadcast = !!self?.permissions.includes("broadcast_voice");
+  // Who's live to us: names for the connected peers broadcasting to our chunk.
+  const liveSpeakers = players.filter((p) => voice.live[p.sessionId] && voice.peers[p.sessionId] === "connected");
 
   if (!voice.joined) {
     return (
       <button
         onClick={() => void getScript()?.joinVoice()}
-        className="fixed bottom-6 left-6 z-40 flex items-center gap-2 rounded-xl bg-black/70 px-4 py-2 text-sm text-white/90 backdrop-blur-sm hover:bg-black/80"
+        className="pointer-events-auto flex items-center gap-2 rounded-xl bg-black/70 px-4 py-2 text-sm text-white/90 backdrop-blur-sm hover:bg-black/80"
       >
         <MicIcon /> {canSpeak ? "Join voice" : "Listen to voice"}
       </button>
@@ -55,7 +62,7 @@ export function VoiceControls() {
               : "Mic on";
 
   return (
-    <div className="fixed bottom-6 left-6 z-40 flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-2xl bg-black/70 p-3 text-sm text-white/90 backdrop-blur-sm">
+    <div className="pointer-events-auto flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-2xl bg-black/70 p-3 text-sm text-white/90 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <span
           className={`flex h-8 w-8 items-center justify-center rounded-full ${
@@ -67,7 +74,15 @@ export function VoiceControls() {
         <div className="min-w-0 flex-1">
           <div className="truncate">{status}</div>
           <div className="text-xs text-white/50">
-            {connected === 0 ? "Nobody nearby" : `${connected} nearby`}
+            {live && !room
+              ? `Live to ${connected} in this chunk`
+              : room
+              ? connected === 0
+                ? `Only you in ${room.label}`
+                : `${connected} in ${room.label}`
+              : connected === 0
+                ? "Nobody nearby"
+                : `${connected} nearby`}
             {failed > 0 && ` · ${failed} can't connect`}
           </div>
         </div>
@@ -75,6 +90,16 @@ export function VoiceControls() {
           ⚙
         </button>
       </div>
+
+      {liveSpeakers.map((p) => (
+        <div key={p.sessionId} className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs">
+          <span aria-hidden>📢</span>
+          <span className="truncate" style={p.roleColor ? { color: p.roleColor } : undefined}>
+            {p.name || "A speaker"}
+          </span>
+          <span className="text-white/50">is live</span>
+        </div>
+      ))}
 
       {voice.mic === "ready" && (
         <div className="h-1.5 overflow-hidden rounded-full bg-white/10" title="Microphone level">
@@ -91,6 +116,23 @@ export function VoiceControls() {
           className="rounded-lg border border-white/15 px-3 py-1 text-xs hover:bg-white/10"
         >
           {voice.selfMuted ? "Unmute" : "Mute"}
+        </button>
+      )}
+
+      {canBroadcast && voice.mic === "ready" && !room && (
+        <button
+          onClick={() => getScript()?.setBroadcast(!live)}
+          className={`flex items-center justify-center gap-2 rounded-lg px-3 py-1 text-xs ${
+            live ? "bg-red-500/80 text-white hover:bg-red-500" : "border border-white/15 hover:bg-white/10"
+          }`}
+        >
+          {live ? (
+            <>
+              <span className="rounded bg-white/25 px-1 font-semibold">LIVE</span> Stop broadcast
+            </>
+          ) : (
+            "Go live to chunk"
+          )}
         </button>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useStore } from "@/hooks/use-store";
 import {
   infoStore,
@@ -24,11 +24,19 @@ const TABS: { id: InfoTab; label: string }[] = [
   { id: "destinations", label: "Destinations" },
 ];
 
-// Placeholder thumbnail until per-chunk image input lands.
-const PLACEHOLDER_IMG = "https://img.icons8.com/pastel-glyph/64/image--v2.png";
+// Same charcoal as the info button, so the popup reads as part of it.
+const PANEL_BG =
+  "linear-gradient(170deg, rgb(36 36 36), rgb(18 18 18) 55%, rgb(10 10 10))";
 
 function shortId(id: string) {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
+}
+
+/** A stable hue per place, so chunks without a picture still look like somewhere. */
+function placeGradient(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+  return `radial-gradient(120% 140% at 15% 10%, hsl(${h} 45% 34%), transparent 60%), radial-gradient(90% 120% at 95% 100%, hsl(${(h + 50) % 360} 40% 22%), transparent 70%), #141414`;
 }
 
 function releasePointer() {
@@ -58,37 +66,90 @@ export function InfoCard() {
 
   return (
     <>
-      {state.isOpen && (
-        <div style={S.Wrapper}>
-          <div style={S.Container}>
-            <div style={S.CloseButton} onClick={closeInfo}>
-              ✕
-            </div>
-
-            <div style={S.TabBar}>
-              {TABS.map((t) => (
-                <div
-                  key={t.id}
-                  style={state.tab === t.id ? S.TabActive : S.Tab}
-                  onClick={() => setInfoTab(t.id)}
-                >
-                  {t.label}
-                </div>
-              ))}
-            </div>
-
-            <div style={S.Divider} />
-
-            {state.tab === "chunk" && <ChunkTab />}
-            {state.tab === "players" && <PlayersTab />}
-            {state.tab === "destinations" && <DestinationsTab />}
-          </div>
-        </div>
-      )}
+      {state.isOpen && <InfoPopup />}
 
       {/* Persistent circular icon button (bottom-center) with live count. */}
       <InfoButton online={state.players.length} isOpen={state.isOpen} />
     </>
+  );
+}
+
+function InfoPopup() {
+  const { tab, chunkInfo, chunkKey, players, portals } = useStore(infoStore);
+  const title = chunkInfo?.title || "Untitled place";
+  const expanded = tab === "chunk";
+  const counts: Partial<Record<InfoTab, number>> = { players: players.length, destinations: portals.length };
+
+  return (
+    <div
+      role="dialog"
+      aria-label={`About ${title}`}
+      className="fixed bottom-[92px] left-1/2 z-50 flex w-[440px] max-w-[calc(100vw-24px)] -translate-x-1/2 flex-col overflow-hidden rounded-[18px] text-[14px] text-[#e8e8e8] shadow-[0_24px_60px_rgb(0_0_0/0.55),0_0_0_1px_rgb(255_255_255/0.07)]"
+      style={{ background: PANEL_BG }}
+    >
+      {/* The place you're in: a big picture on Info, a slim strip elsewhere. */}
+      <div
+        className={`relative shrink-0 overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out ${
+          expanded ? "h-[210px]" : "h-[64px]"
+        }`}
+        style={chunkInfo?.image ? undefined : { background: placeGradient(chunkKey || title) }}
+      >
+        {chunkInfo?.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={chunkInfo.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgb(18_18_18)] via-[rgb(18_18_18/0.35)] to-transparent" />
+
+        <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 px-5 pb-3">
+          <div className="min-w-0 flex-1">
+            <h2
+              className={`truncate font-semibold tracking-[-0.01em] text-white motion-safe:transition-[font-size] motion-safe:duration-300 ${
+                expanded ? "text-[22px] leading-7" : "text-[16px] leading-6"
+              }`}
+            >
+              {title}
+            </h2>
+            {chunkInfo?.owner && <p className="truncate text-[12px] text-white/60">by {chunkInfo.owner}</p>}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={closeInfo}
+          aria-label="Close"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-[13px] text-white/80 backdrop-blur-md hover:bg-black/70 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+        >
+          ✕
+        </button>
+      </div>
+
+      <nav className="flex shrink-0 gap-5 border-b border-white/[0.07] px-5" aria-label="Info sections">
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          const count = counts[t.id];
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setInfoTab(t.id)}
+              aria-current={active ? "page" : undefined}
+              className={`relative -mb-px flex items-center gap-1.5 border-b-2 py-2.5 text-[13px] focus-visible:outline-none focus-visible:text-white ${
+                active ? "border-white font-medium text-white" : "border-transparent text-white/50 hover:text-white/80"
+              }`}
+            >
+              {t.label}
+              {!!count && <span className={active ? "text-white/50" : "text-white/30"}>{count}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="max-h-[min(320px,45vh)] overflow-y-auto overscroll-contain [scrollbar-color:rgb(255_255_255/0.18)_transparent] [scrollbar-width:thin]">
+        {tab === "chunk" && <ChunkTab />}
+        {tab === "players" && <PlayersTab />}
+        {tab === "destinations" && <DestinationsTab />}
+      </div>
+    </div>
   );
 }
 
@@ -118,102 +179,87 @@ function InfoButton({ online, isOpen }: { online: number; isOpen: boolean }) {
   );
 }
 
-function TeleportButton({ onClick }: { onClick: () => void }) {
+function ActionButton({
+  children,
+  onClick,
+  tone = "default",
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  tone?: "default" | "danger";
+}) {
   return (
-    <button style={{ ...S.Button, ...S.Teleport }} onClick={onClick}>
-      Teleport
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-medium focus-visible:outline-2 focus-visible:outline-white ${
+        tone === "danger"
+          ? "text-[#ff9b9b] hover:bg-[#ff6b6b]/15"
+          : "bg-white/[0.08] text-white/85 hover:bg-white/[0.16] hover:text-white"
+      }`}
+    >
+      {children}
     </button>
+  );
+}
+
+function Empty({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <div className="px-5 py-10 text-center">
+      <p className="text-[14px] text-white/70">{title}</p>
+      {children && <p className="mt-1 text-[12px] text-white/40">{children}</p>}
+    </div>
   );
 }
 
 function ChunkTab() {
   const { chunkInfo } = useStore(infoStore);
-  const image = chunkInfo?.image || PLACEHOLDER_IMG;
-  const title = chunkInfo?.title || "Untitled";
-  const owner = chunkInfo?.owner || "—";
   const tags = chunkInfo?.tags ?? [];
 
   return (
-    <div style={S.Section}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "10px",
-          width: "100%",
-          padding: "0.5em 1.5em",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={title}
-          style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "12px",
-            objectFit: "cover",
-            background: "rgba(169,169,169,0.12)",
-          }}
-        />
-        <div style={{ fontSize: "16pt", textAlign: "center" }}>{title}</div>
-      </div>
+    <div className="flex flex-col gap-4 px-5 py-4">
+      {chunkInfo?.description ? (
+        <p className="max-w-[60ch] whitespace-pre-line leading-[1.6] text-white/80">{chunkInfo.description}</p>
+      ) : (
+        <p className="text-white/40">The owner hasn&apos;t described this place yet.</p>
+      )}
 
-      <div style={S.Row}>
-        <span>Owner</span>
-        <span style={{ color: "#dddddd" }}>{owner}</span>
-      </div>
-
-      <div style={{ ...S.Row, alignItems: "flex-start" }}>
-        <span>Tags</span>
-        <span
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "4px",
-            justifyContent: "flex-end",
-          }}
-        >
-          {tags.length > 0 ? (
-            tags.map((t) => (
-              <span
-                key={t}
-                style={{
-                  background: "rgba(169,169,169,0.16)",
-                  borderRadius: "4px",
-                  padding: "0.15em 0.5em",
-                  fontSize: "9.5pt",
-                }}
-              >
-                {t}
-              </span>
-            ))
-          ) : (
-            <span style={{ color: "#dddddd80" }}>—</span>
-          )}
-        </span>
-      </div>
-
-      <div
-        style={{
-          ...S.Row,
-          flexDirection: "column",
-          alignItems: "flex-start",
-          gap: "4px",
-        }}
-      >
-        <span>Description</span>
-        <span
-          style={{
-            textAlign: "justify",
-            color: chunkInfo?.description ? "#dddddd" : "#dddddd80",
-          }}
-        >
-          {chunkInfo?.description || "—"}
-        </span>
-      </div>
+      {tags.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
+          {tags.map((t) => (
+            <li key={t} className="rounded-full border border-white/[0.12] px-2.5 py-0.5 text-[12px] text-white/70">
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+function PlayerAvatar({ player, speaking }: { player: PlayerInfo; speaking: boolean }) {
+  const ring = speaking ? "ring-2 ring-[#4ade80] ring-offset-2 ring-offset-[#151515]" : "";
+  if (player.avatar) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={player.avatar}
+        alt=""
+        referrerPolicy="no-referrer"
+        className={`h-9 w-9 shrink-0 rounded-full object-cover ${ring}`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white ${ring}`}
+      style={{ background: player.roleColor ? `${player.roleColor}55` : "rgb(255 255 255 / 0.1)" }}
+    >
+      {(player.name || "G")[0].toUpperCase()}
+    </span>
   );
 }
 
@@ -226,138 +272,84 @@ function PlayerRow({ player }: { player: PlayerInfo }) {
   const canBan = outranks && self.permissions.includes("ban_members");
   const canMute = outranks && player.inVoice && self.permissions.includes("mute_members");
   const speaking = useStore(voiceStore).speaking[player.sessionId] === true;
+  const voice = !player.inVoice
+    ? null
+    : player.voiceMuted
+      ? "Muted by a moderator"
+      : speaking
+        ? "Talking"
+        : "In voice";
 
   return (
-    <div style={S.Row}>
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-        {player.roleColor && (
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: player.roleColor,
-              marginRight: 6,
-            }}
-          />
+    <li className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.04]">
+      <PlayerAvatar player={player} speaking={speaking} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-white">
+          {player.name || `Guest ${shortId(player.sessionId)}`}
+          {player.isLocal && <span className="text-white/40"> (you)</span>}
+        </p>
+        {voice && (
+          <p className={`text-[12px] ${player.voiceMuted ? "text-[#ff9b9b]" : speaking ? "text-[#4ade80]" : "text-white/40"}`}>
+            {voice}
+          </p>
         )}
-        {shortId(player.sessionId)}
-        {player.inVoice && (
-          <span
-            title={player.voiceMuted ? "Muted by a moderator" : speaking ? "Talking" : "In voice"}
-            style={{
-              marginLeft: 6,
-              fontSize: 11,
-              color: player.voiceMuted ? "rgba(255,120,120,0.9)" : speaking ? "#4ade80" : "rgba(169,169,169,0.7)",
-            }}
-          >
-            {player.voiceMuted ? "🔇" : speaking ? "🔊" : "🎙"}
-          </span>
-        )}
-        {player.isLocal && (
-          <span style={{ color: "rgba(169,169,169,0.9)" }}> (you)</span>
-        )}
-      </span>
-      <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
         {canMute && (
-          <ModButton
-            label={player.voiceMuted ? "Unmute" : "Mute"}
-            onClick={() => getScript()?.mutePlayer(player.sessionId, !player.voiceMuted)}
-          />
+          <ActionButton tone="danger" onClick={() => getScript()?.mutePlayer(player.sessionId, !player.voiceMuted)}>
+            {player.voiceMuted ? "Unmute" : "Mute"}
+          </ActionButton>
         )}
         {canKick && (
-          <ModButton label="Kick" onClick={() => getScript()?.kickPlayer(player.sessionId)} />
+          <ActionButton tone="danger" onClick={() => getScript()?.kickPlayer(player.sessionId)}>
+            Kick
+          </ActionButton>
         )}
         {canBan && (
-          <ModButton label="Ban" onClick={() => getScript()?.banPlayer(player.sessionId)} />
+          <ActionButton tone="danger" onClick={() => getScript()?.banPlayer(player.sessionId)}>
+            Ban
+          </ActionButton>
         )}
         {!player.isLocal && (
-          <TeleportButton
-            onClick={() => getScript()?.teleportToPlayer(player.sessionId)}
-          />
+          <ActionButton onClick={() => getScript()?.teleportToPlayer(player.sessionId)}>Teleport</ActionButton>
         )}
-      </span>
-    </div>
-  );
-}
-
-function ModButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <span
-      onClick={onClick}
-      style={{
-        cursor: "pointer",
-        fontSize: 11,
-        padding: "2px 8px",
-        borderRadius: 999,
-        border: "1px solid rgba(255,120,120,0.4)",
-        color: "rgba(255,170,170,0.95)",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{
-        transition: "transform 0.2s ease",
-        transform: open ? "rotate(0deg)" : "rotate(-90deg)",
-        opacity: 0.7,
-      }}
-    >
-      <path
-        d="M6 9l6 6 6-6"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PlayerGroup({
-  label,
-  color,
-  members,
-  defaultOpen,
-}: {
-  label: string;
-  color?: string;
-  members: PlayerInfo[];
-  defaultOpen: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div>
-      <div style={S.GroupHeader} onClick={() => setOpen((o) => !o)}>
-        <span style={color ? { color } : undefined}>
-          {label}
-          <span style={S.GroupCount}>{members.length}</span>
-        </span>
-        <Chevron open={open} />
       </div>
-      <div
-        style={{
-          overflow: "hidden",
-          maxHeight: open ? `${members.length * 60 + 8}px` : "0px",
-          opacity: open ? 1 : 0,
-          transition: "max-height 0.25s ease, opacity 0.2s ease",
-        }}
+    </li>
+  );
+}
+
+function PlayerGroup({ label, color, members }: { label: string; color?: string; members: PlayerInfo[] }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-5 pb-1 pt-3 text-left text-[12px] font-medium text-white/50 hover:text-white/80"
       >
-        {members.map((p) => (
-          <PlayerRow key={p.sessionId} player={p} />
-        ))}
-      </div>
-    </div>
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color || "rgb(255 255 255 / 0.3)" }} />
+        <span style={color ? { color } : undefined}>{label}</span>
+        <span className="text-white/30">{members.length}</span>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          className={`ml-auto motion-safe:transition-transform ${open ? "" : "-rotate-90"}`}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <ul>
+          {members.map((p) => (
+            <PlayerRow key={p.sessionId} player={p} />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -380,18 +372,12 @@ function PlayersTab() {
   }
   const groups = [...byRole.values()].sort((a, b) => b.rank - a.rank);
 
+  if (groups.length === 0) return <Empty title="Nobody's here yet">Players show up here as they join.</Empty>;
+
   return (
-    <div style={S.Section}>
-      {groups.map((g, i) => (
-        <div key={`${g.rank}-${g.label}`}>
-          {i > 0 && <div style={S.Divider} />}
-          <PlayerGroup
-            label={g.label}
-            color={g.color}
-            members={g.members}
-            defaultOpen={g.members.length > 0}
-          />
-        </div>
+    <div className="pb-2">
+      {groups.map((g) => (
+        <PlayerGroup key={`${g.rank}-${g.label}`} label={g.label} color={g.color} members={g.members} />
       ))}
     </div>
   );
@@ -403,79 +389,70 @@ function DestinationsTab() {
 
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? portals.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.slug.toLowerCase().includes(q),
-      )
+    ? portals.filter((p) => p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q))
     : portals;
 
+  if (portals.length === 0) {
+    return <Empty title="No destinations yet">Portals placed in this world show up here.</Empty>;
+  }
+
+  const go = async (position: { x: number; y: number; z: number }) => {
+    await getScript()?.travelTo(position);
+    closeInfo();
+  };
+
   return (
-    <>
-      <input
-        style={S.SearchInput}
-        placeholder="Search destinations…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <div style={S.Section}>
-        {portals.length === 0 ? (
-          <div style={{ ...S.Row, color: "#dddddd80" }}>
-            No destinations available.
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ ...S.Row, color: "#dddddd80" }}>No matches.</div>
-        ) : (
-          filtered.map((p) => (
-          <div style={S.Row} key={p.id}>
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                minWidth: 0,
-              }}
-            >
-              {p.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image} alt={p.name} style={S.Thumb} />
-              ) : (
-                <span style={S.ThumbPlaceholder} />
-              )}
-              <span style={{ minWidth: 0, overflow: "hidden" }}>
-                <span
-                  style={{
-                    display: "block",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {p.name}
-                </span>
-                {p.slug && (
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "10pt",
-                      color: "#dddddd80",
-                    }}
-                  >
-                    {p.slug}
-                  </span>
-                )}
-              </span>
-            </span>
-            <TeleportButton
-              onClick={async () => {
-                await getScript()?.travelTo(p.position);
-                closeInfo();
-              }}
+    <div className="pb-2">
+      {portals.length > 4 && (
+        <div className="sticky top-0 z-10 px-5 pb-2 pt-3" style={{ background: "rgb(18 18 18 / 0.96)" }}>
+          <div className="flex items-center gap-2 rounded-full bg-white/[0.07] px-3.5 focus-within:bg-white/[0.11]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-white/40">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.5" />
+              <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <input
+              className="w-full bg-transparent py-2 text-[13px] text-white outline-none placeholder:text-white/40"
+              placeholder="Search destinations"
+              aria-label="Search destinations"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          ))
-        )}
-      </div>
-    </>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <Empty title={`Nothing matches “${query.trim()}”`}>Try a different name.</Empty>
+      ) : (
+        <ul className="pt-1">
+          {filtered.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => void go(p.position)}
+                className="group flex w-full items-center gap-3 px-5 py-2 text-left hover:bg-white/[0.04] focus-visible:bg-white/[0.06] focus-visible:outline-none"
+              >
+                {p.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.image} alt="" className="h-11 w-11 shrink-0 rounded-[10px] object-cover" />
+                ) : (
+                  <span
+                    className="h-11 w-11 shrink-0 rounded-[10px]"
+                    style={{ background: placeGradient(p.slug || p.name) }}
+                  />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-white">{p.name}</span>
+                  {p.slug && <span className="block truncate text-[12px] text-white/40">{p.slug}</span>}
+                </span>
+                <span className="shrink-0 rounded-full bg-white/[0.08] px-3 py-1 text-[12px] font-medium text-white/85 group-hover:bg-white/[0.16] group-hover:text-white">
+                  Teleport
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

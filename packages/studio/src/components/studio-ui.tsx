@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { classes } from "../utils/classes";
 import { StudioScene } from "./studio-scene";
 import { GameDataProvider } from "../contexts/game-data-context";
@@ -19,7 +19,7 @@ import { TokenProvider } from "../contexts/token-context";
 import { useWorldToolsState } from "../hooks/use-world-tools-state";
 import logoSrc from "../assets/logo.png";
 
-function StudioUI_Child() {
+function StudioUI_Child({ headerActions }: { headerActions?: ReactNode }) {
   //
   const promptTip = usePromptTip();
 
@@ -142,6 +142,8 @@ function StudioUI_Child() {
             <SpriteIcon id="studio/layers" width={18} height={18} />
           </StudioButton>
 
+          {headerActions}
+
           <StudioButton
             title="Run the experience"
             onClick={() => {
@@ -209,13 +211,13 @@ function StudioUI_Child() {
   );
 }
 
-export function StudioUI({ game }) {
+export function StudioUI({ game, headerActions }: { game: any; headerActions?: ReactNode }) {
   return (
     <GameDataProvider gameData={game}>
       <EditoServiceProvider>
         <ContentTabProvider>
           <TokenProvider>
-            <StudioUI_Child />
+            <StudioUI_Child headerActions={headerActions} />
           </TokenProvider>
         </ContentTabProvider>
       </EditoServiceProvider>

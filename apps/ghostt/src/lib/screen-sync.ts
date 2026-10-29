@@ -38,6 +38,8 @@ export class ScreenSync {
   constructor(
     private readonly room: Room<any>,
     private readonly space: Space,
+    /** May the local player control this screen? Mirrors the server's check. */
+    private readonly mayControl: (controlGate: string | null) => boolean,
   ) {
     this.listen(
       room.onMessage(SCREEN_STATE_MESSAGE, (msg: ScreenStateMessage) => {
@@ -70,8 +72,8 @@ export class ScreenSync {
       if (!this.hooked.has(screen)) {
         this.hooked.add(screen);
         // Whoever loads a video first tells the server how long it is, so it can move on at the end.
-        screen.onDuration(({ index, duration }) => {
-          this.room.send(SCREEN_DURATION_MESSAGE, { screenId: id, index, duration } satisfies ScreenDurationMessage);
+        screen.onDuration(({ index, ad, duration }) => {
+          this.room.send(SCREEN_DURATION_MESSAGE, { screenId: id, index, ad, duration } satisfies ScreenDurationMessage);
         });
       }
 
@@ -80,6 +82,7 @@ export class ScreenSync {
       this.applied.set(screen, state);
       screen.applyPlayback({
         index: state.index,
+        ad: state.ad,
         playing: state.playing,
         position: state.position,
         at: state.at,
@@ -111,14 +114,17 @@ export class ScreenSync {
     setNearScreen({
       id,
       label: nearest.data.label || nearest.data.name || "Screen",
-      items: this.itemsOf(id, nearest),
+      items: this.itemsOf(id, nearest.playlist),
+      ads: this.itemsOf(`${id}#ads`, nearest.ads),
       state: this.states.get(id) ?? null,
+      canControl: this.mayControl(nearest.data.controlGate || null),
+      loadError: nearest.loadError,
     });
   }
 
   /** Stable list per playlist, so the UI doesn't re-render for nothing. */
-  private itemsOf(id: string, screen: VideoScreenComponent): NearScreen["items"] {
-    const items = screen.playlist.map((item, i) => ({ title: titleOf(item, i), url: item.url }));
+  private itemsOf(id: string, list: { title?: string; url: string }[]): NearScreen["items"] {
+    const items = list.map((item, i) => ({ title: titleOf(item, i), url: item.url }));
     const prev = this.nearItems.get(id);
     if (prev && prev.length === items.length && prev.every((p, i) => p.title === items[i].title && p.url === items[i].url)) {
       return prev;

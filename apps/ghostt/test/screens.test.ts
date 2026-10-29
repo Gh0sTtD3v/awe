@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  mayControlScreen,
+  advanceScreen,
   controlScreen,
   initialScreenState,
   msUntilEnd,
@@ -13,7 +15,7 @@ import {
 } from "../shared/screens";
 import { ScreenDirector } from "../server/screen-director";
 
-const def: ScreenDef = { id: "cinema", count: 3, autoPlay: false, loop: "all", volume: 0.5 };
+const def: ScreenDef = { id: "cinema", count: 3, adCount: 0, autoPlay: false, loop: "all", volume: 0.5, controlGate: null };
 
 function ok(result: ScreenState | { error: string }): ScreenState {
   if ("error" in result) throw new Error(result.error);
@@ -21,6 +23,14 @@ function ok(result: ScreenState | { error: string }): ScreenState {
 }
 
 describe("screen playback", () => {
+  it("decides who may control a screen", () => {
+    expect(mayControlScreen(null, false, {})).toBe(false);
+    expect(mayControlScreen(null, true, {})).toBe(true);
+    expect(mayControlScreen("everyone", false, {})).toBe(true);
+    expect(mayControlScreen("gate-1", false, { "gate-1": true })).toBe(true);
+    expect(mayControlScreen("gate-1", false, { "gate-2": true })).toBe(false);
+  });
+
   it("reads screens from scene components", () => {
     expect(
       screenFromComponent({
@@ -31,7 +41,7 @@ describe("screen playback", () => {
         loop: "one",
         volume: 3,
       }),
-    ).toEqual({ id: "s1", count: 2, autoPlay: true, loop: "one", volume: 1 });
+    ).toEqual({ id: "s1", count: 2, adCount: 0, autoPlay: true, loop: "one", volume: 1, controlGate: null });
     expect(screenFromComponent({ id: "v", type: "video" })).toBeNull();
   });
 
@@ -72,11 +82,12 @@ describe("screen playback", () => {
 
   it("accepts only the first plausible duration for the current video", () => {
     const s = ok(controlScreen(initialScreenState(def, 0), def, { action: "select", index: 1 }, 0));
-    expect(withDuration(s, 0, 10)).toBeNull(); // another video
-    expect(withDuration(s, 1, -1)).toBeNull();
-    const withLength = withDuration(s, 1, 10)!;
+    expect(withDuration(s, 0, -1, 10)).toBeNull(); // another video
+    expect(withDuration(s, 1, -1, -1)).toBeNull();
+    expect(withDuration(s, 1, 0, 10)).toBeNull(); // an ad, but none is playing
+    const withLength = withDuration(s, 1, -1, 10)!;
     expect(withLength.duration).toBe(10);
-    expect(withDuration(withLength, 1, 2)).toBeNull();
+    expect(withDuration(withLength, 1, -1, 2)).toBeNull();
     expect(msUntilEnd(withLength, 4000)).toBe(6000);
     expect(msUntilEnd({ ...withLength, loop: "one" }, 4000)).toBeNull();
   });
@@ -101,6 +112,37 @@ describe("screen playback", () => {
   });
 });
 
+describe("ads", () => {
+  const withAds: ScreenDef = { ...def, adCount: 2 };
+
+  it("plays an ad before every video, taking turns", () => {
+    let s = ok(controlScreen(initialScreenState(withAds, 0), withAds, { action: "select", index: 1 }, 0));
+    expect(s).toMatchObject({ index: 1, ad: 0, playing: true });
+
+    s = withDuration(s, 1, 0, 15)!;
+    s = advanceScreen(s, withAds, 15_000); // ad over → the video, from the top
+    expect(s).toMatchObject({ index: 1, ad: -1, position: 0, duration: 0 });
+
+    s = withDuration(s, 1, -1, 60)!;
+    s = advanceScreen(s, withAds, 75_000); // video over → next video, with the next ad
+    expect(s).toMatchObject({ index: 2, ad: 1 });
+  });
+
+  it("won't skip an ad, and queues a new pick behind it", () => {
+    let s = ok(controlScreen(initialScreenState(withAds, 0), withAds, { action: "select", index: 0 }, 0));
+    expect(controlScreen(s, withAds, { action: "seek", time: 30 }, 1000)).toEqual({ error: "Ads can't be skipped." });
+
+    s = ok(controlScreen(s, withAds, { action: "next" }, 2000));
+    expect(s).toMatchObject({ index: 1, ad: 0, at: 0 }); // same ad, still running
+  });
+
+  it("reads ads and the control gate from the scene", () => {
+    expect(
+      screenFromComponent({ id: "tv", type: "video-screen", playlist: [], ads: [{ url: "ad.mp4" }], controlGate: "gate-7" }),
+    ).toMatchObject({ adCount: 1, controlGate: "gate-7" });
+  });
+});
+
 describe("ScreenDirector", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
@@ -115,11 +157,11 @@ describe("ScreenDirector", () => {
     director.setDefs([def]);
 
     director.control("cinema", { action: "select", index: 2 });
-    director.reportDuration("cinema", 2, 5);
+    director.reportDuration("cinema", 2, -1, 5);
     vi.advanceTimersByTime(5000);
     expect(director.get("cinema")).toMatchObject({ index: 0, playing: true, duration: 0 });
 
-    director.reportDuration("cinema", 0, 2);
+    director.reportDuration("cinema", 0, -1, 2);
     director.control("cinema", { action: "loop", loop: "off" });
     vi.advanceTimersByTime(2000);
     expect(director.get("cinema")).toMatchObject({ index: 0, playing: false, position: 2 });
@@ -132,7 +174,7 @@ describe("ScreenDirector", () => {
     const director = new ScreenDirector(() => {}, () => Date.now());
     director.setDefs([def]);
     director.control("cinema", { action: "select", index: 0 });
-    director.reportDuration("cinema", 0, 5);
+    director.reportDuration("cinema", 0, -1, 5);
     vi.advanceTimersByTime(2000);
     director.control("cinema", { action: "pause" });
     vi.advanceTimersByTime(10_000);

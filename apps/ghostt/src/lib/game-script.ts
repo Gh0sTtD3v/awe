@@ -28,15 +28,18 @@ import {
   setPlayers,
   setChunk,
   openInfo,
+  infoStore,
   showGateNotice,
   setSelfAccess,
   setRemoved,
   showModMessage,
+  setNearLift,
   type PlayerInfo,
 } from "@/lib/info-store";
 import { getAccessToken } from "@/lib/auth-bridge";
 import { ScreenSync } from "@/lib/screen-sync";
 import { VoiceClient } from "@/lib/voice-client";
+import { ChatBubbles } from "@/lib/chat-bubbles";
 import { connectToRoom, disconnectFromRoom } from "@/multiplayer/client";
 import {
   createPlayersReplica,
@@ -54,6 +57,7 @@ import {
   MOD_BAN_MESSAGE,
   MOD_KICK_MESSAGE,
   MOD_MUTE_MESSAGE,
+  VOICE_BROADCAST_MESSAGE,
   MOD_RESULT_MESSAGE,
   PLAYER_UPDATE_MESSAGE,
   type AccessSelfMessage,
@@ -61,10 +65,19 @@ import {
   type GateAccessMessage,
   type GateDeniedMessage,
   type ModResultMessage,
+  CHAT_MESSAGE,
+  CHAT_REFUSED_MESSAGE,
+  CHAT_ROOM_MESSAGE,
+  CHAT_SEND_MESSAGE,
+  type ChatMessage,
+  type ChatRefusedMessage,
+  type ChatRoomMessage,
 } from "../../shared/messages";
-import { describeRequirement, gateFromComponent } from "../../shared/gates";
+import { addChatMessage, setChatError, setChatRoom } from "./chat-store";
+import { describeRequirement, gateFromComponent, pointInGate } from "../../shared/gates";
+import { floorsOf, liftAt, liftFromComponent, type LiftDef } from "../../shared/lifts";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
-import type { ScreenAction } from "../../shared/screens";
+import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
 // --- Input definitions ---
 const GAMEPLAY_INPUTS = {
@@ -180,12 +193,19 @@ export function getScript(): GameScript | null {
   return scriptInstance;
 }
 
+/** `?previewRole=<id>`, set by the studio's "preview as role" buttons. */
+export function previewRoleFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("previewRole") || null;
+}
+
 // How often (ms) to push player/chunk snapshots to the info UI store.
 const INFO_SYNC_INTERVAL = 200;
 
-// The local fallback and the server denial both fire for the same intrusion;
-// only act on the first.
-const GATE_EXIT_COOLDOWN = 1000;
+// After landing at an exit, server denials for positions sent before the
+// teleport can still be in flight. Ignore those for this long; walking back
+// into the gate is still caught at once by the local sensor.
+const GATE_DENIAL_GRACE = 400;
 
 export class GameScript {
   private space: Space | null = null;
@@ -199,12 +219,15 @@ export class GameScript {
   private timeSinceInfoSync = 0;
   private screenSync: ScreenSync | null = null;
   private voice: VoiceClient | null = null;
+  private chatBubbles: ChatBubbles | null = null;
 
   /** gateId → may enter, as decided by the server. Missing means no. */
   private gateAccess: Record<string, boolean> = {};
   /** Members-only chunks by key → may enter. Missing = public. */
   private chunkAccess: Record<string, boolean> = {};
-  private lastGateExitAt = 0;
+  /** True while we're being moved out of a gate or members-only chunk. */
+  private leavingRestricted = false;
+  private leftRestrictedAt = -Infinity;
 
   // Control primitives
   private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
@@ -233,7 +256,7 @@ export class GameScript {
 
       let room: Room<any>;
       try {
-        room = await connectToRoom(await getAccessToken());
+        room = await connectToRoom(await getAccessToken(), previewRoleFromUrl());
       } catch (err: any) {
         if (err?.code === BANNED_CLOSE_CODE) setRemoved("You are banned from this world.");
         throw err;
@@ -247,7 +270,7 @@ export class GameScript {
         this.applyGateDoors();
       });
       room.onMessage(GATE_DENIED_MESSAGE, (msg: GateDeniedMessage) => {
-        void this.leaveGate(msg.exit, msg.label, msg.requirement);
+        void this.leaveGate(msg.exit, msg.label, msg.requirement, "server");
       });
 
       // Roles: what we may do, and members-only chunks we were turned away from.
@@ -257,23 +280,37 @@ export class GameScript {
           isOwner: msg.isOwner,
           permissions: msg.permissions ?? [],
           rolePosition: msg.rolePosition ?? 0,
+          preview: msg.preview ?? null,
         });
         this.voice?.setCanSpeak((msg.permissions ?? []).includes("speak"));
       });
       room.onMessage(CHUNK_DENIED_MESSAGE, (msg: ChunkDeniedMessage) => {
         this.chunkAccess[msg.chunkKey] = false;
-        void this.leaveRestricted(msg.exit, msg.title, msg.roles.join(", "), "chunk");
+        void this.leaveRestricted(msg.exit, msg.title, msg.roles.join(", "), "chunk", "server");
       });
       room.onMessage(MOD_RESULT_MESSAGE, (msg: ModResultMessage) => {
         showModMessage(msg.ok ? "Done." : (msg.error ?? "Refused."));
       });
+
+      // Text chat: only what arrives while we're here. Nothing is fetched or kept.
+      // ...and a bubble over the speaker's head.
+      this.chatBubbles = new ChatBubbles(this.space);
+      room.onMessage(CHAT_MESSAGE, (msg: ChatMessage) => {
+        addChatMessage(msg);
+        this.chatBubbles?.show(msg);
+      });
+      room.onMessage(CHAT_ROOM_MESSAGE, (msg: ChatRoomMessage) => setChatRoom(msg.room));
+      room.onMessage(CHAT_REFUSED_MESSAGE, (msg: ChatRefusedMessage) => setChatError(msg.error));
       room.onLeave((code: number) => {
         if (code === KICKED_CLOSE_CODE) setRemoved("You were removed by a moderator.");
         if (code === BANNED_CLOSE_CODE) setRemoved("You are banned from this world.");
       });
 
       // Video screens follow the playback the server shares.
-      this.screenSync = new ScreenSync(room, this.space);
+      this.screenSync = new ScreenSync(room, this.space, (gate) => {
+        const perms = infoStore.state.self?.permissions ?? [];
+        return mayControlScreen(gate, perms.includes("control_screens"), this.gateAccess);
+      });
       // Proximity voice: the server pairs nearby players, audio goes peer to peer.
       this.voice = new VoiceClient(room, this.space);
 
@@ -389,9 +426,17 @@ export class GameScript {
 
           const gate = gateFromComponent(this.space?.components.byId(gateId)?.data);
           if (!gate) return;
-          void this.leaveGate(gate.exit, gate.label, describeRequirement(gate.requirement));
+          void this.leaveGate(gate.exit, gate.label, describeRequirement(gate.requirement), "local");
         },
       );
+
+      // Keep the intro up until the chunk we spawn in has streamed in, so the
+      // world doesn't build itself in front of the player.
+      const chunks = this.space.chunks;
+      if (chunks) {
+        const p = playerAvatar.position;
+        await chunks.loadChunk(posToChunkKey({ x: p.x, y: p.y, z: p.z }));
+      }
 
       await reveal();
     } catch (error) {
@@ -405,6 +450,8 @@ export class GameScript {
     this.screenSync?.dispose();
     this.screenSync = null;
     this.voice?.dispose();
+    this.chatBubbles?.dispose();
+    this.chatBubbles = null;
     this.voice = null;
     this.playersReplica?.dispose();
     this.playersReplica = null;
@@ -506,6 +553,7 @@ export class GameScript {
   // Called every frame when game is running (via space.use)
   onUpdate = (dt: number) => {
     this.playersReplica?.update(dt);
+    this.chatBubbles?.update(dt);
     this.broadcastLocalPlayerState(dt);
     this.syncInfoState(dt);
   };
@@ -526,12 +574,15 @@ export class GameScript {
           y: p.y,
           z: p.z,
           isLocal: sessionId === localId,
+          name: p.name ?? "",
+          avatar: p.avatar ?? "",
           roleId: p.roleId ?? "everyone",
           roleName: p.roleName ?? "",
           roleColor: p.roleColor ?? "",
           rolePosition: p.rolePosition ?? 0,
           inVoice: !!p.inVoice,
           voiceMuted: !!p.voiceMuted,
+          broadcasting: !!p.broadcasting,
         });
       });
       setPlayers(players);
@@ -546,6 +597,59 @@ export class GameScript {
 
     // ...and screens: pick up new ones, and find the one the player is at.
     this.screenSync?.update(this.localPlayerAvatar?.position ?? null);
+
+    this.updateNearLift();
+  }
+
+  /** Lift boxes in the loaded chunks. */
+  private lifts(): LiftDef[] {
+    const out: LiftDef[] = [];
+    for (const c of this.space?.components.byType("lift") ?? []) {
+      const lift = liftFromComponent(c.data);
+      if (lift) out.push(lift);
+    }
+    return out;
+  }
+
+  /** Which lift box the player stands in, and which of its floors they may go to. */
+  private updateNearLift(): void {
+    const pos = this.localPlayerAvatar?.position;
+    const lifts = pos ? this.lifts() : [];
+    const here = pos ? liftAt(lifts, pos) : null;
+    if (!here) return setNearLift(null);
+
+    const gates = (this.space?.components.byType("token-gate") ?? [])
+      .map((c) => gateFromComponent(c.data))
+      .filter((g) => g != null);
+
+    setNearLift({
+      id: here.id,
+      group: here.group,
+      floor: here.floor,
+      label: here.label,
+      floors: floorsOf(lifts, here.group).map((lift) => {
+        // The current floor is always reachable: the player is standing on it.
+        const gate =
+          lift.id === here.id
+            ? undefined
+            : gates.find((g) => this.gateAccess[g.id] !== true && pointInGate(g, lift.arrival));
+        const chunkLocked = lift.id !== here.id && this.chunkAccess[posToChunkKey(lift.arrival)] === false;
+        return {
+          id: lift.id,
+          floor: lift.floor,
+          label: lift.label,
+          locked: !!gate || chunkLocked,
+          lockReason: gate ? describeRequirement(gate.requirement) : chunkLocked ? "Members only" : "",
+        };
+      }),
+    });
+  }
+
+  /** Take the lift to another floor: arrive at the bottom centre of its box. */
+  async rideLift(liftId: string): Promise<boolean> {
+    const lift = this.lifts().find((l) => l.id === liftId);
+    if (!lift) return false;
+    return this.travelTo(lift.arrival);
   }
 
   /**
@@ -576,8 +680,9 @@ export class GameScript {
     exit: { x: number; y: number; z: number },
     label: string,
     requirement: string,
+    source: "local" | "server",
   ): Promise<void> {
-    return this.leaveRestricted(exit, label, requirement, "gate");
+    return this.leaveRestricted(exit, label, requirement, "gate", source);
   }
 
   /** Show why, and go back to `exit` (if known) — gates and members-only chunks alike. */
@@ -586,13 +691,21 @@ export class GameScript {
     label: string,
     requirement: string,
     kind: "gate" | "chunk",
+    source: "local" | "server",
   ): Promise<void> {
-    const now = performance.now();
-    if (now - this.lastGateExitAt < GATE_EXIT_COOLDOWN) return;
-    this.lastGateExitAt = now;
+    // Already on the way out: the local sensor and the server both report
+    // the same intrusion.
+    if (this.leavingRestricted) return;
+    if (source === "server" && performance.now() - this.leftRestrictedAt < GATE_DENIAL_GRACE) return;
 
-    showGateNotice(label, requirement, kind);
-    if (exit) await this.travelTo(exit);
+    this.leavingRestricted = true;
+    try {
+      showGateNotice(label, requirement, kind);
+      if (exit) await this.travelTo(exit);
+    } finally {
+      this.leavingRestricted = false;
+      this.leftRestrictedAt = performance.now();
+    }
   }
 
   /** Moderation: the server checks permission and rank and replies with `mod:result`. */
@@ -613,9 +726,19 @@ export class GameScript {
     this.voice?.leave();
   }
 
+  /** Go live to everyone in the chunk, or stop. The server checks Broadcast Voice. */
+  setBroadcast(on: boolean): void {
+    this.room?.send(VOICE_BROADCAST_MESSAGE, { on });
+  }
+
   /** Moderation: silence a lower-ranked player in voice for everyone. The server checks. */
   mutePlayer(sessionId: string, muted: boolean): void {
     this.room?.send(MOD_MUTE_MESSAGE, { sessionId, muted });
+  }
+
+  /** Text chat: say something in `world` or the current room. The server checks Send Messages. */
+  sendChat(channel: string, text: string): void {
+    this.room?.send(CHAT_SEND_MESSAGE, { channel, text });
   }
 
   /** Video screens: the server checks Control Screens and shares the result with everyone. */

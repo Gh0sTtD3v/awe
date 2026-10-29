@@ -18,7 +18,7 @@ const childCategoryItems = [
   },
 ];
 
-const ITEM_TYPES = new Set(["terrain", "text", "portal", "token-gate", "video-screen"]);
+const ITEM_TYPES = new Set(["terrain", "text", "portal", "token-gate", "chat-zone", "lift", "video-screen"]);
 
 export default function Official({ width }) {
   //

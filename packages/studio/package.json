@@ -8,7 +8,8 @@
     "./styles": "./src/ui/styles/global.css",
     "./scene-events-route": "./src/scene-events-route.ts",
     "./keplr-routes": "./src/keplr-routes.ts",
-    "./server-gating": "./src/server-gating.ts"
+    "./server-gating": "./src/server-gating.ts",
+    "./profile-routes": "./src/profile-routes.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",

@@ -6,7 +6,7 @@ import { getScript } from "../lib/game-script";
 import { infoStore, setScreenPanelOpen, type NearScreen } from "../lib/info-store";
 import type { ScreenAction, ScreenLoop } from "../../shared/screens";
 
-const TOGGLE_KEY = "KeyV";
+const TOGGLE_KEY = "KeyE";
 
 const LOOP_NEXT: Record<ScreenLoop, ScreenLoop> = { all: "one", one: "off", off: "all" };
 const LOOP_LABEL: Record<ScreenLoop, string> = {
@@ -36,13 +36,14 @@ function send(screenId: string, action: ScreenAction) {
 }
 
 /**
- * Near a video screen: what's playing, and — for players with Control
- * Screens — a panel (V) to pick videos, play, pause, seek and set the volume
- * for everyone.
+ * Near a video screen: what's playing, and — for players who may control
+ * that screen (Control Screens, or access to its apartment's gate) — a panel
+ * (E) to pick videos, play, pause, seek and set the volume for everyone.
+ * Each screen has its own playlist; the panel is for the one you stand at.
  */
 export function ScreenControls() {
-  const { nearScreen, screenPanelOpen, self } = useStore(infoStore);
-  const canControl = !!self?.permissions.includes("control_screens");
+  const { nearScreen, screenPanelOpen } = useStore(infoStore);
+  const canControl = !!nearScreen?.canControl;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,7 +51,7 @@ export function ScreenControls() {
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
       if (e.code === "Escape") return setScreenPanelOpen(false);
       if (e.code !== TOGGLE_KEY || !infoStore.state.nearScreen) return;
-      if (!infoStore.state.self?.permissions.includes("control_screens")) return;
+      if (!infoStore.state.nearScreen?.canControl) return;
 
       const open = !infoStore.state.screenPanelOpen;
       setScreenPanelOpen(open);
@@ -65,15 +66,27 @@ export function ScreenControls() {
   return <NowPlaying screen={nearScreen} canControl={canControl} />;
 }
 
+/** What's on screen: the ad, or the video. */
+function onScreen(screen: NearScreen) {
+  const state = screen.state;
+  if (!state || state.index < 0) return null;
+  if (state.ad >= 0 && screen.ads[state.ad]) return { title: screen.ads[state.ad].title, isAd: true };
+  const item = screen.items[state.index];
+  return item ? { title: item.title, isAd: false } : null;
+}
+
 function NowPlaying({ screen, canControl }: { screen: NearScreen; canControl: boolean }) {
-  const current = screen.state && screen.state.index >= 0 ? screen.items[screen.state.index] : null;
+  const current = onScreen(screen);
   if (!current && !canControl) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-xl bg-black/70 px-4 py-2 text-sm text-white/90 backdrop-blur-sm">
-      {current && (
+      {current && screen.loadError && <span className="text-red-300">Can't load this video</span>}
+      {current && !screen.loadError && (
         <span className="max-w-[16rem] truncate">
-          <span className="text-white/50">{screen.state?.playing ? "Now playing" : "Paused"} · </span>
+          <span className="text-white/50">
+            {current.isAd ? "Ad" : screen.state?.playing ? "Now playing" : "Paused"} ·{" "}
+          </span>
           {current.title}
         </span>
       )}
@@ -83,9 +96,10 @@ function NowPlaying({ screen, canControl }: { screen: NearScreen; canControl: bo
             setScreenPanelOpen(true);
             releasePointer();
           }}
-          className="flex items-center gap-1.5 rounded-md border border-white/20 px-2 py-0.5 text-xs hover:bg-white/10"
+          title={`Control ${screen.label}`}
+          className="rounded-md border border-white/20 px-2 py-0.5 text-xs hover:bg-white/10"
         >
-          <kbd className="font-mono font-bold">V</kbd> Screen controls
+          <kbd className="font-mono font-bold">E</kbd>
         </button>
       )}
     </div>
@@ -96,8 +110,16 @@ function Panel({ screen }: { screen: NearScreen }) {
   const state = screen.state;
   const loaded = !!state && state.index >= 0 && state.index < screen.items.length;
   const playing = loaded && state.playing;
+  const current = onScreen(screen);
+  const isAd = !!current?.isAd;
   const [time, setTime] = useState({ time: 0, duration: 0 });
+  // While dragging, and after release until the server's new position arrives.
   const [scrub, setScrub] = useState<number | null>(null);
+  const [scrubbing, setScrubbing] = useState(false);
+
+  useEffect(() => {
+    if (!scrubbing) setScrub(null);
+  }, [state, scrubbing]);
 
   useEffect(() => {
     const tick = () => setTime(getScript()?.screenTime(screen.id) ?? { time: 0, duration: 0 });
@@ -108,6 +130,11 @@ function Panel({ screen }: { screen: NearScreen }) {
 
   const act = (action: ScreenAction) => send(screen.id, action);
   const shown = scrub ?? time.time;
+  const commitSeek = () => {
+    if (!scrubbing) return;
+    setScrubbing(false);
+    if (scrub != null) act({ action: "seek", time: scrub });
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-2xl border border-white/10 bg-[rgba(18,19,27,0.92)] p-4 text-sm text-white/90 shadow-xl backdrop-blur-sm">
@@ -118,8 +145,25 @@ function Panel({ screen }: { screen: NearScreen }) {
         </button>
       </div>
 
+      {screen.loadError && (
+        <p className="rounded-lg bg-red-500/20 px-3 py-2 text-xs text-red-200">
+          This video can't be loaded. The link may be dead, or its server doesn't allow playback from other sites.
+          Upload the file in the studio instead.
+        </p>
+      )}
+
       <div className="truncate text-white/70">
-        {loaded ? screen.items[state.index].title : "Nothing selected"}
+        {isAd ? (
+          <>
+            <span className="mr-1 rounded bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-bold text-black">AD</span>
+            {current!.title}
+            <span className="block text-xs text-white/50">Up next: {screen.items[state!.index]?.title}</span>
+          </>
+        ) : loaded ? (
+          screen.items[state.index].title
+        ) : (
+          "Nothing selected"
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -129,16 +173,17 @@ function Panel({ screen }: { screen: NearScreen }) {
           max={time.duration || 1}
           step={0.1}
           value={Math.min(shown, time.duration || 1)}
-          disabled={!loaded || !time.duration}
-          onChange={(e) => setScrub(parseFloat(e.target.value))}
-          onPointerUp={() => {
-            if (scrub != null) act({ action: "seek", time: scrub });
-            setScrub(null);
+          disabled={!loaded || !time.duration || isAd}
+          title={isAd ? "Ads can't be skipped" : !time.duration ? "Waiting for the video to load" : undefined}
+          onPointerDown={() => setScrubbing(true)}
+          onChange={(e) => {
+            setScrubbing(true);
+            setScrub(parseFloat(e.target.value));
           }}
-          onKeyUp={() => {
-            if (scrub != null) act({ action: "seek", time: scrub });
-            setScrub(null);
-          }}
+          onPointerUp={commitSeek}
+          onLostPointerCapture={commitSeek}
+          onKeyUp={commitSeek}
+          onBlur={commitSeek}
           className="w-full accent-blue-500"
         />
         <div className="flex justify-between text-xs text-white/50">

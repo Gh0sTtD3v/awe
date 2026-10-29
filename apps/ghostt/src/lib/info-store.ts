@@ -10,6 +10,10 @@ export interface PlayerInfo {
   y: number;
   z: number;
   isLocal: boolean;
+  /** Profile username; empty when signed out or not set. */
+  name: string;
+  /** Profile picture URL, or empty. */
+  avatar: string;
   /** Highest role; `roleName` is empty for players with only `everyone`. */
   roleId: string;
   roleName: string;
@@ -19,6 +23,8 @@ export interface PlayerInfo {
   inVoice: boolean;
   /** Silenced in voice by a moderator. */
   voiceMuted: boolean;
+  /** Live to their chunk (Broadcast Voice). */
+  broadcasting: boolean;
 }
 
 /** What the local player may do, as the server resolved it. */
@@ -26,6 +32,28 @@ export interface SelfAccess {
   isOwner: boolean;
   permissions: string[];
   rolePosition: number;
+  /** The role an admin is previewing the world as, if any. */
+  preview: { roleId: string; name: string; color: string } | null;
+}
+
+/** The lift box the local player is standing in, and that lift's floors. */
+export interface NearLift {
+  id: string;
+  group: string;
+  floor: number;
+  label: string;
+  /** Highest first, including the current floor. */
+  floors: LiftFloor[];
+}
+
+export interface LiftFloor {
+  id: string;
+  floor: number;
+  label: string;
+  /** Behind a token gate or members-only chunk this player may not enter. */
+  locked: boolean;
+  /** Why it's locked, e.g. "≥ 100 ROIDS". */
+  lockReason: string;
 }
 
 /** The video screen the local player is standing at. */
@@ -33,8 +61,13 @@ export interface NearScreen {
   id: string;
   label: string;
   items: { title: string; url: string }[];
+  ads: { title: string; url: string }[];
   /** Shared playback, with `at` on this client's clock. Null until the server sends it. */
   state: ScreenState | null;
+  /** Control Screens, or access to the screen's token gate. The server re-checks. */
+  canControl: boolean;
+  /** The video on screen couldn't be loaded here. */
+  loadError: boolean;
 }
 
 export interface ChunkInfo {
@@ -63,6 +96,8 @@ export interface InfoState {
   modMessage: { text: string; at: number } | null;
   nearScreen: NearScreen | null;
   screenPanelOpen: boolean;
+  nearLift: NearLift | null;
+  liftPanelOpen: boolean;
 }
 
 export interface GateNotice {
@@ -89,6 +124,8 @@ export const infoStore = new Store<InfoState>({
   modMessage: null,
   nearScreen: null,
   screenPanelOpen: false,
+  nearLift: null,
+  liftPanelOpen: false,
 });
 
 export function openInfo(tab?: InfoTab) {
@@ -125,12 +162,15 @@ function samePlayers(a: PlayerInfo[], b: PlayerInfo[]) {
       p.y === q.y &&
       p.z === q.z &&
       p.isLocal === q.isLocal &&
+      p.name === q.name &&
+      p.avatar === q.avatar &&
       p.roleId === q.roleId &&
       p.roleName === q.roleName &&
       p.roleColor === q.roleColor &&
       p.rolePosition === q.rolePosition &&
       p.inVoice === q.inVoice &&
-      p.voiceMuted === q.voiceMuted
+      p.voiceMuted === q.voiceMuted &&
+      p.broadcasting === q.broadcasting
     );
   });
 }
@@ -192,20 +232,45 @@ export function setNearScreen(nearScreen: NearScreen | null) {
       prev.id === nearScreen.id &&
       prev.label === nearScreen.label &&
       prev.state === nearScreen.state &&
-      prev.items.length === nearScreen.items.length &&
-      prev.items.every((it, i) => it.title === nearScreen.items[i].title && it.url === nearScreen.items[i].url))
+      prev.canControl === nearScreen.canControl &&
+      prev.loadError === nearScreen.loadError &&
+      prev.items === nearScreen.items &&
+      prev.ads === nearScreen.ads)
   ) {
     return;
   }
   infoStore.update((s) => ({
     ...s,
     nearScreen,
-    // Walking away closes the controls.
-    screenPanelOpen: nearScreen ? s.screenPanelOpen : false,
+    // Walking away, or over to another screen, closes the controls.
+    screenPanelOpen: nearScreen && prev && prev.id === nearScreen.id ? s.screenPanelOpen : false,
   }));
 }
 
 export function setScreenPanelOpen(screenPanelOpen: boolean) {
   if (infoStore.state.screenPanelOpen === screenPanelOpen) return;
   infoStore.update({ screenPanelOpen });
+}
+
+function liftKey(lift: NearLift | null): string {
+  if (!lift) return "";
+  const floors = lift.floors.map((f) => `${f.id}:${f.floor}:${f.label}:${f.locked}:${f.lockReason}`);
+  return `${lift.id}|${lift.group}|${lift.floor}|${lift.label}|${floors.join(",")}`;
+}
+
+/** Polled from the game loop; only notifies when the lift or its floors changed. */
+export function setNearLift(nearLift: NearLift | null) {
+  const prev = infoStore.state.nearLift;
+  if (liftKey(prev) === liftKey(nearLift)) return;
+  infoStore.update((s) => ({
+    ...s,
+    nearLift,
+    // Stepping out, or arriving at another floor, closes the panel.
+    liftPanelOpen: nearLift && prev && prev.id === nearLift.id ? s.liftPanelOpen : false,
+  }));
+}
+
+export function setLiftPanelOpen(liftPanelOpen: boolean) {
+  if (infoStore.state.liftPanelOpen === liftPanelOpen) return;
+  infoStore.update({ liftPanelOpen });
 }

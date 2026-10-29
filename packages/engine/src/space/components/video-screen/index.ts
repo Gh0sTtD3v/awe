@@ -27,6 +27,8 @@ export class VideoScreenComponentFactory extends DefaultComponentFactory<VideoSc
 			scale: { x: 16 / 9 * 3, y: 3, z: 1 },
 			label: "",
 			playlist: [],
+			ads: [],
+			controlGate: "",
 			autoPlay: false,
 			loop: "all",
 			volume: 0.75,

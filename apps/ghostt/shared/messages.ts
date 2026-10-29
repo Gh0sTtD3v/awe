@@ -71,6 +71,15 @@ export interface AccessSelfMessage {
   rolePosition: number;
   /** Restricted chunks only, by key. A chunk missing here is open to all. */
   chunks: Record<string, boolean>;
+  /** Set while an admin previews the world as one role; null otherwise. */
+  preview: RolePreview | null;
+}
+
+/** The role an admin is previewing the world as. */
+export interface RolePreview {
+  roleId: string;
+  name: string;
+  color: string;
 }
 
 /** Server → client: a position inside a members-only chunk was refused. */
@@ -119,7 +128,10 @@ export interface ScreenStateMessage {
   serverNow: number;
 }
 
-/** Client → server: control a screen (needs Control Screens). See `parseScreenControl`. */
+/**
+ * Client → server: control a screen. Needs Control Screens, or access to the
+ * screen's control gate (its apartment). See `parseScreenControl`.
+ */
 export const SCREEN_CONTROL_MESSAGE = "screen:control";
 
 /** Client → server: the length of the video a screen loaded. Anyone may report it. */
@@ -128,13 +140,15 @@ export const SCREEN_DURATION_MESSAGE = "screen:duration";
 export interface ScreenDurationMessage {
   screenId: string;
   index: number;
+  /** Ad index, or -1 for the video itself. */
+  ad: number;
   duration: number;
 }
 
 export function isScreenDurationMessage(value: unknown): value is ScreenDurationMessage {
   if (value == null || typeof value !== "object") return false;
   const v = value as ScreenDurationMessage;
-  return typeof v.screenId === "string" && Number.isInteger(v.index) && Number.isFinite(v.duration);
+  return typeof v.screenId === "string" && Number.isInteger(v.index) && Number.isInteger(v.ad) && Number.isFinite(v.duration);
 }
 
 /** Server → client: why a screen control was refused. */
@@ -163,6 +177,17 @@ export interface VoiceJoinMessage {
 
 export function isVoiceJoinMessage(value: unknown): value is VoiceJoinMessage {
   return value != null && typeof value === "object" && typeof (value as VoiceJoinMessage).on === "boolean";
+}
+
+/** Client → server: a player with Broadcast Voice goes live to their chunk, or stops. */
+export const VOICE_BROADCAST_MESSAGE = "voice:broadcast";
+
+export interface VoiceBroadcastMessage {
+  on: boolean;
+}
+
+export function isVoiceBroadcastMessage(value: unknown): value is VoiceBroadcastMessage {
+  return value != null && typeof value === "object" && typeof (value as VoiceBroadcastMessage).on === "boolean";
 }
 
 /** Server → client: the full list of players this client should be connected to. */
@@ -198,6 +223,63 @@ export interface ModMuteMessage {
 
 export function isModMuteMessage(value: unknown): value is ModMuteMessage {
   return isModActionMessage(value) && typeof (value as ModMuteMessage).muted === "boolean";
+}
+
+// ── Text chat ────────────────────────────────────────────────────────────────
+
+/** Longest chat message, in characters. Longer text is cut. */
+export const CHAT_MAX_LENGTH = 300;
+
+/** Client → server: say something in `world` or the room the player is in. */
+export const CHAT_SEND_MESSAGE = "chat:send";
+
+export interface ChatSendMessage {
+  channel: string;
+  text: string;
+}
+
+export function isChatSendMessage(value: unknown): value is ChatSendMessage {
+  if (value == null || typeof value !== "object") return false;
+  const { channel, text } = value as ChatSendMessage;
+  return typeof channel === "string" && channel.length <= 200 && typeof text === "string" && text.length <= 2000;
+}
+
+/** Server → client: a message, sent only to players in its channel. Never stored. */
+export const CHAT_MESSAGE = "chat:message";
+
+export interface ChatMessage {
+  id: number;
+  channel: string;
+  sessionId: string;
+  /** From the sender's profile, as the server knows it. */
+  name: string;
+  avatar: string;
+  roleColor: string;
+  text: string;
+  at: number;
+}
+
+/** Server → client: why a message wasn't sent. */
+export const CHAT_REFUSED_MESSAGE = "chat:refused";
+
+export interface ChatRefusedMessage {
+  error: string;
+}
+
+/** Server → client: the room this player is standing in now, or null for none. */
+export const CHAT_ROOM_MESSAGE = "chat:room";
+
+export interface ChatRoomMessage {
+  room: { channel: string; label: string } | null;
+}
+
+/** Control characters and invisible direction/zero-width marks. */
+// eslint-disable-next-line no-control-regex
+const CHAT_STRIP = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩]/g;
+
+/** Chat text as it is sent: control characters removed, trimmed, cut to length. */
+export function cleanChatText(raw: string): string {
+  return raw.replace(CHAT_STRIP, "").trim().slice(0, CHAT_MAX_LENGTH).trim();
 }
 
 /** Close codes for players removed by moderation. */

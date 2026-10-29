@@ -15,18 +15,21 @@ export interface Subject {
   userId: string | null;
   /** The Keplr address linked to `userId`, if any. */
   cosmosAddress: string | null;
+  /** Ethereum wallets linked to `userId`. */
+  evmAddresses?: string[];
 }
 
 /** Cosmos addresses are case-insensitive bech32; store them lowercase. DIDs are kept as-is. */
 export function normalizeSubject(subject: string): string {
   const trimmed = subject.trim();
-  return /^cosmos1/i.test(trimmed) ? trimmed.toLowerCase() : trimmed;
+  return /^(cosmos1|0x)/i.test(trimmed) ? trimmed.toLowerCase() : trimmed;
 }
 
 function subjectsOf(subject: Subject): string[] {
   const out: string[] = [];
   if (subject.userId) out.push(normalizeSubject(subject.userId));
   if (subject.cosmosAddress) out.push(normalizeSubject(subject.cosmosAddress));
+  for (const address of subject.evmAddresses ?? []) out.push(normalizeSubject(address));
   return out;
 }
 
@@ -84,6 +87,18 @@ export function resolveAccess(
   };
 }
 
+/**
+ * Access as a member holding only `roleId` (plus `everyone`), for an admin's
+ * "preview as role". An unknown role previews as `everyone` alone.
+ */
+export function previewAccess(roleId: string, data: AccessData): ResolvedAccess {
+  return resolveAccess(
+    { userId: "preview", cosmosAddress: null },
+    { ...data, members: [{ subject: "preview", roleIds: [roleId], addedAt: 0 }] },
+    null,
+  );
+}
+
 export function hasPermission(access: ResolvedAccess, permission: Permission): boolean {
   return access.permissions.includes(permission);
 }
@@ -101,14 +116,14 @@ export function resolveMember(subject: string, data: AccessData, ownerId: string
 
 // ── Defaults & normalisation ────────────────────────────────────────────────
 
-export function everyoneRole(permissions: Role["permissions"] = { speak: true }): Role {
+export function everyoneRole(permissions: Role["permissions"] = { speak: true, send_messages: true }): Role {
   return { id: EVERYONE_ROLE_ID, name: "everyone", color: "#99aab5", position: 0, permissions };
 }
 
 /** The starting point for a new world. Everything but `everyone` is deletable. */
 export function defaultAccessData(): AccessData {
   return normalizeAccessData({
-    version: 1,
+    version: 3,
     roles: [
       { id: "admin", name: "Admin", color: "#e74c3c", position: 4, permissions: { administrator: true } },
       {
@@ -116,10 +131,17 @@ export function defaultAccessData(): AccessData {
         name: "Moderator",
         color: "#3498db",
         position: 3,
-        permissions: { kick_members: true, ban_members: true, mute_members: true, speak: true, control_screens: true },
+        permissions: {
+          kick_members: true,
+          ban_members: true,
+          mute_members: true,
+          speak: true,
+          send_messages: true,
+          control_screens: true,
+        },
       },
       { id: "builder", name: "Builder", color: "#2ecc71", position: 2, permissions: { build: true, upload_assets: true } },
-      { id: "speaker", name: "Speaker", color: "#f1c40f", position: 1, permissions: { speak: true } },
+      { id: "speaker", name: "Speaker", color: "#f1c40f", position: 1, permissions: { speak: true, send_messages: true, broadcast_voice: true } },
       everyoneRole(),
     ],
     members: [],
@@ -170,8 +192,22 @@ export function normalizeAccessData(raw: unknown): AccessData {
     else others.push(role);
   });
 
-  const ranked = sortRoles(others).map((role, i, all) => ({ ...role, position: all.length - i }));
-  const roles = [...ranked, { ...everyoneRole((everyone as Role | null)?.permissions), position: 0 }];
+  // Text chat arrived in version 2: worlds saved before it let everyone chat.
+  const everyonePerms = (everyone as Role | null)?.permissions;
+  const migrated =
+    everyonePerms && !(typeof source.version === "number" && source.version >= 2)
+      ? { ...everyonePerms, send_messages: true as const }
+      : everyonePerms;
+
+  // Chunk broadcasts arrived in version 3: the default Speaker role gets them.
+  const version = typeof source.version === "number" ? source.version : 0;
+  const upgraded =
+    version < 3
+      ? others.map((r) => (r.id === "speaker" ? { ...r, permissions: { ...r.permissions, broadcast_voice: true as const } } : r))
+      : others;
+
+  const ranked = sortRoles(upgraded).map((role, i, all) => ({ ...role, position: all.length - i }));
+  const roles = [...ranked, { ...everyoneRole(migrated), position: 0 }];
   const roleIds = new Set(roles.map((r) => r.id));
 
   const bySubject = new Map<string, Member>();
@@ -206,5 +242,5 @@ export function normalizeAccessData(raw: unknown): AccessData {
     );
   }
 
-  return { version: 1, roles, members: [...bySubject.values()] };
+  return { version: 3, roles, members: [...bySubject.values()] };
 }

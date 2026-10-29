@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { gateFromComponent, pointInGate, type GateDef } from "../shared/gates";
 import { screenFromComponent, type ScreenDef } from "../shared/screens";
+import { zoneFromComponent, type ZoneDef } from "../shared/zones";
 
 /**
  * Every token gate, members-only chunk and video screen in the world, read straight from the
@@ -53,6 +54,17 @@ export function loadScreens(dataDir = getDataDir()): Map<string, ScreenDef> {
     if (screen) byId.set(screen.id, screen);
   });
   return byId;
+}
+
+/** All chat zones (rooms that aren't token gates). */
+export function loadChatZones(dataDir = getDataDir()): ZoneDef[] {
+  const byId = new Map<string, ZoneDef>();
+  eachComponent(dataDir, (component) => {
+    if ((component as any)?.type !== "chat-zone") return;
+    const zone = zoneFromComponent(component);
+    if (zone) byId.set(zone.id, zone);
+  });
+  return [...byId.values()];
 }
 
 /** A chunk only players holding one of `roleIds` may enter. */
@@ -124,6 +136,7 @@ export class GateRegistry {
   private gates: GateDef[] = [];
   private chunkRules = new Map<string, ChunkRule>();
   private screenDefs = new Map<string, ScreenDef>();
+  private chatZones: ZoneDef[] = [];
   private watchers: fs.FSWatcher[] = [];
   private reloadTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<() => void>();
@@ -153,18 +166,40 @@ export class GateRegistry {
     return [...this.screenDefs.values()];
   }
 
-  /** Replace the gate list (and optionally chunk rules and screens) directly. Used by tests. */
-  set(gates: GateDef[], chunkRules?: Map<string, ChunkRule>, screens?: Map<string, ScreenDef>): void {
+  /** Chat rooms: every token gate plus every chat zone. */
+  zones(): ZoneDef[] {
+    const gateZones = this.gates.map(
+      (gate): ZoneDef => ({
+        id: gate.id,
+        kind: "gate",
+        label: gate.label,
+        center: gate.center,
+        inverseRotation: gate.inverseRotation,
+        halfSize: gate.halfSize,
+        volume: 8 * gate.halfSize.x * gate.halfSize.y * gate.halfSize.z,
+      }),
+    );
+    return [...gateZones, ...this.chatZones];
+  }
+
+  /** Replace the gate list (and optionally chunk rules, screens and chat zones) directly. Used by tests. */
+  set(
+    gates: GateDef[],
+    chunkRules?: Map<string, ChunkRule>,
+    screens?: Map<string, ScreenDef>,
+    chatZones?: ZoneDef[],
+  ): void {
     this.gates = gates;
     if (chunkRules) this.chunkRules = chunkRules;
     if (screens) this.screenDefs = screens;
+    if (chatZones) this.chatZones = chatZones;
     this.listeners.forEach((fn) => fn());
   }
 
   reload(): void {
-    this.set(loadGates(this.dataDir), loadChunkRules(this.dataDir), loadScreens(this.dataDir));
+    this.set(loadGates(this.dataDir), loadChunkRules(this.dataDir), loadScreens(this.dataDir), loadChatZones(this.dataDir));
     console.log(
-      `[Gates] ${this.gates.length} token gate(s), ${this.chunkRules.size} members-only chunk(s), ${this.screenDefs.size} video screen(s) loaded`,
+      `[Gates] ${this.gates.length} token gate(s), ${this.chunkRules.size} members-only chunk(s), ${this.screenDefs.size} video screen(s), ${this.chatZones.length} chat zone(s) loaded`,
     );
   }
 

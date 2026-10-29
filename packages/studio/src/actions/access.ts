@@ -2,6 +2,7 @@
 
 import { getIdentity } from "../server/auth-service";
 import { GameService } from "../server/game-service";
+import { getProfileStore } from "../server/profiles";
 import {
   AccessError,
   accessFor,
@@ -52,6 +53,8 @@ export interface AccessOverview {
   roles: Role[];
   members: Member[];
   me: MyAccess;
+  /** Usernames and pictures of members (and the owner) who made a profile, by subject. */
+  profiles: Record<string, { username: string | null; avatarUrl: string | null }>;
 }
 
 function toMyAccess(userId: string | null, access: Awaited<ReturnType<typeof accessFor>>): MyAccess {
@@ -91,8 +94,20 @@ export async function listRoles(): Promise<Role[]> {
   return sortRoles((await getAccessStore().read()).roles);
 }
 
-function overview(data: AccessData, me: MyAccess): AccessOverview {
-  return { ownerId: getOwnerId(), roles: sortRoles(data.roles), members: data.members, me };
+async function overview(data: AccessData, me: MyAccess): Promise<AccessOverview> {
+  const ownerId = getOwnerId();
+  // Profiles are by Privy id; members added by address have none until looked up some other way.
+  const profiles: AccessOverview["profiles"] = {};
+  try {
+    const all = (await getProfileStore().read()).profiles;
+    for (const subject of [ownerId, ...data.members.map((m) => m.subject)]) {
+      const p = subject ? all[subject] : undefined;
+      if (p && (p.username || p.avatarUrl)) profiles[subject!] = { username: p.username, avatarUrl: p.avatarUrl };
+    }
+  } catch (err) {
+    console.warn("[Access]", (err as Error).message);
+  }
+  return { ownerId, roles: sortRoles(data.roles), members: data.members, me, profiles };
 }
 
 export async function listAccess(): Promise<AccessResult<AccessOverview>> {

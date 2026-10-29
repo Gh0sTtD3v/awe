@@ -141,6 +141,25 @@ describe("keplr jwt", () => {
     expect(payload.exp! - payload.iat!).toBe(600);
   });
 
+  it("signs RS256 with an RSA key, which Privy needs for a pasted certificate", async () => {
+    const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    process.env.KEPLR_JWT_PRIVATE_KEY = privateKey.export({ format: "pem", type: "pkcs8" }).toString();
+    resetKeplrKeysForTests();
+
+    const { address } = makeWallet();
+    const token = await issueJwt(address);
+    const jwks = await getJwks();
+    const { payload, protectedHeader } = await jwtVerify(token, createLocalJWKSet(jwks), {
+      issuer: "awe-keplr",
+      audience: "awe-keplr",
+    });
+
+    expect(payload.sub).toBe(address);
+    expect(protectedHeader.alg).toBe("RS256");
+    expect(jwks.keys[0]).toMatchObject({ kty: "RSA", alg: "RS256" });
+    expect(jwks.keys[0]).not.toHaveProperty("d");
+  });
+
   it("publishes only the public key", async () => {
     const { keys } = await getJwks();
     expect(keys).toHaveLength(1);

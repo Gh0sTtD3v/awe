@@ -43,7 +43,7 @@ const role = (id: string, position: number, permissions: Role["permissions"] = {
 /** manager (3) > helper (2) > vip (1) > everyone (0) */
 function world(): AccessData {
   return normalizeAccessData({
-    version: 1,
+    version: 3,
     roles: [
       role("manager", 3, { manage_roles: true, manage_members: true, ban_members: true, kick_members: true, speak: true }),
       role("helper", 2, { manage_roles: true, manage_members: true, speak: true }),
@@ -84,6 +84,13 @@ describe("resolveAccess", () => {
   it("recognises the owner by linked cosmos address, case-insensitively", () => {
     const access = resolveAccess({ userId: ALICE, cosmosAddress: ADDR_B }, world(), ADDR_B.toUpperCase());
     expect(access.isOwner).toBe(true);
+  });
+
+  it("recognises the owner by a linked Ethereum wallet, whatever its checksum casing", () => {
+    const wallet = "0x75ED5982B7948E676892d9052DF8e6cceE1A301b";
+    const linked = { userId: ALICE, cosmosAddress: null, evmAddresses: [wallet.toLowerCase()] };
+    expect(resolveAccess(linked, world(), wallet).isOwner).toBe(true);
+    expect(resolveAccess({ userId: ALICE, cosmosAddress: null }, world(), wallet).isOwner).toBe(false);
   });
 
   it("unions role permissions and ranks by the highest role", () => {
@@ -147,6 +154,28 @@ describe("normalizeAccessData", () => {
     });
     expect(data.members).toHaveLength(1);
     expect(data.members[0]).toMatchObject({ subject: ADDR_A, roleIds: ["vip", "helper"], banned: true });
+  });
+
+  it("lets everyone chat in worlds saved before text chat existed", () => {
+    const old = normalizeAccessData({ version: 1, roles: [role("everyone", 0, { speak: true })] });
+    expect(old.version).toBe(3);
+    expect(old.roles.at(-1)?.permissions).toEqual({ speak: true, send_messages: true });
+
+    // Once migrated, taking it away sticks.
+    const revoked = normalizeAccessData({ version: 2, roles: [role("everyone", 0, { speak: true })] });
+    expect(revoked.roles.at(-1)?.permissions).toEqual({ speak: true });
+  });
+
+  it("gives the Speaker role chunk broadcasts in worlds saved before them", () => {
+    const speaker = () => role("speaker", 1, { speak: true });
+    const old = normalizeAccessData({ version: 2, roles: [speaker(), role("vip", 2), role("everyone", 0)] });
+    expect(old.version).toBe(3);
+    expect(old.roles.find((r) => r.id === "speaker")?.permissions).toEqual({ speak: true, broadcast_voice: true });
+    expect(old.roles.find((r) => r.id === "vip")?.permissions).toEqual({});
+
+    // Once migrated, taking it away sticks.
+    const revoked = normalizeAccessData({ version: 3, roles: [speaker(), role("everyone", 0)] });
+    expect(revoked.roles.find((r) => r.id === "speaker")?.permissions).toEqual({ speak: true });
   });
 });
 
@@ -213,6 +242,8 @@ describe("member rules", () => {
   it("validates subjects", () => {
     expect(validateSubject(` ${ADDR_A.toUpperCase()} `)).toBe(ADDR_A);
     expect(validateSubject("did:privy:abc")).toBe("did:privy:abc");
+    expect(validateSubject("0x75ED5982B7948E676892d9052DF8e6cceE1A301b")).toBe("0x75ed5982b7948e676892d9052df8e6ccee1a301b");
+    expect(() => validateSubject("0x1234")).toThrow(AccessError);
     expect(() => validateSubject("cosmos1nope")).toThrow(AccessError);
     expect(() => validateSubject("dev-owner")).toThrow(AccessError);
   });

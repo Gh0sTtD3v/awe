@@ -1,7 +1,7 @@
 import type { Room } from "@colyseus/sdk";
 import { Camera, type Space } from "@oncyberio/engine";
 import audioListener from "@oncyberio/engine/internal/utils/globals/audio-listener";
-import { PositionalAudio } from "three";
+import { Audio as FlatAudio, PositionalAudio } from "three";
 import {
   VOICE_CONFIG_MESSAGE,
   VOICE_JOIN_MESSAGE,
@@ -30,12 +30,19 @@ interface Peer {
   stream: MediaStream | null;
   /** Chrome only feeds remote WebRTC audio into Web Audio while a media element plays it. */
   element: HTMLAudioElement | null;
-  audio: PositionalAudio | null;
-  /** The avatar the voice plays from; replaced when its chunk reloads. */
+  /** Positional from the avatar, or flat (full volume) for someone in the same room. */
+  audio: PositionalAudio | FlatAudio<GainNode> | null;
+  /** The avatar the voice plays from; replaced when its chunk reloads. Unused when flat. */
   avatar: unknown;
+  flat: boolean;
   analyser: AnalyserNode | null;
   analyserSource: MediaStreamAudioSourceNode | null;
   makingOffer: boolean;
+}
+
+/** Same room, or live to our chunk: full volume, not from the avatar. */
+function playsFlat(info: VoicePeer): boolean {
+  return info.inRoom || info.live;
 }
 
 function rms(analyser: AnalyserNode, buffer: Float32Array<ArrayBuffer>): number {
@@ -48,7 +55,9 @@ function rms(analyser: AnalyserNode, buffer: Float32Array<ArrayBuffer>): number 
 /**
  * Proximity voice over peer-to-peer WebRTC. The server says who to connect
  * to and relays the handshake; audio goes straight between players and plays
- * from each speaker's avatar, fading with distance.
+ * from each speaker's avatar, fading with distance. Inside a room (a gated
+ * area or chat zone) the server only pairs people in that room, and their
+ * voices play at full volume wherever they stand.
  *
  * Speak is enforced by listeners: a peer the server marks `canSpeak: false`
  * (no permission, or muted by a moderator) is never played, whatever it sends.
@@ -111,7 +120,7 @@ export class VoiceClient {
     this.stopMic();
     if (this.activityTimer) clearInterval(this.activityTimer);
     this.activityTimer = null;
-    voiceStore.update({ joined: false, mic: "off", transmitting: false, level: 0, speaking: {}, peers: {} });
+    voiceStore.update({ joined: false, mic: "off", transmitting: false, level: 0, speaking: {}, peers: {}, live: {} });
   }
 
   /** Our Speak permission, from the server. Gaining it mid-session asks for the mic. */
@@ -201,7 +210,10 @@ export class VoiceClient {
     for (const info of list) {
       const peer = this.peers.get(info.sessionId);
       if (peer) {
+        const flatChanged = playsFlat(peer.info) !== playsFlat(info);
         peer.info = info;
+        if (flatChanged) this.dropAudioNode(peer);
+        this.attachToAvatar(peer);
         this.applyPeerVolume(peer);
       } else if (this.state.joined) {
         this.openPeer(info);
@@ -220,6 +232,7 @@ export class VoiceClient {
       element: null,
       audio: null,
       avatar: null,
+      flat: false,
       analyser: null,
       analyserSource: null,
       makingOffer: false,
@@ -313,16 +326,28 @@ export class VoiceClient {
     this.attachToAvatar(peer);
   }
 
-  /** Play the voice from the speaker's avatar. Avatars stream in with chunks, so this retries. */
+  /**
+   * Play the voice: flat at full volume for someone in the same room or live to
+   * our chunk, else from the speaker's avatar. Avatars stream in with chunks,
+   * so this retries.
+   */
   private attachToAvatar(peer: Peer) {
     if (!peer.stream) return;
-    const avatar = this.space.components?.byId(`player-${peer.info.sessionId}`) as any;
-    if (peer.audio && peer.avatar === avatar) return;
-    if (peer.audio) {
-      peer.audio.disconnect();
-      peer.audio.removeFromParent();
-      peer.audio = null;
+
+    if (playsFlat(peer.info)) {
+      if (peer.audio && peer.flat) return;
+      this.dropAudioNode(peer);
+      const audio = new FlatAudio(audioListener);
+      audio.setMediaStreamSource(peer.stream);
+      peer.audio = audio;
+      peer.flat = true;
+      this.applyPeerVolume(peer);
+      return;
     }
+
+    const avatar = this.space.components?.byId(`player-${peer.info.sessionId}`) as any;
+    if (peer.audio && !peer.flat && peer.avatar === avatar) return;
+    this.dropAudioNode(peer);
     peer.avatar = avatar;
     if (!avatar?.add) return;
 
@@ -335,7 +360,17 @@ export class VoiceClient {
     audio.position.set(0, 1.6, 0); // mouth height
     avatar.add(audio);
     peer.audio = audio;
+    peer.flat = false;
     this.applyPeerVolume(peer);
+  }
+
+  /** Stop playing the voice, keeping the connection and stream. */
+  private dropAudioNode(peer: Peer) {
+    if (!peer.audio) return;
+    peer.audio.disconnect();
+    peer.audio.removeFromParent();
+    peer.audio = null;
+    peer.avatar = null;
   }
 
   private applyPeerVolume(peer: Peer) {
@@ -343,12 +378,7 @@ export class VoiceClient {
   }
 
   private detachAudio(peer: Peer) {
-    if (peer.audio) {
-      peer.audio.disconnect();
-      peer.audio.removeFromParent();
-      peer.audio = null;
-    }
-    peer.avatar = null;
+    this.dropAudioNode(peer);
     peer.analyserSource?.disconnect();
     peer.analyserSource = null;
     peer.analyser = null;
@@ -369,11 +399,13 @@ export class VoiceClient {
 
   private publishPeers() {
     const peers: VoiceState["peers"] = {};
+    const live: VoiceState["live"] = {};
     for (const [id, peer] of this.peers) {
       const s = peer.pc.connectionState;
       peers[id] = s === "connected" ? "connected" : s === "failed" ? "failed" : "connecting";
+      if (peer.info.live) live[id] = true;
     }
-    setVoicePeers(peers);
+    setVoicePeers(peers, live);
   }
 
   // ── Activity ───────────────────────────────────────────────────────────────

@@ -19,7 +19,9 @@ export function useArray(opts) {
     locked: opts.locked,
   });
 
-  if (!Array.isArray(value)) {
+  // A component saved before the list existed has no value yet: treat as empty.
+  const items = Array.isArray(value) ? value : value == null ? [] : null;
+  if (items == null) {
     //
     throw new Error("Not an array");
   }
@@ -27,22 +29,22 @@ export function useArray(opts) {
   const onAdd = !opts.readonly
     ? () => {
         //
-        const newVal = opts.createNewData();
+        const newVal = opts.createNewData ? opts.createNewData() : {};
 
-        onChange([...value, newVal], false, { oldValue: value });
+        onChange([...items, newVal], false, { oldValue: value });
       }
     : null;
 
   const onRemove = !opts.readonly
     ? (idx: number) => {
         //
-        if (idx < 0 || idx >= value.length) {
+        if (idx < 0 || idx >= items.length) {
           //
           throw new Error("Index out of bounds " + idx);
         }
 
         onChange(
-          value.filter((it, i) => i !== idx),
+          items.filter((it, i) => i !== idx),
           false,
           { oldValue: value }
         );
@@ -51,11 +53,11 @@ export function useArray(opts) {
 
   const onReset = () => {
     //
-    onChange(opts.reset(), false, { oldValue: value });
+    onChange(opts.reset ? opts.reset() : [], false, { oldValue: value });
   };
 
   return {
-    items: value,
+    items,
     onAdd,
     onReset,
     onRemove,
