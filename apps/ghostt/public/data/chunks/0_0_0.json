@@ -507,6 +507,90 @@
       "chain": "ethereum",
       "contract": "0x60e4d786628fea6478f785a6d7e704777c86a7c6",
       "tokenId": ""
+    },
+    "lift-krSh4kkhe2wHAKl-UBo7T": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 1.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 0,
+      "floorLabel": "Groundfloor",
+      "id": "lift-krSh4kkhe2wHAKl-UBo7T",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793281479266
+    },
+    "lift_hfXDLr8BGiWFa6xqVo-a9": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 4.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 1,
+      "floorLabel": "Level 1",
+      "id": "lift_hfXDLr8BGiWFa6xqVo-a9",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793281529382
+    },
+    "lift_qRcd8i1YiDlYe3LmpXws4": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 7.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 2,
+      "floorLabel": "Level 2",
+      "id": "lift_qRcd8i1YiDlYe3LmpXws4",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793281522344
     }
   },
   "auth": [],

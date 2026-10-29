@@ -56,7 +56,7 @@ export function LiftControls() {
 function Prompt({ lift }: { lift: NearLift }) {
   const others = lift.floors.length > 1;
   return (
-    <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-black/70 px-4 py-2 text-sm text-white/90 backdrop-blur-sm">
+    <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-xl bg-black/70 px-4 py-2 text-sm text-white/90 backdrop-blur-sm">
       <span>
         <span className="font-semibold">{lift.group}</span>
         <span className="text-white/50"> · {floorName(lift)}</span>
@@ -84,7 +84,7 @@ function Panel({ lift }: { lift: NearLift }) {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-40 flex w-64 max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col gap-3 rounded-2xl border border-white/10 bg-[rgba(18,19,27,0.92)] p-4 text-sm text-white/90 shadow-xl backdrop-blur-sm">
+    <div className="fixed bottom-6 right-6 z-40 flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-2xl border border-white/10 bg-[rgba(18,19,27,0.92)] p-4 text-sm text-white/90 shadow-xl backdrop-blur-sm">
       <div className="flex items-center justify-between">
         <span className="truncate font-semibold">{lift.group}</span>
         <button onClick={() => setLiftPanelOpen(false)} className="text-white/60 hover:text-white" aria-label="Close">
