@@ -1356,7 +1356,12 @@ function CollapsibleSection({ label, items, wrapper, childrenIds, defaultOpen = 
         <span style={{ opacity: 0.5, fontWeight: 400 }}>({items.length})</span>
       </div>
       {open && (<>
-        <LoopCheck wrapper={wrapper} items={items} parentChildrenIds={childrenIds} />
+        <LoopCheck
+          // @ts-ignore
+          wrapper={wrapper}
+          items={items}
+          parentChildrenIds={childrenIds}
+        />
       </>)}
     </>
   );

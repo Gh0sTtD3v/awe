@@ -289,7 +289,7 @@ export class ImageComponent extends Component3D<ImageComponentData> {
 
 		gsap.to(this._tempMesh.position, { x: targetPos.x, y: targetPos.y, z: targetPos.z, duration: 1, ease: "power2.inOut" });
 		gsap.to(this._tempMesh.quaternion, { x: targetQuat.x, y: targetQuat.y, z: targetQuat.z, w: targetQuat.w, duration: 1, ease: "power2.inOut" });
-		gsap.to(this._overlayFog.material, { opacity: 0.69, duration: 1, ease: "power2.inOut", onUpdate: () => { this._overlayFog.material.needsUpdate = true; }, onComplete: () => { this._animating = false; this._showFullscreenUI(); } });
+		gsap.to(this._overlayFog.material, { opacity: 0.69, duration: 1, ease: "power2.inOut", onUpdate: () => { (this._overlayFog.material as MeshBasicMaterial).needsUpdate = true; }, onComplete: () => { this._animating = false; this._showFullscreenUI(); } });
 	}
 
 	private _closeFullscreen() {
@@ -302,7 +302,7 @@ export class ImageComponent extends Component3D<ImageComponentData> {
 		gsap.to(this._tempMesh.quaternion, { x: returnQuat.x, y: returnQuat.y, z: returnQuat.z, w: returnQuat.w, duration: 1, ease: "power2.inOut" });
 		gsap.to(this._overlayFog.material, {
 			opacity: 0, duration: 1, ease: "power2.inOut",
-			onUpdate: () => { this._overlayFog.material.needsUpdate = true; },
+			onUpdate: () => { (this._overlayFog.material as MeshBasicMaterial).needsUpdate = true; },
 			onComplete: () => {
 				this._removeStarField();
 				this._removeOverlayFog();

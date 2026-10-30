@@ -542,7 +542,7 @@
       "name": "",
       "position": {
         "x": -15,
-        "y": 4.5,
+        "y": 5.5,
         "z": -50
       },
       "rotation": {
@@ -562,7 +562,7 @@
       "_meta": {
         "placeholderId": null
       },
-      "_version": 1793281529382
+      "_version": 1793382989712
     },
     "lift_qRcd8i1YiDlYe3LmpXws4": {
       "type": "lift",
@@ -570,7 +570,7 @@
       "name": "",
       "position": {
         "x": -15,
-        "y": 7.5,
+        "y": 9.5,
         "z": -50
       },
       "rotation": {
@@ -590,7 +590,406 @@
       "_meta": {
         "placeholderId": null
       },
-      "_version": 1793281522344
+      "_version": 1793382996858
+    },
+    "lift_HdyC6WcEGz82EaSIjh5aV": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 13.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 3,
+      "floorLabel": "Level 3",
+      "id": "lift_HdyC6WcEGz82EaSIjh5aV",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793383037479
+    },
+    "lift_yeT-NxR_XnrUmjF2T0p0Z": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 17.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 4,
+      "floorLabel": "Level 4",
+      "id": "lift_yeT-NxR_XnrUmjF2T0p0Z",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793383034627
+    },
+    "mesh-DLUK3HcsY18f56zWsaro6": {
+      "type": "mesh",
+      "kit": "cyber",
+      "name": "",
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "color": "#ffffff",
+      "image": "",
+      "opacity": 1,
+      "plugins": [],
+      "scale": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "position": {
+        "x": -15,
+        "y": 3.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": true,
+      "displayInEditor": true,
+      "id": "mesh-DLUK3HcsY18f56zWsaro6",
+      "_version": 1793383485785,
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": false,
+        "dynamicProps": {
+          "mass": 1,
+          "friction": 0.5,
+          "restitution": 0,
+          "linearDamping": 0,
+          "angularDamping": 0
+        }
+      }
+    },
+    "mesh_KzI2RV5w0FFVhVfGEg8Uy": {
+      "type": "mesh",
+      "kit": "cyber",
+      "name": "",
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "color": "#ffffff",
+      "image": "",
+      "opacity": 1,
+      "plugins": [],
+      "scale": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "position": {
+        "x": -15,
+        "y": 7.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": true,
+      "displayInEditor": true,
+      "id": "mesh_KzI2RV5w0FFVhVfGEg8Uy",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": false,
+        "dynamicProps": {
+          "mass": 1,
+          "friction": 0.5,
+          "restitution": 0,
+          "linearDamping": 0,
+          "angularDamping": 0
+        }
+      },
+      "_version": 1793383505106
+    },
+    "mesh_woA4hkwoLcIc7pJfjInkr": {
+      "type": "mesh",
+      "kit": "cyber",
+      "name": "",
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "color": "#ffffff",
+      "image": "",
+      "opacity": 1,
+      "plugins": [],
+      "scale": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "position": {
+        "x": -15,
+        "y": 11.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": true,
+      "displayInEditor": true,
+      "id": "mesh_woA4hkwoLcIc7pJfjInkr",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": false,
+        "dynamicProps": {
+          "mass": 1,
+          "friction": 0.5,
+          "restitution": 0,
+          "linearDamping": 0,
+          "angularDamping": 0
+        }
+      },
+      "_version": 1793383515581
+    },
+    "mesh_t3iOcq9wc6aWPpSMRusOi": {
+      "type": "mesh",
+      "kit": "cyber",
+      "name": "",
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "color": "#ffffff",
+      "image": "",
+      "opacity": 1,
+      "plugins": [],
+      "scale": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "position": {
+        "x": -15,
+        "y": 15.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": true,
+      "displayInEditor": true,
+      "id": "mesh_t3iOcq9wc6aWPpSMRusOi",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": false,
+        "dynamicProps": {
+          "mass": 1,
+          "friction": 0.5,
+          "restitution": 0,
+          "linearDamping": 0,
+          "angularDamping": 0
+        }
+      },
+      "_version": 1793383533795
+    },
+    "mesh_Mk2UIMd9dMnJjySyNlODX": {
+      "type": "mesh",
+      "kit": "cyber",
+      "name": "",
+      "comment": "",
+      "renderMode": "default",
+      "wireframe": false,
+      "castShadow": true,
+      "receiveShadow": true,
+      "geometry": {
+        "type": "box",
+        "boxParams": {},
+        "sphereParams": {
+          "radius": 1,
+          "widthSegments": 32,
+          "heightSegments": 32
+        },
+        "cylinderParams": {
+          "radiusTop": 1,
+          "radiusBottom": 1,
+          "height": 1,
+          "radialSegments": 32,
+          "heightSegments": 1,
+          "openEnded": false
+        }
+      },
+      "color": "#ffffff",
+      "image": "",
+      "opacity": 1,
+      "plugins": [],
+      "scale": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "position": {
+        "x": -15,
+        "y": 19.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "display": true,
+      "displayInEditor": true,
+      "id": "mesh_Mk2UIMd9dMnJjySyNlODX",
+      "collider": {
+        "enabled": true,
+        "rigidbodyType": "FIXED",
+        "colliderType": "CUBE",
+        "isSensor": false,
+        "dynamicProps": {
+          "mass": 1,
+          "friction": 0.5,
+          "restitution": 0,
+          "linearDamping": 0,
+          "angularDamping": 0
+        }
+      },
+      "_version": 1793383540739
+    },
+    "lift_is62pe0exoQYkAIgGFhOb": {
+      "type": "lift",
+      "kit": "cyber",
+      "name": "",
+      "position": {
+        "x": -15,
+        "y": 21.5,
+        "z": -50
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3,
+        "y": 3,
+        "z": 3
+      },
+      "group": "Lift",
+      "floor": 5,
+      "floorLabel": "Rooftop",
+      "id": "lift_is62pe0exoQYkAIgGFhOb",
+      "_meta": {
+        "placeholderId": null
+      },
+      "_version": 1793383816368
     }
   },
   "auth": [],
