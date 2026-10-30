@@ -14,7 +14,7 @@ const Icon = (props) => {
    * Dynamic Import:
    */
   const Component = dynamic(
-    () => import(`./Icons/${folder ? `${folder}/${name}` : name}.tsx`),
+    () => import(`./icons/${folder ? `${folder}/${name}` : name}.tsx`),
     {
       ssr: false,
     }
