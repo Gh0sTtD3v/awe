@@ -41,10 +41,15 @@ export async function getChunkConfig(key: string): Promise<ChunkConfig> {
   return GameService.getChunkConfig(key);
 }
 
+export async function deleteChunk(key: string): Promise<{ success: boolean; removed: number }> {
+  await requirePermission("manage_world");
+  return GameService.deleteChunk(key);
+}
+
 export async function setChunkConfig(
   key: string,
   config: ChunkConfig,
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   await requirePermission("manage_world");
 
   // Only real roles can guard a chunk.

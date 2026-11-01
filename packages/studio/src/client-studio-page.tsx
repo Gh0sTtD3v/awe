@@ -10,6 +10,7 @@ import { PrivyAuthProvider } from "./contexts/privy-provider";
 import { AvatarProvider } from "./contexts/avatar-context";
 import { MaestroProvider } from "./contexts/maestro-context";
 import { ClientGameService } from "./services/client-game-service";
+import { posToChunkKey } from "@oncyberio/world-config";
 import { createCssGradients } from "./ui/gradients";
 import { DialogProvider } from "./modals/context";
 import { SpriteProvider } from "./ui/sprite/sprite-provider";
@@ -64,6 +65,9 @@ function StudioGate({ headerActions }: ClientStudioPageProps) {
   );
 }
 
+/** The editor camera starts at the origin. */
+const STUDIO_START_CHUNK = posToChunkKey({ x: 0, y: 0, z: 0 });
+
 function StudioContent({ headerActions }: ClientStudioPageProps) {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -71,7 +75,9 @@ function StudioContent({ headerActions }: ClientStudioPageProps) {
 
   const loadGameData = useCallback(async () => {
     try {
-      const data = await ClientGameService.getGameData();
+      // Globals + the chunk the editor camera starts in (it starts at the
+      // origin); the rest streams in as the camera crosses chunk borders.
+      const data = await ClientGameService.getGameData(STUDIO_START_CHUNK);
 
       setGameData(data);
       setLoadError(null);

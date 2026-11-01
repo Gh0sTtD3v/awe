@@ -387,10 +387,13 @@ export class ChunkManager {
 		this._chunkComponents = [];
 	}
 
+	/** Shows `?plot=<slug>` when the chunk has one, otherwise `?plot=<key>`. */
 	private _updateURL(key: string) {
 		try {
 			const params = new URLSearchParams(window.location.search);
-			params.set("chunk", key);
+			const slug = this._currentKey === key ? this._currentInfo?.slug : null;
+			params.delete("chunk");
+			params.set("plot", typeof slug === "string" && slug ? slug : key);
 			window.history.replaceState(null, "", `?${params.toString()}`);
 		}
 		catch {
@@ -400,9 +403,10 @@ export class ChunkManager {
 
 	// ── Static helpers ──
 
+	/** The `?plot=` value: a chunk key or a plot slug. */
 	static readURL(): string | null {
 		try {
-			return new URLSearchParams(window.location.search).get("chunk") ?? null;
+			return new URLSearchParams(window.location.search).get("plot") ?? null;
 		}
 		catch {
 			return null;

@@ -121,6 +121,7 @@ export class GameDataStore {
 
     this.baseState = gameData;
     this._gameData = gameData;
+    this._chunkKey = (opts.gameData as any)?._chunkKey ?? null;
 
     this._treeModel = new GameTreeModel(this);
   }

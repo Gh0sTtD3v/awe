@@ -6,6 +6,7 @@ import {
   listChunks,
   getChunkConfig,
   setChunkConfig,
+  deleteChunk,
 } from "../actions/game";
 import { getAuthStatus } from "../actions/auth";
 import {
@@ -31,6 +32,7 @@ export const ClientGameService = {
   listChunks,
   getChunkConfig,
   setChunkConfig,
+  deleteChunk,
   getRoles: listRoles,
   getMyAccess,
   listAccess,

@@ -24,6 +24,7 @@ import { Quaternion, Vector3 } from "three";
 import { createGame } from "@/lib/utils";
 import { gameStore, setStarted, setPaused, setFlying, setFast, setUiHidden, showModeNotice } from "@/lib/game-store";
 import { loadPortals } from "@/lib/portals";
+import { findPlotEntry, readPlotParam } from "@/lib/plots";
 import {
   setPortals,
   setPlayers,
@@ -496,7 +497,7 @@ export class GameScript {
       // Keep the intro up until the chunk we spawn in has streamed in, so the
       // world doesn't build itself in front of the player.
       const chunks = this.space.chunks;
-      if (chunks) {
+      if (chunks && !(await this.enterLinkedPlot())) {
         const p = playerAvatar.position;
         await chunks.loadChunk(posToChunkKey({ x: p.x, y: p.y, z: p.z }));
       }
@@ -1008,6 +1009,19 @@ export class GameScript {
     avatar.rigidBody.enabled = true;
     avatar.rigidBody.teleport(target, avatar.quaternion);
     return true;
+  }
+
+  /**
+   * `?plot=<key | slug>` links start the player at that plot's first portal.
+   * Returns false (normal spawn) when the link matches no plot with a portal,
+   * or the plot can't be entered.
+   */
+  private async enterLinkedPlot(): Promise<boolean> {
+    const plot = readPlotParam();
+    if (!plot) return false;
+    const entry = await findPlotEntry(plot);
+    if (!entry) return false;
+    return this.travelTo(entry.position);
   }
 
   /** Teleport the local player to another player's current position. */

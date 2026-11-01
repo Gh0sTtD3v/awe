@@ -126,6 +126,11 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
   const [restricted, setRestricted] = useState(false);
   /** The roles last ticked, restored when switching back from Public. */
   const lastAuth = useRef<string[]>([]);
+  /** Delete takes two clicks: the first arms it for this chunk. */
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => setConfirmDelete(false), [chunkKey]);
 
   useEffect(() => {
     let alive = true;
@@ -194,13 +199,41 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
     });
   };
 
+  const removeChunk = async () => {
+    if (!chunkKey) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await ClientGameService.deleteChunk(chunkKey);
+      const list = await ClientGameService.listChunks();
+      setChunks(list);
+      setChunkKey(list[0] ?? "");
+    } catch {
+      setError("Couldn't delete. You may not have the Manage World permission.");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   const save = async () => {
     if (!config || !chunkKey) return;
     setSaving(true);
     setSaved(false);
     setError(null);
     try {
-      await ClientGameService.setChunkConfig(chunkKey, config);
+      const res = await ClientGameService.setChunkConfig(chunkKey, config);
+      if (!res.success) {
+        setError(res.error ?? "Couldn't save.");
+        return;
+      }
+      // Show the slug as the server stored it (lowercased, dashes).
+      const stored = await ClientGameService.getChunkConfig(chunkKey);
+      patchInfo({ slug: stored.info.slug });
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch {
@@ -236,6 +269,19 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
               value={config.info.title ?? ""}
               onChange={(e) => patchInfo({ title: e.target.value })}
             />
+          </div>
+
+          <div>
+            <label className={labelCls}>Slug</label>
+            <input
+              className={inputCls}
+              value={config.info.slug ?? ""}
+              placeholder={chunkKey}
+              onChange={(e) => patchInfo({ slug: e.target.value })}
+            />
+            <p className="mt-1 text-xs text-white/40">
+              Used in links: ?plot={config.info.slug || chunkKey}. Letters, numbers and dashes.
+            </p>
           </div>
 
           <div>
@@ -353,6 +399,29 @@ function ChunkConfigTab({ initialChunk }: { initialChunk?: string | null }) {
 
           {error && <ErrorNote onClose={() => setError(null)}>{error}</ErrorNote>}
           <SaveBar saving={saving} saved={saved} onSave={save} />
+
+          <div className="border-t border-white/10 pt-4">
+            <button
+              type="button"
+              onClick={removeChunk}
+              disabled={deleting}
+              className={`rounded-lg px-3 py-2 text-sm ${
+                confirmDelete
+                  ? "bg-red-500/90 font-medium text-white hover:bg-red-500"
+                  : "text-red-400/80 hover:text-red-400"
+              } disabled:opacity-40`}
+            >
+              {deleting ? "Deleting…" : confirmDelete ? `Click again to delete ${chunkKey}` : "Delete chunk"}
+            </button>
+            {confirmDelete && (
+              <p className="mt-1 text-xs text-white/40">
+                Removes everything placed in this chunk, portals included, plus its title, slug and access settings.{" "}
+                <button type="button" className="underline hover:text-white" onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </button>
+              </p>
+            )}
+          </div>
         </>
       )}
     </div>
