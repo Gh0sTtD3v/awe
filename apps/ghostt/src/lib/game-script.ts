@@ -21,7 +21,7 @@ import {
 import type { MoverAnimLocomotionState } from "@oncyberio/engine/controls";
 import { Vector3 } from "three";
 import { createGame } from "@/lib/utils";
-import { gameStore, setStarted, setPaused } from "@/lib/game-store";
+import { gameStore, setStarted, setPaused, setFlying, setFast, showModeNotice } from "@/lib/game-store";
 import { loadPortals } from "@/lib/portals";
 import {
   setPortals,
@@ -112,13 +112,26 @@ const GAMEPLAY_INPUTS = {
     ],
     interactions: [Interactions.press()],
   },
-  Sprint: {
+  // Minecraft-style: Space jumps (and rises while flying), Shift descends,
+  // K toggles flying, J toggles fast.
+  Down: {
     type: "button" as const,
     bindings: [
       Keyboard.button("ShiftLeft"),
       Keyboard.button("ShiftRight"),
       Gamepad.button("LB"),
+      Custom.button("down"),
     ],
+  },
+  ToggleFly: {
+    type: "button" as const,
+    bindings: [Keyboard.button("KeyK"), Custom.button("fly")],
+    interactions: [Interactions.press()],
+  },
+  ToggleFast: {
+    type: "button" as const,
+    bindings: [Keyboard.button("KeyJ"), Custom.button("fast")],
+    interactions: [Interactions.press()],
   },
 } as const;
 
@@ -175,7 +188,16 @@ function getLandingClip(
 
 // --- Movement tuning ---
 const SPEED = 10;
-const SPRINT_BOOST = 1.5;
+const FAST_BOOST = 1.5;
+/** Fast mode while flying. */
+const FLY_FAST_BOOST = 10;
+const ACCELERATION = 100;
+const DECELERATION = 50;
+/** ThirdPersonCameraRig's default; near zero while flying so the camera keeps up vertically. */
+const CAMERA_ALTITUDE_SMOOTHING = 0.17;
+const FLYING_ALTITUDE_SMOOTHING = 0.01;
+const GRAVITY = -1.81;
+const FLY_VERTICAL_SPEED = 8;
 
 // Module-level reference for external control
 let scriptInstance: GameScript | null = null;
@@ -235,6 +257,8 @@ export class GameScript {
   private mover: Mover | null = null;
   private animStateMachine: ReturnType<typeof createMoverAnimStateMachine> | null = null;
   private controlsActive = false;
+  private flying = false;
+  private fast = false;
 
   /**
    * Initialize the game scene.
@@ -346,9 +370,9 @@ export class GameScript {
         target: Camera.current,
         movement: {
           speed: SPEED,
-          gravity: -1.81,
-          acceleration: 100,
-          deceleration: 50,
+          gravity: GRAVITY,
+          acceleration: ACCELERATION,
+          deceleration: DECELERATION,
           airControl: 1,
           facingMode: "movement",
         },
@@ -372,7 +396,7 @@ export class GameScript {
           run: ANIMS.run,
           sprint: ANIMS.sprint,
         },
-        locomotionThresholds: { walk: 10, sprint: SPEED * SPRINT_BOOST },
+        locomotionThresholds: { walk: 10, sprint: SPEED * FAST_BOOST },
         jump: {
           clip: (ctx) => getJumpClip(ctx.jumpTakeoffState),
           toFallWhen: (ctx) => ctx.finished && !ctx.mover.grounded,
@@ -387,8 +411,10 @@ export class GameScript {
 
       // Wire jump input
       this.inputs.Jump.onPerformed(() => {
-        this.mover?.startJump();
+        if (!this.flying) this.mover?.startJump();
       });
+      this.inputs.ToggleFly.onPerformed(() => this.toggleFly());
+      this.inputs.ToggleFast.onPerformed(() => this.toggleFast());
 
       this.setActive(false);
 
@@ -493,10 +519,36 @@ export class GameScript {
       this.animStateMachine?.forceState("idle");
     } else {
       this.inputs?.disable();
+      this.setFlyingState(false);
       this.animStateMachine?.forceState("idle");
     }
     if (this.cameraRig) this.cameraRig.active = val;
     if (this.animStateMachine) this.animStateMachine.enabled = val;
+  }
+
+  toggleFly(): void {
+    this.setFlyingState(!this.flying);
+    showModeNotice(this.flying ? "FLY MODE ON" : "FLY MODE OFF");
+  }
+
+  toggleFast(): void {
+    this.fast = !this.fast;
+    setFast(this.fast);
+    showModeNotice(this.fast ? "FAST MODE ON" : "FAST MODE OFF");
+  }
+
+  private setFlyingState(on: boolean): void {
+    if (this.flying === on) return;
+    this.flying = on;
+    setFlying(on);
+    if (this.cameraRig) {
+      this.cameraRig.altitudeSmoothing = on ? FLYING_ALTITUDE_SMOOTHING : CAMERA_ALTITUDE_SMOOTHING;
+    }
+    if (!this.mover) return;
+    this.mover.gravity = on ? 0 : GRAVITY;
+    const v = this.mover.velocity;
+    v.y = 0;
+    this.mover.setVelocity(v);
   }
 
   start() {
@@ -532,8 +584,11 @@ export class GameScript {
     this.inputs.update(dt);
 
     const moveDir = this.inputs.Move.readValue();
-    const isSprinting = this.inputs.Sprint.isPressed;
-    const speed = isSprinting ? SPEED * SPRINT_BOOST : SPEED;
+    const boost = this.fast ? (this.flying ? FLY_FAST_BOOST : FAST_BOOST) : 1;
+    const speed = SPEED * boost;
+    // Speed up and slow down in the same time at any speed (no long glide at 10x).
+    this.mover.acceleration = ACCELERATION * boost;
+    this.mover.deceleration = DECELERATION * boost;
 
     const lookDelta = this.inputs.Look.readValue();
     const zoomDelta = this.inputs.Zoom.readValue();
@@ -542,12 +597,20 @@ export class GameScript {
     this.cameraRig?.zoom(zoomDelta * 0.1);
     this.mover.move(moveDir.x, moveDir.y, speed);
 
-    if (this.inputs.Jump.wasJustPressed) {
+    if (this.flying) {
+      // Gravity is off; we set the climb rate ourselves (per-step, like the mover's x/z).
+      const climb = (this.inputs.Jump.isPressed ? 1 : 0) - (this.inputs.Down.isPressed ? 1 : 0);
+      const v = this.mover.velocity;
+      v.y = climb * FLY_VERTICAL_SPEED * boost * dt;
+      this.mover.setVelocity(v);
+    } else if (this.inputs.Jump.wasJustPressed) {
       this.mover.startJump();
     }
 
     this.mover.update(dt);
     this.animStateMachine?.update(dt);
+    // Hovering would otherwise play the falling clip.
+    if (this.flying && !this.mover.isMoving) this.animStateMachine?.forceState("idle");
   };
 
   // Called every frame when game is running (via space.use)
@@ -809,6 +872,9 @@ export class GameScript {
       showGateNotice("That destination", "", "chunk");
       return false;
     }
+
+    // Land on the destination floor rather than hovering above it.
+    this.setFlyingState(false);
 
     const target = new Vector3(pos.x, pos.y, pos.z);
     const chunks = this.space?.chunks;

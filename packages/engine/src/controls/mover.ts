@@ -356,6 +356,24 @@ export class Mover {
     this._baseSpeed = value;
   }
 
+  /** Acceleration (0 = instant) */
+  get acceleration(): number {
+    return this._acceleration;
+  }
+
+  set acceleration(value: number) {
+    this._acceleration = value;
+  }
+
+  /** Deceleration (0 = instant) */
+  get deceleration(): number {
+    return this._deceleration;
+  }
+
+  set deceleration(value: number) {
+    this._deceleration = value;
+  }
+
   /** Gravity value */
   get gravity(): number {
     return this._gravity;

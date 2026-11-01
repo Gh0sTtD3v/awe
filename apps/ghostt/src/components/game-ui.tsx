@@ -13,6 +13,8 @@ import { LiftControls } from "./lift-controls";
 import { VoiceControls } from "./voice-controls";
 import { ChatPanel } from "./chat-panel";
 import { RolePreviewBanner } from "./role-preview-banner";
+import { MobileControls, MOBILE_STICK_CLEARANCE } from "./mobile-controls";
+import { useTouchScreen } from "@/hooks/use-touch-screen";
 
 function StartScreen() {
   const state = useStore(gameStore);
@@ -52,15 +54,33 @@ function InfoOverlay() {
   return <InfoCard />;
 }
 
+/** "FLY MODE ON" etc., styled like the studio's notice. */
+function ModeNotice() {
+  const { modeNotice } = useStore(gameStore);
+  if (!modeNotice) return null;
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-1/4 z-40 -translate-x-1/2 text-lg font-bold text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.9)]">
+      {modeNotice}
+    </div>
+  );
+}
+
 function ScreenOverlay() {
   const state = useStore(gameStore);
+  const isTouch = useTouchScreen();
   if (!state.started) return null;
   return (
     <>
       <ScreenControls />
       <LiftControls />
-      {/* Bottom-left column: chat sits on top of the voice controls, whatever their size. */}
-      <div className="pointer-events-none fixed bottom-6 left-6 z-40 flex flex-col items-start gap-2">
+      <MobileControls />
+      <ModeNotice />
+      {/* Bottom-left column: chat sits on top of the voice controls, whatever their size.
+          On touch screens it moves up to make room for the move stick. */}
+      <div
+        className="pointer-events-none fixed bottom-6 left-6 z-40 flex flex-col items-start gap-2"
+        style={isTouch ? { bottom: MOBILE_STICK_CLEARANCE } : undefined}
+      >
         <ChatPanel />
         <VoiceControls />
       </div>

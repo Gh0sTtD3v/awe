@@ -574,6 +574,15 @@ export class VRMFactory extends Group {
   }
 
   preRender(scene, camera) {
+    // update() runs early in LATE_UPDATE, before avatar components push this
+    // frame's position into their wrapper, so the high-quality mesh would be
+    // drawn one frame behind (visible as the camera "overtaking" a fast avatar).
+    // Copy the position again right before rendering.
+    for (const wrapper of this.wrappers) {
+      const meshes = wrapper.highQualityMeshes;
+      if (meshes?.visible) meshes.position.copy(wrapper.position);
+    }
+
     Object.values(this.VRMBakedMeshes).forEach((mod) => {
       const model = mod;
 
