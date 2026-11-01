@@ -8,6 +8,8 @@ interface GameState {
   fast: boolean;
   /** Short centred message when a mode is toggled, e.g. "FLY MODE ON". */
   modeNotice: string | null;
+  /** V: every UI element hidden, for recording. */
+  uiHidden: boolean;
 }
 
 export const gameStore = new Store<GameState>({
@@ -16,6 +18,7 @@ export const gameStore = new Store<GameState>({
   flying: false,
   fast: false,
   modeNotice: null,
+  uiHidden: false,
 });
 
 export function setStarted(started: boolean) {
@@ -32,6 +35,10 @@ export function setFlying(flying: boolean) {
 
 export function setFast(fast: boolean) {
   gameStore.update({ fast });
+}
+
+export function setUiHidden(uiHidden: boolean) {
+  gameStore.update({ uiHidden });
 }
 
 let modeNoticeTimer: ReturnType<typeof setTimeout> | undefined;

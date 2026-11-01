@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/hooks/use-store";
 import { useTouchScreen } from "@/hooks/use-touch-screen";
 import { gameStore } from "../lib/game-store";
+import { infoStore } from "../lib/info-store";
 import { getScript } from "../lib/game-script";
 
 // Ported from examples/zombie-survival (move stick only; look is a drag on the canvas).
@@ -136,6 +137,8 @@ function ToggleButton({ label, on, onToggle }: { label: string; on: boolean; onT
 export function MobileControls() {
   const isTouch = useTouchScreen();
   const { started, paused, flying, fast } = useStore(gameStore);
+  const { self } = useStore(infoStore);
+  const mayFly = (self?.permissions ?? []).includes("fly");
   const visible = isTouch && started && !paused;
 
   useEffect(() => {
@@ -157,7 +160,7 @@ export function MobileControls() {
       {/* Bottom right, above the lift / screen prompts. */}
       <div className="fixed bottom-24 right-4 flex flex-col items-end gap-3">
         <div className="flex gap-2">
-          <ToggleButton label="Fly" on={flying} onToggle={() => getScript()?.toggleFly()} />
+          {mayFly && <ToggleButton label="Fly" on={flying} onToggle={() => getScript()?.toggleFly()} />}
           <ToggleButton label="Fast" on={fast} onToggle={() => getScript()?.toggleFast()} />
         </div>
         <div className="flex items-end gap-3">

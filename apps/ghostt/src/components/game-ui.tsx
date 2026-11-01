@@ -96,6 +96,10 @@ function ChunkLoadingOverlay() {
 }
 
 export function GameUI() {
+  const { uiHidden } = useStore(gameStore);
+  // V hides everything (mode messages included); being removed still shows.
+  if (uiHidden) return <RemovedOverlay />;
+
   return (
     <>
       <StartScreen />

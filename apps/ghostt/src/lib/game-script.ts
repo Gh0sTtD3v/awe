@@ -15,13 +15,14 @@ import {
 } from "@oncyberio/engine";
 import {
   Mover,
+  FlyCameraRig,
   ThirdPersonCameraRig,
   createMoverAnimStateMachine,
 } from "@oncyberio/engine/controls";
 import type { MoverAnimLocomotionState } from "@oncyberio/engine/controls";
-import { Vector3 } from "three";
+import { Quaternion, Vector3 } from "three";
 import { createGame } from "@/lib/utils";
-import { gameStore, setStarted, setPaused, setFlying, setFast, showModeNotice } from "@/lib/game-store";
+import { gameStore, setStarted, setPaused, setFlying, setFast, setUiHidden, showModeNotice } from "@/lib/game-store";
 import { loadPortals } from "@/lib/portals";
 import {
   setPortals,
@@ -133,6 +134,28 @@ const GAMEPLAY_INPUTS = {
     bindings: [Keyboard.button("KeyJ"), Custom.button("fast")],
     interactions: [Interactions.press()],
   },
+  // Cinematic mode (X): the camera detaches and flies; +/- set its speed.
+  ToggleCinematic: {
+    type: "button" as const,
+    bindings: [Keyboard.button("KeyX")],
+    interactions: [Interactions.press()],
+  },
+  CameraFaster: {
+    type: "button" as const,
+    bindings: [Keyboard.button("Equal"), Keyboard.button("NumpadAdd")],
+    interactions: [Interactions.press()],
+  },
+  CameraSlower: {
+    type: "button" as const,
+    bindings: [Keyboard.button("Minus"), Keyboard.button("NumpadSubtract")],
+    interactions: [Interactions.press()],
+  },
+  // V: hide all UI, for clean recordings.
+  ToggleUI: {
+    type: "button" as const,
+    bindings: [Keyboard.button("KeyV")],
+    interactions: [Interactions.press()],
+  },
 } as const;
 
 // --- Animation clip names ---
@@ -196,6 +219,9 @@ const DECELERATION = 50;
 /** ThirdPersonCameraRig's default; near zero while flying so the camera keeps up vertically. */
 const CAMERA_ALTITUDE_SMOOTHING = 0.17;
 const FLYING_ALTITUDE_SMOOTHING = 0.01;
+/** Cinematic camera speeds in m/s, from a slow creep to quite fast. */
+const CINEMATIC_SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128];
+const CINEMATIC_DEFAULT_SPEED = 4; // index into CINEMATIC_SPEEDS (4 m/s)
 const GRAVITY = -1.81;
 const FLY_VERTICAL_SPEED = 8;
 
@@ -254,6 +280,11 @@ export class GameScript {
   // Control primitives
   private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
   private cameraRig: ThirdPersonCameraRig | null = null;
+  /** Set while in cinematic mode: a free camera, with the avatar left where it stood. */
+  private cinematicRig: FlyCameraRig | null = null;
+  private cinematicSpeed = CINEMATIC_DEFAULT_SPEED;
+  /** Where the follow camera was, to return to on leaving cinematic mode. */
+  private cameraBeforeCinematic: { position: Vector3; quaternion: Quaternion } | null = null;
   private mover: Mover | null = null;
   private animStateMachine: ReturnType<typeof createMoverAnimStateMachine> | null = null;
   private controlsActive = false;
@@ -307,6 +338,8 @@ export class GameScript {
           preview: msg.preview ?? null,
         });
         this.voice?.setCanSpeak((msg.permissions ?? []).includes("speak"));
+        // Lost the permission mid-flight: land.
+        if (!this.mayFly()) this.setFlyingState(false);
       });
       room.onMessage(CHUNK_DENIED_MESSAGE, (msg: ChunkDeniedMessage) => {
         this.chunkAccess[msg.chunkKey] = false;
@@ -411,8 +444,12 @@ export class GameScript {
 
       // Wire jump input
       this.inputs.Jump.onPerformed(() => {
-        if (!this.flying) this.mover?.startJump();
+        if (!this.flying && !this.cinematicRig) this.mover?.startJump();
       });
+      this.inputs.ToggleCinematic.onPerformed(() => this.toggleCinematic());
+      this.inputs.CameraFaster.onPerformed(() => this.changeCinematicSpeed(1));
+      this.inputs.CameraSlower.onPerformed(() => this.changeCinematicSpeed(-1));
+      this.inputs.ToggleUI.onPerformed(() => setUiHidden(!gameStore.state.uiHidden));
       this.inputs.ToggleFly.onPerformed(() => this.toggleFly());
       this.inputs.ToggleFast.onPerformed(() => this.toggleFast());
 
@@ -500,6 +537,7 @@ export class GameScript {
     this.animStateMachine = null;
     this.mover?.dispose();
     this.mover = null;
+    this.setCinematic(false);
     this.cameraRig?.dispose();
     this.cameraRig = null;
     this.inputs?.dispose();
@@ -520,13 +558,69 @@ export class GameScript {
     } else {
       this.inputs?.disable();
       this.setFlyingState(false);
+      this.setCinematic(false);
       this.animStateMachine?.forceState("idle");
     }
     if (this.cameraRig) this.cameraRig.active = val;
     if (this.animStateMachine) this.animStateMachine.enabled = val;
   }
 
+  toggleCinematic(): void {
+    this.setCinematic(!this.cinematicRig);
+    showModeNotice(this.cinematicRig ? "CINEMATIC MODE ON" : "CINEMATIC MODE OFF");
+  }
+
+  private changeCinematicSpeed(step: number): void {
+    if (!this.cinematicRig) return;
+    this.cinematicSpeed = Math.max(0, Math.min(CINEMATIC_SPEEDS.length - 1, this.cinematicSpeed + step));
+    this.cinematicRig.moveSpeed = CINEMATIC_SPEEDS[this.cinematicSpeed];
+    showModeNotice(`CAMERA SPEED ${CINEMATIC_SPEEDS[this.cinematicSpeed]} M/S`);
+  }
+
+  private setCinematic(on: boolean): void {
+    if (!!this.cinematicRig === on) return;
+    const camera = Camera.current;
+
+    if (on) {
+      this.cameraBeforeCinematic = {
+        position: camera.position.clone(),
+        quaternion: camera.quaternion.clone(),
+      };
+      if (this.cameraRig) this.cameraRig.active = false;
+      // Forward/back follow the camera's full direction (pitch included);
+      // up/down move along the world's vertical axis.
+      this.cinematicRig = new FlyCameraRig({
+        camera,
+        moveSpeed: CINEMATIC_SPEEDS[this.cinematicSpeed],
+        // The follow rig owns pointer lock; disposing a rig that owns it
+        // would release the mouse when leaving cinematic mode.
+        usePointerLock: false,
+      });
+      return;
+    }
+
+    this.cinematicRig?.dispose();
+    this.cinematicRig = null;
+    // Put the camera back behind the avatar before the follow rig takes over;
+    // it measures its orbit from wherever the camera is.
+    if (this.cameraBeforeCinematic) {
+      camera.position.copy(this.cameraBeforeCinematic.position);
+      camera.quaternion.copy(this.cameraBeforeCinematic.quaternion);
+      this.cameraBeforeCinematic = null;
+    }
+    if (this.cameraRig) this.cameraRig.active = this.controlsActive;
+  }
+
+  /** Fly mode needs the `fly` permission (owner and administrators always have it). */
+  mayFly(): boolean {
+    return (infoStore.state.self?.permissions ?? []).includes("fly");
+  }
+
   toggleFly(): void {
+    if (!this.flying && !this.mayFly()) {
+      showModeNotice("FLYING NOT ALLOWED");
+      return;
+    }
     this.setFlyingState(!this.flying);
     showModeNotice(this.flying ? "FLY MODE ON" : "FLY MODE OFF");
   }
@@ -590,6 +684,30 @@ export class GameScript {
     this.mover.acceleration = ACCELERATION * boost;
     this.mover.deceleration = DECELERATION * boost;
 
+    const up = this.inputs.Jump.isPressed;
+    const down = this.inputs.Down.isPressed;
+
+    if (this.cinematicRig) {
+      // The camera flies (it handles mouse look itself); the avatar stays put.
+      const a = this.cinematicRig.actions;
+      a.forward = moveDir.y > 0.1;
+      a.backward = moveDir.y < -0.1;
+      a.right = moveDir.x > 0.1;
+      a.left = moveDir.x < -0.1;
+      a.up = up;
+      a.down = down;
+      this.mover.move(0, 0, speed);
+      if (this.flying) {
+        const v = this.mover.velocity;
+        v.y = 0;
+        this.mover.setVelocity(v);
+      }
+      this.mover.update(dt);
+      this.animStateMachine?.update(dt);
+      if (this.flying) this.animStateMachine?.forceState("idle");
+      return;
+    }
+
     const lookDelta = this.inputs.Look.readValue();
     const zoomDelta = this.inputs.Zoom.readValue();
 
@@ -599,7 +717,7 @@ export class GameScript {
 
     if (this.flying) {
       // Gravity is off; we set the climb rate ourselves (per-step, like the mover's x/z).
-      const climb = (this.inputs.Jump.isPressed ? 1 : 0) - (this.inputs.Down.isPressed ? 1 : 0);
+      const climb = (up ? 1 : 0) - (down ? 1 : 0);
       const v = this.mover.velocity;
       v.y = climb * FLY_VERTICAL_SPEED * boost * dt;
       this.mover.setVelocity(v);

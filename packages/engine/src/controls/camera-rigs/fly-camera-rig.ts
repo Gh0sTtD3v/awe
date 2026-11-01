@@ -73,8 +73,12 @@ export class FlyCameraRig extends BaseCameraRig {
   private _lerp: number;
   private _invertY: boolean;
 
-  // Rotation state
+  // Rotation state. Yaw/pitch are kept as plain angles (yaw unwrapped) and the
+  // view eases towards them per axis. Slerping quaternions instead takes the
+  // shortest way round, so a fast turn of more than 180° made the camera swing
+  // back the other way.
   private _euler = new Euler(0, 0, 0, "YXZ");
+  private _view = new Euler(0, 0, 0, "YXZ");
   private _targetQuat: Quaternion | null = null;
 
   // Sensitivity conversion (screen-based like first-person)
@@ -111,9 +115,8 @@ export class FlyCameraRig extends BaseCameraRig {
 
     this._rotationConversion = calculateRotationConversion();
 
-    // Initialize target quaternion from camera
-    this._targetQuat = new Quaternion();
-    this._targetQuat.copy(this._camera.quaternion);
+    // Initialize rotation from camera
+    this._syncFromCamera();
 
     this._setupPointerLock();
     emitter.on(EngineEvents.RESIZE, this._handleResize);
@@ -164,11 +167,8 @@ export class FlyCameraRig extends BaseCameraRig {
     const { dx, dy } = applyAxisDampening(deltaX, deltaY);
 
     if (this._targetQuat == null) {
-      this._targetQuat = new Quaternion();
-      this._targetQuat.copy(this._camera.quaternion);
+      this._syncFromCamera();
     }
-
-    this._euler.setFromQuaternion(this._targetQuat);
 
     // Direction: -1 for pointer lock (inverted feel), 1 for drag mode
     const dir = this._dragMode ? 1 : -1;
@@ -268,6 +268,7 @@ export class FlyCameraRig extends BaseCameraRig {
       state.targetQuaternion.w
     );
     this._euler.set(state.euler.x, state.euler.y, state.euler.z, "YXZ");
+    this._view.copy(this._euler);
   }
 
   /** Reset rotation and actions */
@@ -332,17 +333,24 @@ export class FlyCameraRig extends BaseCameraRig {
     this.rotate(movementX, movementY);
   };
 
+  private _syncFromCamera(): void {
+    this._euler.setFromQuaternion(this._camera.quaternion, "YXZ");
+    this._euler.z = 0;
+    this._view.copy(this._euler);
+    this._targetQuat ??= new Quaternion();
+    this._targetQuat.setFromEuler(this._euler);
+  }
+
   private _update = (dt: number): void => {
     if (this._disposed || !this._active) return;
 
-    // Apply rotation with slerp smoothing
+    // Ease the view towards the target angles (mobile: faster response)
     if (this._targetQuat) {
-      if (IS_MOBILE) {
-        // Mobile: faster response
-        this._camera.quaternion.slerp(this._targetQuat, 0.1);
-      } else {
-        this._camera.quaternion.slerp(this._targetQuat, this._lerp);
-      }
+      const alpha = IS_MOBILE ? 0.1 : this._lerp;
+      this._view.x += (this._euler.x - this._view.x) * alpha;
+      this._view.y += (this._euler.y - this._view.y) * alpha;
+      this._view.z = 0;
+      this._camera.quaternion.setFromEuler(this._view);
     }
 
     // Process movement

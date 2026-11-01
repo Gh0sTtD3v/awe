@@ -85,6 +85,12 @@ export const PERMISSIONS = [
     label: "Control Screens",
     description: "Play, pause and change the videos on video screens for everyone.",
   },
+  {
+    id: "fly",
+    category: "In-game",
+    label: "Fly",
+    description: "Turn on fly mode (K). Without it, players stay on the ground.",
+  },
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number]["id"];
