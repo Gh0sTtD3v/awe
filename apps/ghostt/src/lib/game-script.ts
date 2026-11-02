@@ -704,8 +704,7 @@ export class GameScript {
         this.mover.setVelocity(v);
       }
       this.mover.update(dt);
-      this.animStateMachine?.update(dt);
-      if (this.flying) this.animStateMachine?.forceState("idle");
+      this.updateAnimation(dt, this.flying);
       return;
     }
 
@@ -727,10 +726,17 @@ export class GameScript {
     }
 
     this.mover.update(dt);
-    this.animStateMachine?.update(dt);
-    // Hovering would otherwise play the falling clip.
-    if (this.flying && !this.mover.isMoving) this.animStateMachine?.forceState("idle");
+    this.updateAnimation(dt, this.flying && !this.mover.isMoving);
   };
+
+  /**
+   * Hovering holds idle. Letting the machine update there would switch to the
+   * falling clip (the avatar is airborne) and back every step, which jitters.
+   */
+  private updateAnimation(dt: number, hovering: boolean): void {
+    if (hovering) this.animStateMachine?.forceState("idle");
+    else this.animStateMachine?.update(dt);
+  }
 
   // Called every frame when game is running (via space.use)
   onUpdate = (dt: number) => {
