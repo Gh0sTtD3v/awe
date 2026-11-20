@@ -36,6 +36,8 @@ import {
   setRemoved,
   showModMessage,
   setNearLift,
+  setNearSeat,
+  setSeated,
   type PlayerInfo,
 } from "@/lib/info-store";
 import { getAccessToken } from "@/lib/auth-bridge";
@@ -78,6 +80,8 @@ import {
 import { addChatMessage, setChatError, setChatRoom } from "./chat-store";
 import { describeRequirement, gateFromComponent, pointInGate } from "../../shared/gates";
 import { floorsOf, liftAt, liftFromComponent, type LiftDef } from "../../shared/lifts";
+import { seatFromComponent, seatNear, type SeatDef } from "../../shared/seats";
+import { gravityZoneAt, gravityZoneFromComponent, nextSpeed, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
 import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
@@ -226,6 +230,56 @@ const CINEMATIC_DEFAULT_SPEED = 4; // index into CINEMATIC_SPEEDS (4 m/s)
 const GRAVITY = -1.81;
 const FLY_VERTICAL_SPEED = 8;
 
+/** Fallback when the mesh can't be measured: hip joint height above the seat, in metres. */
+const HIPS_ABOVE_SEAT = 0.1;
+/** Frames to wait after starting the sitting clip before measuring the pose. */
+const SETTLE_FRAMES = 3;
+/** Bones whose skin forms what rests on a seat: the backside and thighs. */
+const SEATED_BONES = /(hips|upleg|upperleg)$/i;
+
+/**
+ * The avatar's VRM model. It is not a child of the avatar component: it lives
+ * in its own group that follows the component every frame.
+ */
+function avatarModel(avatar: any): any {
+  return avatar?._avatar?.vrm?.vrm ?? null;
+}
+
+function findHips(model: any): any {
+  let found: any = null;
+  model?.traverse((o: any) => {
+    if (!found && o.isBone && /hips/i.test(o.name)) found = o;
+  });
+  return found;
+}
+
+/**
+ * World height of the lowest point of the backside and thighs in the current
+ * pose: vertices skinned mostly to the hips or upper legs. Null if the model
+ * has no skinned mesh to measure.
+ */
+function lowestSeatedPoint(model: any): number | null {
+  let minY = Infinity;
+  const v = new Vector3();
+  model?.traverse((mesh: any) => {
+    if (!mesh.isSkinnedMesh || !mesh.visible) return;
+    const { position, skinIndex, skinWeight } = mesh.geometry.attributes;
+    if (!position || !skinIndex || !skinWeight) return;
+    const seatedBone = mesh.skeleton.bones.map((b: any) => SEATED_BONES.test(b.name));
+    for (let i = 0; i < position.count; i++) {
+      // The bone with the most influence on this vertex.
+      let best = 0;
+      for (let k = 1; k < 4; k++) if (skinWeight.getComponent(i, k) > skinWeight.getComponent(i, best)) best = k;
+      if (!seatedBone[skinIndex.getComponent(i, best)]) continue;
+      v.fromBufferAttribute(position, i);
+      mesh.applyBoneTransform(i, v);
+      v.applyMatrix4(mesh.matrixWorld);
+      if (v.y < minY) minY = v.y;
+    }
+  });
+  return Number.isFinite(minY) ? minY : null;
+}
+
 // Module-level reference for external control
 let scriptInstance: GameScript | null = null;
 
@@ -291,6 +345,12 @@ export class GameScript {
   private controlsActive = false;
   private flying = false;
   private fast = false;
+  /** Set while sitting: where the player stood before, to return to on standing up. */
+  private seatedFrom: Vector3 | null = null;
+  /** Just sat down: frames left before the hips are measured. */
+  private settling: { seat: SeatDef; frames: number } | null = null;
+  /** True while a reverse gravity zone is carrying the player (gravity is off). */
+  private inGravityZone = false;
 
   /**
    * Initialize the game scene.
@@ -557,6 +617,7 @@ export class GameScript {
       this.mover?.reset();
       this.animStateMachine?.forceState("idle");
     } else {
+      this.standUp();
       this.inputs?.disable();
       this.setFlyingState(false);
       this.setCinematic(false);
@@ -583,6 +644,7 @@ export class GameScript {
     const camera = Camera.current;
 
     if (on) {
+      this.standUp();
       this.cameraBeforeCinematic = {
         position: camera.position.clone(),
         quaternion: camera.quaternion.clone(),
@@ -622,6 +684,7 @@ export class GameScript {
       showModeNotice("FLYING NOT ALLOWED");
       return;
     }
+    this.standUp();
     this.setFlyingState(!this.flying);
     showModeNotice(this.flying ? "FLY MODE ON" : "FLY MODE OFF");
   }
@@ -679,6 +742,16 @@ export class GameScript {
     this.inputs.update(dt);
 
     const moveDir = this.inputs.Move.readValue();
+
+    if (this.seatedFrom) {
+      // Sitting: the camera still orbits; moving or jumping stands up.
+      const look = this.inputs.Look.readValue();
+      this.cameraRig?.rotate(look.x, look.y);
+      this.cameraRig?.zoom(this.inputs.Zoom.readValue() * 0.1);
+      if (Math.hypot(moveDir.x, moveDir.y) > 0.5 || this.inputs.Jump.wasJustPressed) this.standUp();
+      return;
+    }
+
     const boost = this.fast ? (this.flying ? FLY_FAST_BOOST : FAST_BOOST) : 1;
     const speed = SPEED * boost;
     // Speed up and slow down in the same time at any speed (no long glide at 10x).
@@ -703,8 +776,9 @@ export class GameScript {
         v.y = 0;
         this.mover.setVelocity(v);
       }
+      const carried = this.applyGravityZone(dt);
       this.mover.update(dt);
-      this.updateAnimation(dt, this.flying);
+      this.updateAnimation(dt, this.flying || (carried && !this.mover.grounded));
       return;
     }
 
@@ -725,9 +799,62 @@ export class GameScript {
       this.mover.startJump();
     }
 
+    const carried = this.applyGravityZone(dt);
     this.mover.update(dt);
-    this.updateAnimation(dt, this.flying && !this.mover.isMoving);
+    // Floating in a zone holds idle, like hovering in fly mode.
+    this.updateAnimation(dt, (this.flying && !this.mover.isMoving) || (carried && !this.mover.grounded));
   };
+
+  /** Reverse gravity zones in the loaded chunks. */
+  private gravityZones(): GravityZoneDef[] {
+    const out: GravityZoneDef[] = [];
+    for (const c of this.space?.components.byType("gravity-zone") ?? []) {
+      const zone = gravityZoneFromComponent(c.data);
+      if (zone) out.push(zone);
+    }
+    return out;
+  }
+
+  /**
+   * Inside a reverse gravity zone (and not flying), normal gravity is off and
+   * the player's vertical speed follows the zone: rising at a positive
+   * strength, falling slowly at a negative one. Returns true while the zone
+   * is in control.
+   */
+  private applyGravityZone(dt: number): boolean {
+    const mover = this.mover;
+    const pos = this.localPlayerAvatar?.position;
+    const zone = !this.flying && pos && dt > 0 ? gravityZoneAt(this.gravityZones(), pos) : null;
+
+    if (!zone) {
+      if (this.inGravityZone) {
+        this.inGravityZone = false;
+        if (mover && !this.flying) mover.gravity = GRAVITY;
+      }
+      return false;
+    }
+    if (!mover) return false;
+
+    this.inGravityZone = true;
+    mover.gravity = 0;
+    const v = mover.velocity;
+    // The mover's velocity is per step (metres moved this step); convert to m/s and back.
+    // On the ground the mover holds a small downward push; start from rest instead.
+    const speed = mover.grounded ? Math.max(0, v.y / dt) : v.y / dt;
+    const target = targetSpeed(zone, pos.y);
+
+    // A jump follows its own arc and would ignore the zone (falling back at
+    // full speed in a slow-fall zone). Once it drops below the zone's speed,
+    // end the jump and let the zone take over.
+    const state = mover.saveState();
+    if (state.jump.isJumping && speed < target) {
+      mover.restoreState({ ...state, jump: { ...state.jump, isJumping: false, elapsedTime: 0, maxHeight: 0 } });
+    }
+
+    v.y = nextSpeed(speed, target, dt) * dt;
+    mover.setVelocity(v);
+    return true;
+  }
 
   /**
    * Hovering holds idle. Letting the machine update there would switch to the
@@ -740,6 +867,7 @@ export class GameScript {
 
   // Called every frame when game is running (via space.use)
   onUpdate = (dt: number) => {
+    this.updateSettling();
     this.playersReplica?.update(dt);
     this.chatBubbles?.update(dt);
     this.broadcastLocalPlayerState(dt);
@@ -787,6 +915,120 @@ export class GameScript {
     this.screenSync?.update(this.localPlayerAvatar?.position ?? null);
 
     this.updateNearLift();
+    this.updateNearSeat();
+  }
+
+  /** Seats in the loaded chunks. */
+  private seats(): SeatDef[] {
+    const out: SeatDef[] = [];
+    for (const c of this.space?.components.byType("seat") ?? []) {
+      const seat = seatFromComponent(c.data);
+      if (seat) out.push(seat);
+    }
+    return out;
+  }
+
+  /** The seat the player could sit on right now. */
+  private seatInReach(): SeatDef | null {
+    const pos = this.localPlayerAvatar?.position;
+    return pos ? seatNear(this.seats(), pos) : null;
+  }
+
+  /** Offer the closest seat; while sitting, keep showing the seat being sat on. */
+  private updateNearSeat(): void {
+    if (this.seatedFrom) return;
+    const seat = this.controlsActive && !this.cinematicRig ? this.seatInReach() : null;
+    setNearSeat(seat ? { id: seat.id, prompt: seat.prompt } : null);
+  }
+
+  /** E: sit on the seat in reach, or stand up. */
+  toggleSit(): void {
+    if (this.seatedFrom) this.standUp();
+    else this.sit();
+  }
+
+  /**
+   * Snap onto the seat facing its arrow and play "sitting". Physics is off
+   * while seated; other players see the pose through the usual position and
+   * animation updates.
+   */
+  sit(): boolean {
+    const avatar = this.localPlayerAvatar as any;
+    if (this.seatedFrom || !this.controlsActive || this.cinematicRig || !avatar?.rigidBody) return false;
+    const seat = this.seatInReach();
+    if (!seat) return false;
+
+    this.setFlyingState(false);
+    this.seatedFrom = avatar.position.clone();
+
+    avatar.rigidBody.resetVelocities();
+    avatar.rigidBody.enabled = false;
+    avatar.position.set(seat.sitAt.x, seat.sitAt.y, seat.sitAt.z);
+    avatar.rotation.y = seat.rotY;
+
+    if (this.animStateMachine) this.animStateMachine.enabled = false;
+    avatar.play("sitting", { fadeIn: 0, stopAll: true, persist: true });
+    setSeated(true);
+    this.settling = { seat, frames: SETTLE_FRAMES };
+    return true;
+  }
+
+  /** Called every frame: once the sitting pose has been applied, settle onto the seat. */
+  private updateSettling(): void {
+    if (!this.settling) return;
+    if (!this.seatedFrom) {
+      this.settling = null;
+      return;
+    }
+    if (--this.settling.frames > 0) return;
+    const { seat } = this.settling;
+    this.settling = null;
+    this.settleOnSeat(seat);
+  }
+
+  /**
+   * The sitting clip lifts the body well above the avatar's origin, by an
+   * amount that depends on the avatar. Measure the pose and shift the avatar
+   * so its hips are centred over the square and the underside of its
+   * backside and thighs rests exactly on it.
+   */
+  private settleOnSeat(seat: SeatDef): void {
+    const avatar = this.localPlayerAvatar as any;
+    const model = avatarModel(avatar);
+    const hips = findHips(model);
+    if (!hips) return;
+    // Measure against the model's own origin: it follows the avatar every frame.
+    model.updateMatrixWorld(true);
+    const hipsAt = hips.getWorldPosition(new Vector3());
+    const origin = model.getWorldPosition(new Vector3());
+    const lowest = lowestSeatedPoint(model) ?? hipsAt.y - HIPS_ABOVE_SEAT;
+    avatar.position.set(
+      seat.sitAt.x - (hipsAt.x - origin.x),
+      seat.sitAt.y - (lowest - origin.y),
+      seat.sitAt.z - (hipsAt.z - origin.z),
+    );
+  }
+
+  /** Get up and step back to where the player stood before sitting. */
+  standUp(): void {
+    const from = this.seatedFrom;
+    if (!from) return;
+    this.seatedFrom = null;
+    setSeated(false);
+
+    const avatar = this.localPlayerAvatar as any;
+    if (!avatar?.rigidBody) return;
+    avatar.position.copy(from);
+    avatar.rigidBody.enabled = true;
+    avatar.rigidBody.teleport(from, avatar.quaternion);
+    this.mover?.reset();
+
+    // The state machine may still think it's in "idle" and not replay it.
+    avatar.play("idle", { fadeIn: 0.2, stopAll: true, persist: true });
+    if (this.animStateMachine) {
+      this.animStateMachine.enabled = this.controlsActive;
+      this.animStateMachine.forceState("idle");
+    }
   }
 
   /** Lift boxes in the loaded chunks. */
@@ -999,6 +1241,7 @@ export class GameScript {
     }
 
     // Land on the destination floor rather than hovering above it.
+    this.standUp();
     this.setFlyingState(false);
 
     const target = new Vector3(pos.x, pos.y, pos.z);

@@ -10,6 +10,7 @@ import { GateNotice } from "./gate-notice";
 import { ModMessage, RemovedOverlay } from "./moderation-notice";
 import { ScreenControls } from "./screen-controls";
 import { LiftControls } from "./lift-controls";
+import { SeatControls } from "./seat-controls";
 import { VoiceControls } from "./voice-controls";
 import { ChatPanel } from "./chat-panel";
 import { RolePreviewBanner } from "./role-preview-banner";
@@ -73,6 +74,7 @@ function ScreenOverlay() {
     <>
       <ScreenControls />
       <LiftControls />
+      <SeatControls />
       <MobileControls />
       <ModeNotice />
       {/* Bottom-left column: chat sits on top of the voice controls, whatever their size.
