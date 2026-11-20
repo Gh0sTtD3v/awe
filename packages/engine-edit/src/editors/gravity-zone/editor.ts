@@ -60,7 +60,7 @@ export class GravityZoneComponentEditor extends Component3DEditor<GravityZoneCom
 						},
 						strength: {
 							type: "number",
-							label: "Strength (m/s, - pushes down)",
+							label: "Strength (m/s, - = slow fall)",
 							value: [this.data, "strength"],
 							min: -50,
 							max: 50,

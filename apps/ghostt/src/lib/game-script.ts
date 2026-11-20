@@ -81,7 +81,7 @@ import { addChatMessage, setChatError, setChatRoom } from "./chat-store";
 import { describeRequirement, gateFromComponent, pointInGate } from "../../shared/gates";
 import { floorsOf, liftAt, liftFromComponent, type LiftDef } from "../../shared/lifts";
 import { seatFromComponent, seatNear, type SeatDef } from "../../shared/seats";
-import { gravityZoneAt, gravityZoneFromComponent, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
+import { gravityZoneAt, gravityZoneFromComponent, nextSpeed, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
 import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
@@ -229,8 +229,6 @@ const CINEMATIC_SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128];
 const CINEMATIC_DEFAULT_SPEED = 4; // index into CINEMATIC_SPEEDS (4 m/s)
 const GRAVITY = -1.81;
 const FLY_VERTICAL_SPEED = 8;
-/** How quickly a reverse gravity zone brings players to its speed, in m/s². */
-const GRAVITY_ZONE_ACCELERATION = 20;
 
 /** Fallback when the mesh can't be measured: hip joint height above the seat, in metres. */
 const HIPS_ABOVE_SEAT = 0.1;
@@ -818,9 +816,10 @@ export class GameScript {
   }
 
   /**
-   * Inside a reverse gravity zone (and not flying), gravity is off and the
-   * player's vertical speed eases toward the zone's strength. Returns true
-   * while the player is being carried.
+   * Inside a reverse gravity zone (and not flying), normal gravity is off and
+   * the player's vertical speed follows the zone: rising at a positive
+   * strength, falling slowly at a negative one. Returns true while the zone
+   * is in control.
    */
   private applyGravityZone(dt: number): boolean {
     const mover = this.mover;
@@ -843,8 +842,16 @@ export class GameScript {
     // On the ground the mover holds a small downward push; start from rest instead.
     const speed = mover.grounded ? Math.max(0, v.y / dt) : v.y / dt;
     const target = targetSpeed(zone, pos.y);
-    const step = GRAVITY_ZONE_ACCELERATION * dt;
-    v.y = (speed + Math.max(-step, Math.min(step, target - speed))) * dt;
+
+    // A jump follows its own arc and would ignore the zone (falling back at
+    // full speed in a slow-fall zone). Once it drops below the zone's speed,
+    // end the jump and let the zone take over.
+    const state = mover.saveState();
+    if (state.jump.isJumping && speed < target) {
+      mover.restoreState({ ...state, jump: { ...state.jump, isJumping: false, elapsedTime: 0, maxHeight: 0 } });
+    }
+
+    v.y = nextSpeed(speed, target, dt) * dt;
     mover.setVelocity(v);
     return true;
   }

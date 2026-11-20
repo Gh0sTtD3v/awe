@@ -28,9 +28,9 @@ export interface GravityZoneComponentData extends Component3DData {
 	height?: number;
 
 	/**
-	 * Vertical speed, in metres per second, players are carried at inside the
-	 * zone: positive lifts them up (they stop at the top), negative pushes them
-	 * down, 0 makes them float.
+	 * Metres per second. Positive: players are lifted at this speed and stop at
+	 * the top. Negative: gravity is slowed, players fall no faster than this
+	 * (like a parachute). 0: players float.
 	 */
 	strength?: number;
 }

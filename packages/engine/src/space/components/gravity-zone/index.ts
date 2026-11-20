@@ -11,7 +11,7 @@ export class GravityZoneComponentFactory extends DefaultComponentFactory<Gravity
 		type: "gravity-zone",
 		title: "Reverse Gravity",
 		image: GRAVITY_ZONE_ICON,
-		description: "A zone that carries players up (or down): elevators and jump pads",
+		description: "Lifts players up, or slows their fall: elevators and safe drops",
 		draggable: true,
 		transform: true,
 		studioTab: "worldSettings",

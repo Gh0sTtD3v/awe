@@ -6,7 +6,7 @@ import { IS_EDIT_MODE } from "../../../internal/constants";
 export type { GravityZoneComponentData } from "./gravity-zone-data";
 
 const UP_COLOR = new Color("#3fd0ff");
-const DOWN_COLOR = new Color("#ff5a5a");
+const SLOW_FALL_COLOR = new Color("#ffb13f");
 
 let _box: BoxGeometry | null = null;
 let _edges: EdgesGeometry | null = null;
@@ -29,12 +29,12 @@ function getEdges(): EdgesGeometry {
  * @public
  *
  * Reverse gravity: a box-shaped zone (a floor square extruded `height` metres
- * up) that carries players up or down at `strength` metres per second. Use it
- * for elevators and jump pads.
+ * up) that lifts players at `strength` metres per second, or, with a negative
+ * strength, slows their fall to that speed. Use it for elevators and drops.
  *
  * The component only marks the zone. Moving players is the host game's job.
  *
- * Visible as a translucent box in the studio (blue lifts, red pushes down),
+ * Visible as a translucent box in the studio (blue lifts, orange slows falls),
  * invisible during play.
  */
 export class GravityZoneComponent extends Component3D<GravityZoneComponentData> {
@@ -87,7 +87,7 @@ export class GravityZoneComponent extends Component3D<GravityZoneComponentData> 
 		if (!this._volume) return;
 		const sy = Math.abs(this.scale.y) > 1e-6 ? this.scale.y : 1;
 		this._volume.scale.set(1, this.height / sy, 1);
-		const color = Number(this.data.strength) < 0 ? DOWN_COLOR : UP_COLOR;
+		const color = Number(this.data.strength) < 0 ? SLOW_FALL_COLOR : UP_COLOR;
 		this._material.color.copy(color);
 		(this._lines.material as LineBasicMaterial).color.copy(color);
 	}

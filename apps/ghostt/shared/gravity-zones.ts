@@ -2,14 +2,16 @@ import { Euler, Quaternion, Vector3 } from "three";
 import { pointInGate, vec, type BoxArea } from "./gates";
 
 /**
- * Reverse gravity zones: a floor square extruded `height` metres up. Players
- * inside are carried up or down at `strength` m/s instead of falling.
- * Purely client-side, like the rest of player movement.
+ * Reverse gravity zones: a floor square extruded `height` metres up. Inside,
+ * normal gravity is replaced: a positive strength carries players up at that
+ * many m/s, a negative one lets them fall slowly at no more than that speed
+ * (like a parachute), 0 makes them float. Purely client-side, like the rest
+ * of player movement.
  */
 
 export interface GravityZoneDef extends BoxArea {
   id: string;
-  /** Target vertical speed in m/s: + up, - down, 0 float. */
+  /** m/s: + rise at this speed, - fall no faster than this, 0 float. */
   strength: number;
   /** World height of the top of the zone (for an upright zone). */
   top: number;
@@ -57,12 +59,34 @@ const TOP_EASE_DISTANCE = 1.5;
 
 /**
  * The vertical speed (m/s) a zone wants for a player whose feet are at `y`:
- * its strength, slowed to a stop at the top for rising zones.
+ * its strength, slowed to a stop at the top for rising zones. For a negative
+ * strength this is the slow-fall speed.
  */
 export function targetSpeed(zone: GravityZoneDef, y: number): number {
   if (zone.strength <= 0) return zone.strength;
   const below = Math.max(0, zone.top - y);
   return zone.strength * Math.min(1, below / TOP_EASE_DISTANCE);
+}
+
+/**
+ * How fast a player too slow upward (rising too slowly, or falling too fast)
+ * catches up with the target: halfway in about 0.06 s. This is what brakes a
+ * player falling into a slow-fall zone from high up within a few metres.
+ */
+const CATCH_UP_TIME = 0.08;
+
+/** Downward acceleration in a slow-fall zone, and slowing near the top of a rising one (m/s²). */
+const EASE_DOWN_ACCELERATION = 20;
+
+/**
+ * The player's next vertical speed (m/s) after `dt` seconds in a zone.
+ * Moving down faster than the target (or up slower) is corrected quickly;
+ * being above the target speed eases down gently, so a slow-fall zone never
+ * pushes anyone down faster than normal falling would.
+ */
+export function nextSpeed(speed: number, target: number, dt: number): number {
+  if (speed < target) return target + (speed - target) * Math.exp(-dt / CATCH_UP_TIME);
+  return Math.max(target, speed - EASE_DOWN_ACCELERATION * dt);
 }
 
 function volumeOf(box: BoxArea): number {
