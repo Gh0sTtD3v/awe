@@ -7,6 +7,7 @@ All of them are **invisible markers during play**: you see them in the studio (a
 | Module | What it does | Player key |
 | --- | --- | --- |
 | [Seat](#seat) | Walk up, press E, the avatar sits | E |
+| [Reverse Gravity](#reverse-gravity) | Carries players up (or down): elevators, jump pads | — |
 | [Lift](#lift) | Teleport between the floors of a building | E |
 | [Video Screen](#video-screen) | A screen with a playlist everyone watches in sync | E (to control) |
 | [Chat Zone](#chat-zone) | An area with its own text chat room | — |
@@ -37,6 +38,33 @@ A place to sit. Put the square on a chair, bench, step or ledge; a player who wa
 The square's scale only changes how big it looks in the studio. Teleports, lifts, fly mode, cinematic mode and pausing all stand the player up first.
 
 **Code:** `packages/engine/src/space/components/seat/` (component), `packages/engine-edit/src/editors/seat/editor.ts` (studio panel), `apps/ghostt/shared/seats.ts` (finding the nearest seat), `apps/ghostt/src/lib/game-script.ts` (`sit` / `standUp`), `apps/ghostt/src/components/seat-controls.tsx` (prompt).
+
+---
+
+## Reverse Gravity
+
+A zone where gravity is replaced by a steady push: walk in and you are carried up (or down) at a set speed. Use it for **elevators** (a column from the ground floor up to the next floor), jump pads, or floating rooms.
+
+**How to use**
+
+1. Add **Reverse Gravity**. A translucent box appears: **blue** when it lifts, **red** when it pushes down.
+2. Put its floor where players step in (Transform → Position is the centre of the floor).
+3. **Resize the floor by its corners:** while the zone is selected, its four floor corners show as small white cubes. Click one (it turns green) and drag it with the move arrows. The opposite corner stays where it is and the floor stretches between them. Undo works as usual.
+4. Set **Height** so the top of the box is the floor players should arrive on: a rising zone slows down near the top and stops players exactly at the top, so they can step off.
+5. Set **Strength**.
+
+**Settings (Reverse Gravity panel)**
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Height (m) | 6 | How tall the zone is, from its floor up. The floor square becomes a box this tall |
+| Strength (m/s) | 4 | Vertical speed inside the zone: **positive lifts** (and stops at the top), **negative pushes down**, 0 makes players float |
+
+**Elevator recipe:** a 2 × 2 m zone on the ground floor, Height = the height of the upper floor's surface above the ground, Strength 3 to 6. Players walk in, rise, stop level with the upper floor and walk off. For the way down, a second zone with negative Strength (or just walk off the edge).
+
+Flying players are not affected. A jump started just before entering finishes its arc first. Only the floor size (x and z scale) matters; the y scale is ignored, use Height.
+
+**Code:** `packages/engine/src/space/components/gravity-zone/` (component), `packages/engine-edit/src/editors/gravity-zone/editor.ts` (studio panel and corner handles), `apps/ghostt/shared/gravity-zones.ts` (which zone a player is in, target speed), `apps/ghostt/src/lib/game-script.ts` (`applyGravityZone`).
 
 ---
 
