@@ -41,6 +41,7 @@ import type { PortalComponent } from "./portal/portal-component";
 import type { TokenGateComponent } from "./token-gate/token-gate-component";
 import type { ChatZoneComponent } from "./chat-zone/chat-zone-component";
 import type { LiftComponent } from "./lift/lift-component";
+import type { SeatComponent } from "./seat/seat-component";
 import type { VideoScreenComponent } from "./video-screen/video-screen-component";
 
 /**
@@ -88,6 +89,7 @@ export type ComponentTypeMap = {
   "token-gate": TokenGateComponent;
   "chat-zone": ChatZoneComponent;
   lift: LiftComponent;
+  seat: SeatComponent;
   "video-screen": VideoScreenComponent;
 };
 
