@@ -123,7 +123,7 @@ A curve through points you place, with copies of any object in your world travel
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | Color, Line width, Opacity (Aspect) | white, 3, 1 | How the curve looks |
-| Display on Live Mode (Aspect) | off | Off: the curve is only visible in the studio, players only see the moving copies. On: players see the line too |
+| Display on Live Mode (Aspect) | off | Off: the curve is only visible in the studio, players only see the moving copies. On: players see the line too (never the red point cubes) |
 | Closed (Edition) | off | Off: copies reaching the end start again at the beginning. On: the curve is a loop |
 | Smoothness (Edition) | 1000 | How finely the curve is drawn and followed |
 | Component (Follower) | none | The object copied onto the curve |

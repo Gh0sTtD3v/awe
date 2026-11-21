@@ -101,12 +101,12 @@ export default class Splines extends Group {
         raycastLineWidth: 20,
       });
 
+      // The point cubes are editing handles: the studio shows them while
+      // the spline is selected, players never see them.
       if (IS_EDIT_MODE) {
         this.meshLine.layers.disableAll();
 
         this.meshLine.layers.enable(CAMERA_LAYERS.EDITOR);
-      } else {
-        this.displaySectors();
       }
 
       this.add(this.meshLine);

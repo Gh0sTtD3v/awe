@@ -96,12 +96,9 @@ export class SplineComponent extends Component3D<SplineComponentData> {
             ...this.data,
         });
 
-        // dont display if not in edit mode
-        // and display is false
-
-        if (IS_EDIT_MODE != true && this.data.display == false) {
-            this._spline.visible = false;
-        }
+        // Always visible in the studio; in the game only with "Display on
+        // Live Mode" (the spline object hides itself outside the studio).
+        this._spline.visible = IS_EDIT_MODE || this.data.display == true;
 
         this._lastPoints = this.data.points;
 
@@ -284,6 +281,8 @@ export class SplineComponent extends Component3D<SplineComponentData> {
         this._spline.smoothness = this.data.smoothness;
 
         this._spline.closed = this.data.closed || false;
+
+        this._spline.visible = IS_EDIT_MODE || this.data.display == true;
 
         if (this._lastPoints != this.data.points) {
             //
