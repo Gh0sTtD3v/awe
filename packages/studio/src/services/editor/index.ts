@@ -617,6 +617,9 @@ export class WorldEditorService {
     });
     if (!canTransform) return false;
 
+    // Locked objects must not move; grouping them would let the group move them
+    if (components.some((it) => (it.data as any).lock)) return false;
+
     // Must have same parent (the group takes their place under it)
     if (!this.haveSameParent(components)) return false;
 

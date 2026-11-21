@@ -76,6 +76,12 @@ export class EditCommands {
 
     if (component.data.parentId == parentId) return false;
 
+    // World matrices are only refreshed when a frame renders; after a recent
+    // change (e.g. group then ungroup straight away) they can be stale, and
+    // re-parenting from a stale matrix moves the component. Refresh first.
+    parent.updateWorldMatrix(true, false);
+    component.updateWorldMatrix(true, false);
+
     // adjust the component's transform to be relative to the group
     const groupWMInv = mat4.copy(parent.matrixWorld).invert();
 
