@@ -29,6 +29,10 @@ export class UngroupComponentsCommand extends AbstractCommand {
 
     private _autoSelect: boolean;
 
+    get groupId() {
+        return this._groupId;
+    }
+
     constructor(context: CommandContext, opts: UngroupOpts) {
         //
         super(context);
@@ -45,7 +49,8 @@ export class UngroupComponentsCommand extends AbstractCommand {
 
         const group = this.getComponent(this._groupId);
 
-        this._groupData = group.data;
+        // A plain copy: the live data object goes away with the group.
+        this._groupData = structuredClone(group.data);
 
         this._prevChildrenData = group.childComponents.map((component) => {
             //
@@ -95,15 +100,15 @@ export class UngroupComponentsCommand extends AbstractCommand {
             //
             const child = this.getComponent(childData.id);
 
-            group.add(child);
+            // Re-parent through the editor so parentId is recorded properly,
+            // then put back the exact local transform it had in the group.
+            EngineFacade.editor.commands.changeParent(child, group);
 
             child.position.copy(childData.position);
             child.quaternion.copy(childData.quaternion);
             child.scale.copy(childData.scale);
 
             child.syncWithTransform();
-
-            child.data.parentId = childData.parentId;
         });
 
         this.updateGameData((state) => {

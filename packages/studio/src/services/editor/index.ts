@@ -617,8 +617,15 @@ export class WorldEditorService {
     });
     if (!canTransform) return false;
 
-    // Must have same parent
-    this.haveSameParent(components);
+    // Must have same parent (the group takes their place under it)
+    if (!this.haveSameParent(components)) return false;
+
+    // Must be able to live in a group (no singletons such as the sky)
+    try {
+      if (!components.every((it) => this.canBeParented(it.data))) return false;
+    } catch {
+      return false;
+    }
 
     return true;
   }

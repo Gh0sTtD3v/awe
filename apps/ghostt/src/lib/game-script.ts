@@ -84,6 +84,7 @@ import { seatFromComponent, seatNear, type SeatDef } from "../../shared/seats";
 import { gravityZoneAt, gravityZoneFromComponent, nextSpeed, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
 import { musicZoneFromComponent, type MusicZoneDef } from "../../shared/music-zones";
 import { MusicPlayer } from "@/lib/music-player";
+import { worldData } from "@/lib/world-data";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
 import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
@@ -554,7 +555,7 @@ export class GameScript {
           if (avatar !== this.localPlayerAvatar) return;
           if (this.gateAccess[gateId] === true) return;
 
-          const gate = gateFromComponent(this.space?.components.byId(gateId)?.data);
+          const gate = gateFromComponent(worldData(this.space?.components.byId(gateId)));
           if (!gate) return;
           void this.leaveGate(gate.exit, gate.label, describeRequirement(gate.requirement), "local");
         },
@@ -817,7 +818,7 @@ export class GameScript {
   private gravityZones(): GravityZoneDef[] {
     const out: GravityZoneDef[] = [];
     for (const c of this.space?.components.byType("gravity-zone") ?? []) {
-      const zone = gravityZoneFromComponent(c.data);
+      const zone = gravityZoneFromComponent(worldData(c));
       if (zone) out.push(zone);
     }
     return out;
@@ -887,7 +888,7 @@ export class GameScript {
   private musicZones(): MusicZoneDef[] {
     const out: MusicZoneDef[] = [];
     for (const c of this.space?.components.byType("music-zone") ?? []) {
-      const zone = musicZoneFromComponent(c.data);
+      const zone = musicZoneFromComponent(worldData(c));
       if (zone) out.push(zone);
     }
     return out;
@@ -948,7 +949,7 @@ export class GameScript {
   private seats(): SeatDef[] {
     const out: SeatDef[] = [];
     for (const c of this.space?.components.byType("seat") ?? []) {
-      const seat = seatFromComponent(c.data);
+      const seat = seatFromComponent(worldData(c));
       if (seat) out.push(seat);
     }
     return out;
@@ -1061,7 +1062,7 @@ export class GameScript {
   private lifts(): LiftDef[] {
     const out: LiftDef[] = [];
     for (const c of this.space?.components.byType("lift") ?? []) {
-      const lift = liftFromComponent(c.data);
+      const lift = liftFromComponent(worldData(c));
       if (lift) out.push(lift);
     }
     return out;
@@ -1075,7 +1076,7 @@ export class GameScript {
     if (!here) return setNearLift(null);
 
     const gates = (this.space?.components.byType("token-gate") ?? [])
-      .map((c) => gateFromComponent(c.data))
+      .map((c) => gateFromComponent(worldData(c)))
       .filter((g) => g != null);
 
     setNearLift({

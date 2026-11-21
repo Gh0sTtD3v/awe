@@ -3,6 +3,7 @@ import path from "node:path";
 import { gateFromComponent, pointInGate, type GateDef } from "../shared/gates";
 import { screenFromComponent, type ScreenDef } from "../shared/screens";
 import { zoneFromComponent, type ZoneDef } from "../shared/zones";
+import { withWorldTransforms } from "@oncyberio/world-config";
 
 /**
  * Every token gate, members-only chunk and video screen in the world, read straight from the
@@ -14,11 +15,18 @@ export function getDataDir(): string {
   return process.env.AWE_DATA_DIR || path.join(process.cwd(), "public", "data");
 }
 
-/** Every component in `static-scene.json` and `chunks/*.json` under `dataDir`. */
+/**
+ * Every component in `static-scene.json` and `chunks/*.json` under `dataDir`.
+ * Components inside groups get their world position / rotation / scale (the
+ * saved values are relative to the group).
+ */
 function eachComponent(dataDir: string, visit: (component: unknown) => void) {
+  const all: Record<string, any> = {};
   const collect = (components: unknown) => {
     if (!components || typeof components !== "object") return;
-    for (const component of Object.values(components as Record<string, unknown>)) visit(component);
+    for (const [key, component] of Object.entries(components as Record<string, any>)) {
+      all[component?.id ?? key] = component;
+    }
   };
 
   const scene = readJson(path.join(dataDir, "static-scene.json"));
@@ -31,6 +39,8 @@ function eachComponent(dataDir: string, visit: (component: unknown) => void) {
       collect(readJson(path.join(chunksDir, file))?.assets);
     }
   }
+
+  for (const component of Object.values(withWorldTransforms(all))) visit(component);
 }
 
 /** All gates found in `static-scene.json` and `chunks/*.json` under `dataDir`. */
