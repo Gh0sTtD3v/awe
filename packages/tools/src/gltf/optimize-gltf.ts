@@ -7,10 +7,11 @@ import {
 } from "@gltf-transform/extensions";
 import { MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
+import type { Primitive } from "@gltf-transform/core";
 import {
   prune,
   dedup,
-  simplify,
+  simplifyPrimitive,
   metalRough,
   draco,
   weld,
@@ -22,6 +23,29 @@ import {
 import textureCompress from "../texture/texture-compress";
 import { textureResize } from "../texture/texture-resize";
 import draco3d from "draco3dgltf";
+
+/** Largest shape change the simplifier may make, in metres (1 mm). */
+const SIMPLIFY_MAX_ERROR_METERS = 0.001;
+/** Cap on the simplifier's error, as a fraction of the mesh radius (the previous fixed value). */
+const SIMPLIFY_MAX_ERROR_RELATIVE = 0.001;
+/** Draco position precision, in bits per axis. */
+const DRACO_POSITION_BITS = 16;
+
+/**
+ * The simplifier's error limit for a primitive: meshoptimizer measures error
+ * as a fraction of the mesh radius, so convert the absolute limit with the
+ * primitive's own size. Big merged primitives get a tiny fraction (keeping
+ * their small details), small ones keep the old relative limit. 0 = skip.
+ */
+export function simplifyErrorFor(prim: Primitive): number {
+  const position = prim.getAttribute("POSITION");
+  if (!position || position.getCount() === 0) return 0;
+  const min = position.getMinNormalized([]);
+  const max = position.getMaxNormalized([]);
+  const radius = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2;
+  if (!(radius > 0)) return 0;
+  return Math.min(SIMPLIFY_MAX_ERROR_RELATIVE, SIMPLIFY_MAX_ERROR_METERS / radius);
+}
 
 /**
  * Compression options for GLTF optimization
@@ -111,24 +135,46 @@ export async function optimizeGLTF(
     dedup()
   );
 
+  // Tolerances below are absolute (in metres), not fractions of the mesh size:
+  // join() above merges every primitive sharing a material, so one "mesh" can
+  // span a whole level (e.g. all the sign text in a 100 m area). A relative
+  // tolerance on that would be centimetres and destroys small detail such as
+  // lettering.
+
   if (compressionOptions.useWeld === true) {
-    await originalDocument.transform(weld({ tolerance: 0.0001 }));
+    // Lossless: merge only identical vertices.
+    await originalDocument.transform(weld({ tolerance: 0 }));
   }
 
   if (compressionOptions.useMeshOpt === true) {
-    await originalDocument.transform(
-      simplify({
-        simplifier: MeshoptSimplifier,
-        ratio: 0.0,
-        error: 0.001,
-        lockBorder: true,
-      })
-    );
+    await MeshoptSimplifier.ready;
+    for (const mesh of originalDocument.getRoot().listMeshes()) {
+      for (const prim of mesh.listPrimitives()) {
+        const error = simplifyErrorFor(prim);
+        if (error > 0) {
+          simplifyPrimitive(originalDocument, prim, {
+            simplifier: MeshoptSimplifier,
+            ratio: 0.0,
+            error,
+            lockBorder: true,
+          });
+        }
+      }
+    }
+    await originalDocument.transform(prune());
   }
 
-  if (compressionOptions.useDraco === true) {
-    await originalDocument.transform(draco());
-  }
+  // Draco is applied to each variant just before writing it: Document.clone()
+  // does not keep Draco's encoder options, so a clone would silently fall
+  // back to the default 14-bit positions. Positions are rounded to a grid over
+  // each primitive's bounds; 16 bits keeps that grid at ~1.5 mm even on a
+  // 100 m merged primitive (14 bits would be ~6 mm, visible on lettering).
+  const write = async (doc: typeof originalDocument) => {
+    if (compressionOptions.useDraco === true) {
+      await doc.transform(draco({ quantizePosition: DRACO_POSITION_BITS }));
+    }
+    return io.writeBinary(doc);
+  };
 
   const highDocument = originalDocument.clone();
 
@@ -142,7 +188,7 @@ export async function optimizeGLTF(
     })
   );
 
-  const highBuffer = await io.writeBinary(highDocument);
+  const highBuffer = await write(highDocument);
 
   const resultHigh = {
     buffer: highBuffer,
@@ -161,7 +207,7 @@ export async function optimizeGLTF(
     })
   );
 
-  const lowBuffer = await io.writeBinary(lowDocument);
+  const lowBuffer = await write(lowDocument);
 
   const resultlow = {
     buffer: lowBuffer,
@@ -181,7 +227,7 @@ export async function optimizeGLTF(
     // })
   );
 
-  const lowCompressedBuffer = await io.writeBinary(lowCompressedDocument);
+  const lowCompressedBuffer = await write(lowCompressedDocument);
 
   const resultlowCompressed = {
     buffer: lowCompressedBuffer,

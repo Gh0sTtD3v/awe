@@ -1,8 +1,16 @@
 "use server";
 
-import { OptimizeService, type OptimizeAssetResult, type OOAsset } from "@oncyberio/tools";
+import { OptimizeService, isCurrentOptimization, type OptimizeAssetResult, type OOAsset } from "@oncyberio/tools";
 import { resolveWorkingFolder } from "../server/working-folder-service";
 import { requirePermission } from "../server/access";
+
+/**
+ * Whether stored optimised files were made by the current optimiser. Older
+ * ones (e.g. v0, which deformed small detail like text) should be redone.
+ */
+export async function isOptimizationCurrent(files: { high?: string | null } | null | undefined): Promise<boolean> {
+  return isCurrentOptimization(files);
+}
 
 /**
  * Server action to optimize a 3D asset
