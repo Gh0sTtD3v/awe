@@ -172,7 +172,11 @@ export class SplineComponent extends Component3D<SplineComponentData> {
         if (val == null) {
             return;
         } else {
-            this._baseFollower = (await this.space.components.create(val, {
+            // A follower lives at the top of the scene even when its source
+            // object sits inside a group.
+            const { parentId, ...followerData } = val as any;
+
+            this._baseFollower = (await this.space.components.create(followerData, {
                 transient: true,
             })) as any;
 
@@ -389,8 +393,6 @@ export class SplineComponent extends Component3D<SplineComponentData> {
                     point.z +=
                         follower._followOptions.followerOffsetVariation.z;
 
-                    follower.position.copy(point);
-
                     let look =
                         (follower._followOptions.progressionBase + 0.05) % 1;
                     let pointlook = this._spline.getBakedPointAt(look);
@@ -401,6 +403,8 @@ export class SplineComponent extends Component3D<SplineComponentData> {
                         follower._followOptions.followerOffsetVariation.y;
                     pointlook.z +=
                         follower._followOptions.followerOffsetVariation.z;
+
+                    follower.position.copy(point);
 
                     this._lookAt(follower, point, pointlook);
 

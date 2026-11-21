@@ -18,6 +18,7 @@ export class SplineComponentFactory extends DefaultComponentFactory<SplineCompon
         tipNeeded: true,
         draggable: true,
         transform: true,
+        studioTab: "worldSettings",
     };
 
     static {
@@ -39,6 +40,7 @@ export class SplineComponentFactory extends DefaultComponentFactory<SplineCompon
             lineWidth: 3,
             opacity: 1,
             display: false,
+            followerCount: 1,
             followerOffsetVariation: { x: 0, y: 0, z: 0 },
             followerSpeed: 1,
             followerSpeedVariation: 0,
