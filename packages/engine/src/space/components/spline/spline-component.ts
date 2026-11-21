@@ -407,6 +407,14 @@ export class SplineComponent extends Component3D<SplineComponentData> {
 
                     this._lookAt(follower, point, pointlook);
 
+                    // Turn the copy around its up axis, for models whose
+                    // front isn't the way the curve goes (degrees, 0-360).
+                    const facing = this.data.followerRotation ?? 0;
+
+                    if (facing) {
+                        follower.rotateY((facing * Math.PI) / 180);
+                    }
+
                     i++;
                 }
 

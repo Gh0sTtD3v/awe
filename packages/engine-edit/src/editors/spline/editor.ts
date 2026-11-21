@@ -221,6 +221,17 @@ export class SplineEditor extends Component3DEditor<SplineComponent> {
                         min: 0.01,
                         max: 5,
                         step: 0.01,
+                    },
+
+                    followerRotation: {
+
+                        visible: () => this.data.preset != null,
+                        type: "number",
+                        label: "Facing (degrees)",
+                        value: [this.data, "followerRotation"],
+                        min: 0,
+                        max: 360,
+                        step: 1,
                     }
 
 

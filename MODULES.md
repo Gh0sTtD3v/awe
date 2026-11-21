@@ -131,6 +131,7 @@ A curve through points you place, with copies of any object in your world travel
 | Follower offset variation (Follower) | 0, 0, 0 | Moves each copy off the line by a random amount up to this, per axis (in metres), so they don't all fly in single file |
 | Follower speed (Follower) | 1 | 1 = a full trip in 10 seconds whatever the curve's length (a long curve means faster copies) |
 | Follower speed variation (Follower) | 0 | Random extra speed per copy, so they don't move in lockstep |
+| Facing (degrees) (Follower) | 0 | Turns the copies around their up axis (0 to 360). Use it when a model flies sideways or backwards: e.g. 90, 180 or 270 until its nose points along the curve. Changes apply straight away |
 
 Copies move on each player's screen on their own (they're decoration: not synced between players, no collision).
 

@@ -44,6 +44,7 @@ export class SplineComponentFactory extends DefaultComponentFactory<SplineCompon
             followerOffsetVariation: { x: 0, y: 0, z: 0 },
             followerSpeed: 1,
             followerSpeedVariation: 0,
+            followerRotation: 0,
         };
 
         this.setDataConfig({
