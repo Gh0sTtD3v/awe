@@ -4,7 +4,7 @@
  * writes whenever a chunk config is saved.
  */
 
-import { chunkKeyToCoords } from "@oncyberio/world-config";
+import { chunkKeyToCoords, posToChunkKey } from "@oncyberio/world-config";
 import { loadPortals, type PortalEntry } from "@/lib/portals";
 
 interface PlotIndexEntry {
@@ -35,18 +35,36 @@ export function readPlotParam(): string | null {
   }
 }
 
-/** Resolve a `?plot=` value to a chunk key, or null if it matches nothing. */
+/**
+ * Resolve a `?plot=` value to a chunk key, or null if it matches nothing.
+ * A plot slug wins; a portal slug is accepted too, as a link to that portal's plot.
+ */
 export async function resolvePlotKey(value: string): Promise<string | null> {
   if (chunkKeyToCoords(value)) return value;
   const slug = value.toLowerCase();
-  const hit = (await loadPlotsIndex()).find((p) => p.slug.toLowerCase() === slug);
-  return hit?.key ?? null;
+  const plot = (await loadPlotsIndex()).find((p) => p.slug.toLowerCase() === slug);
+  if (plot) return plot.key;
+  const portal = (await loadPortals()).find((p) => p.slug && p.slug.toLowerCase() === slug);
+  return portal?.chunkKey ?? null;
 }
 
-/** The plot's entry point: the first portal inside it. */
-export async function findPlotEntry(value: string): Promise<PortalEntry | null> {
-  const key = await resolvePlotKey(value);
-  if (!key) return null;
+/** A plot's entry point: the first portal inside it. */
+export async function firstPortalIn(key: string): Promise<PortalEntry | null> {
   const portals = await loadPortals();
   return portals.find((p) => p.chunkKey === key) ?? null;
+}
+
+/**
+ * Where the player starts: the first portal of the linked plot (`?plot=`),
+ * otherwise the first portal of the plot holding the world's spawn point.
+ * Null only when that plot has no portal at all.
+ */
+export async function findSpawnEntry(spawnPoint: { x: number; y: number; z: number }): Promise<PortalEntry | null> {
+  const linked = readPlotParam();
+  const linkedKey = linked ? await resolvePlotKey(linked) : null;
+  if (linkedKey) {
+    const entry = await firstPortalIn(linkedKey);
+    if (entry) return entry;
+  }
+  return firstPortalIn(posToChunkKey(spawnPoint));
 }
