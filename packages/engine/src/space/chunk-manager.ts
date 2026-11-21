@@ -7,6 +7,7 @@ import {
 	filterGlobalComponents,
 	isGlobalComponent,
 	isPresetType,
+	parentFirstLevels,
 	posToChunkKey,
 } from "@oncyberio/world-config";
 
@@ -286,18 +287,21 @@ export class ChunkManager {
 
 		// Built in parallel, matching how the initial space build loads each
 		// priority group. Creating them one at a time serialises every model
-		// fetch and parse behind the one before it.
-		const created = await Promise.all(
-			entries.map((entry) =>
-				this._space.components.create(entry).catch((err: unknown) => {
-					console.error(`Failed to create component ${entry.id}:`, err);
-					return null;
-				}),
-			),
-		);
+		// fetch and parse behind the one before it. Groups come first, level
+		// by level: a child needs its parent to exist when it is created.
+		for (const level of parentFirstLevels(entries)) {
+			const created = await Promise.all(
+				level.map((entry) =>
+					this._space.components.create(entry).catch((err: unknown) => {
+						console.error(`Failed to create component ${entry.id}:`, err);
+						return null;
+					}),
+				),
+			);
 
-		for (const comp of created) {
-			if (comp) this._chunkComponents.push(comp);
+			for (const comp of created) {
+				if (comp) this._chunkComponents.push(comp);
+			}
 		}
 
 		console.log(

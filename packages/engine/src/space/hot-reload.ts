@@ -1,6 +1,7 @@
 import type { Game } from "../@types/game";
 import { deepEqual } from "../internal/utils/js";
 import type { Space } from "./space";
+import { parentFirstLevels } from "@oncyberio/world-config";
 
 const ignoredKeys = {
   id: true,
@@ -78,12 +79,24 @@ export function applyGameDataToSpace(
     nextGameData.components
   );
 
-  // Create as persistent so the editor can select/edit them
-  diff.added.forEach((id) => {
-    space.components._createInternal(nextGameData.components[id], {
-      persistent: true,
-    });
-  });
+  // Create as persistent so the editor can select/edit them. Groups first,
+  // level by level: a child created before its parent exists fails ("Can't
+  // find parent") and goes missing, e.g. when the studio camera enters a
+  // chunk that holds a group. Each level is still created in parallel.
+  const levels = parentFirstLevels(diff.added.map((id) => nextGameData.components[id]));
+  const created = levels.reduce<Promise<unknown>>(
+    (previous, level) =>
+      previous.then(() =>
+        Promise.all(
+          level.map((data) =>
+            Promise.resolve(space.components._createInternal(data, { persistent: true })).catch((err: unknown) => {
+              console.error(`Failed to create component ${data?.id}:`, err);
+            }),
+          ),
+        ),
+      ),
+    Promise.resolve(),
+  );
 
   diff.removed.forEach((id) => {
     const instance = space.components.byInternalId(id);
@@ -102,6 +115,8 @@ export function applyGameDataToSpace(
 
     instance.setData(diff.updated[id]);
   });
+
+  return created;
 }
 
 export class Hot {

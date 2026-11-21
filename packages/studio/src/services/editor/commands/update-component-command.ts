@@ -49,22 +49,63 @@ export class UpdateComponentCommand extends AbstractCommand {
         };
     }
 
+    /** The instance the change was made on, and its values before the change. */
+    private _instance: Component3D | null = null;
+
+    private _previous: Record<string, any> | null = null;
+
     async doRun() {
+        const component = this.getComponent(this.opts.id);
+        this._instance = component;
+        this._previous = this.snapshot(component, this.opts.command.changes);
+
         this.undoCmd = await this.opts.command.run();
 
         this.update();
     }
 
     async undo() {
-        await this.undoCmd.undo();
+        if (!(await this.reapplyIfRecreated(this._previous))) {
+            await this.undoCmd.undo();
+        }
 
         this.update();
     }
 
     async redo() {
-        await this.undoCmd.redo();
+        if (!(await this.reapplyIfRecreated(this.opts.command.changes))) {
+            await this.undoCmd.redo();
+        }
 
         this.update();
+    }
+
+    /** Current values of the keys a change touches, to put back on undo. */
+    private snapshot(component: Component3D, changes: any): Record<string, any> | null {
+        if (!changes || typeof changes !== "object") return null;
+        const previous: Record<string, any> = {};
+        for (const key of Object.keys(changes)) {
+            const value = (component.data as any)[key];
+            previous[key] = value === undefined ? undefined : structuredClone(value);
+        }
+        return previous;
+    }
+
+    /**
+     * Undo / redo of other commands can recreate a component (ungroup, delete
+     * then undo…), and the stored undo step points at the old, discarded
+     * instance. Then apply the values to the current one instead. Returns
+     * true when it did.
+     */
+    private async reapplyIfRecreated(values: Record<string, any> | null): Promise<boolean> {
+        const component = this.getComponent(this.opts.id);
+        if (component === this._instance || !values) return false;
+
+        const preset = getOrCreateEditor(component)?.getPreset(values);
+        if (!preset) return false;
+        this.undoCmd = await preset.apply(true);
+        this._instance = component;
+        return true;
     }
 
     private update() {

@@ -165,18 +165,14 @@ export function WorldSettingsToolbar() {
       editor.duplicateComponents(ids);
     } else if (action === "group") {
       //
-      console.log("handle group action", { canGroup, canUngroup });
       if (canGroup) {
-        editor.groupSelection();
+        editor.groupSelection().catch((err) => console.error("Group failed", err));
       }
     } else if (action === "ungroup") {
       //
       if (canUngroup) {
-        editor.ungroupSelection();
+        editor.ungroupSelection().catch((err) => console.error("Ungroup failed", err));
       }
-      //
-      if (!canDuplicate) return;
-      editor.duplicateSelection();
     } else if (action === "replace") {
       //
       if (!canReplace) return;
