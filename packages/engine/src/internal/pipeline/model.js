@@ -58,6 +58,8 @@ import { SkinnedMesh, MeshBasicMaterial } from "three";
 
 import InstanceOpacityPlugin from "../rendering/libraries/visuals/instanceopacity";
 
+import { withUnlitEmissive, applyUnlitEmissive } from "./unlit-emissive";
+
 const instanceOpacityPlugin = new InstanceOpacityPlugin();
 
 class ModelPipeline {
@@ -109,9 +111,14 @@ class ModelPipeline {
 
     var diffuseMaterial = opts.useStandard
       ? new InstancedStandard({ plugins: opts.plugins })
-      : new InstancedBasic({ plugins: opts.plugins });
+      : new InstancedBasic(
+          withUnlitEmissive({ plugins: opts.plugins }, originalMaterial)
+        );
 
     diffuseMaterial.copy(originalMaterial);
+
+    // Unlit copy: keep emissive (light-baked materials would render black).
+    if (!opts.useStandard) applyUnlitEmissive(diffuseMaterial, originalMaterial);
 
     var lightingMaterial;
 
