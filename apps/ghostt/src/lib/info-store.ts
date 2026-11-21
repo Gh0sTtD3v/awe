@@ -56,6 +56,13 @@ export interface LiftFloor {
   lockReason: string;
 }
 
+/** The seat the local player is next to (or sitting on). */
+export interface NearSeat {
+  id: string;
+  /** Text after "E", e.g. "Sit". */
+  prompt: string;
+}
+
 /** The video screen the local player is standing at. */
 export interface NearScreen {
   id: string;
@@ -98,6 +105,9 @@ export interface InfoState {
   screenPanelOpen: boolean;
   nearLift: NearLift | null;
   liftPanelOpen: boolean;
+  nearSeat: NearSeat | null;
+  /** True while the local player is sitting. */
+  seated: boolean;
 }
 
 export interface GateNotice {
@@ -126,6 +136,8 @@ export const infoStore = new Store<InfoState>({
   screenPanelOpen: false,
   nearLift: null,
   liftPanelOpen: false,
+  nearSeat: null,
+  seated: false,
 });
 
 export function openInfo(tab?: InfoTab) {
@@ -273,4 +285,16 @@ export function setNearLift(nearLift: NearLift | null) {
 export function setLiftPanelOpen(liftPanelOpen: boolean) {
   if (infoStore.state.liftPanelOpen === liftPanelOpen) return;
   infoStore.update({ liftPanelOpen });
+}
+
+/** Polled from the game loop; only notifies when the seat changed. */
+export function setNearSeat(nearSeat: NearSeat | null) {
+  const prev = infoStore.state.nearSeat;
+  if (prev?.id === nearSeat?.id && prev?.prompt === nearSeat?.prompt) return;
+  infoStore.update({ nearSeat });
+}
+
+export function setSeated(seated: boolean) {
+  if (infoStore.state.seated === seated) return;
+  infoStore.update({ seated });
 }
