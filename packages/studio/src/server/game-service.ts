@@ -5,10 +5,12 @@ import { GameData } from "../types/game-data";
 import { DEFAULT_SCENE } from "../lib/default-game-data";
 import { resolveWorkingFolder } from "./working-folder-service";
 import {
+  chunkKeyOf,
   isGlobalComponent,
   isGlobalType,
   isPresetType,
   posToChunkKey,
+  worldTransformOf,
 } from "@oncyberio/world-config";
 
 enablePatches();
@@ -134,8 +136,10 @@ function splitComponents(components: Record<string, any>) {
       continue;
     }
 
-    // Chunk asset
-    const key = posToChunkKey(pos);
+    // Chunk asset. Inside a group, `position` is relative to the group, so
+    // use the chunk of the top-level group: a group and everything in it are
+    // always saved (and loaded) together.
+    const key = chunkKeyOf(comp, components) ?? posToChunkKey(pos);
     if (!chunks[key]) chunks[key] = {};
     chunks[key][id] = comp;
   }
@@ -328,16 +332,18 @@ export class GameService {
   private static generatePortalsIndex(workingFolder: string, gameData: GameData): void {
     const entries: PortalIndexEntry[] = [];
 
-    for (const [id, comp] of Object.entries(gameData.components ?? {})) {
+    const all = gameData.components ?? {};
+    for (const [id, comp] of Object.entries(all)) {
       if (comp.type !== "portal") continue;
-      const pos = comp.position ?? { x: 0, y: 0, z: 0 };
+      // World position (a portal inside a group stores a group-relative one).
+      const pos = worldTransformOf(comp, all).position;
       entries.push({
         id,
         name: comp.p_name || comp.name || "Portal",
         slug: comp.slug ?? "",
         image: resolveImageUrl(comp.image),
-        position: { x: pos.x ?? 0, y: pos.y ?? 0, z: pos.z ?? 0 },
-        chunkKey: posToChunkKey(pos),
+        position: { x: pos.x, y: pos.y, z: pos.z },
+        chunkKey: chunkKeyOf(comp, all) ?? posToChunkKey(pos),
       });
     }
 
@@ -431,10 +437,12 @@ export class GameService {
     const workingFolder = path.dirname(path.dirname(dataFile));
 
     const gameData = this.readWorldSync(workingFolder, dataFile);
+    const all = gameData.components ?? {};
     const components: Record<string, any> = {};
     let removed = 0;
-    for (const [id, comp] of Object.entries(gameData.components ?? {})) {
-      if (!isGlobalComponent(comp) && posToChunkKey(comp.position) === key) {
+    for (const [id, comp] of Object.entries(all)) {
+      // Grouped components belong to their top-level group's chunk.
+      if (!isGlobalComponent(comp) && (chunkKeyOf(comp, all) ?? posToChunkKey(comp.position)) === key) {
         removed++;
         continue;
       }

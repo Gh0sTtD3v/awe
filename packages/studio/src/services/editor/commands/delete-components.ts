@@ -16,7 +16,21 @@ export class DeleteComponentsCommand extends AbstractCommand {
         //
         super(context);
 
-        this._ids = ids;
+        // Drop components whose parent (or grandparent…) is deleted too: they go
+        // with it, and saving / restoring them on their own would delete them
+        // twice and recreate them before their parent on undo.
+        const all = new Set(ids);
+        const hasDeletedAncestor = (id: string) => {
+            let parentId = this.gameData.components[id]?.parentId;
+            const seen = new Set<string>();
+            while (parentId && !seen.has(parentId)) {
+                if (all.has(parentId)) return true;
+                seen.add(parentId);
+                parentId = this.gameData.components[parentId]?.parentId;
+            }
+            return false;
+        };
+        this._ids = [...all].filter((id) => !hasDeletedAncestor(id));
 
         this._savedNodes = this._ids.map((id) => {
             //

@@ -34,6 +34,9 @@ import { PortalComponentEditor } from "./portal/editor";
 import { TokenGateComponentEditor } from "./token-gate/editor";
 import { ChatZoneComponentEditor } from "./chat-zone/editor";
 import { LiftComponentEditor } from "./lift/editor";
+import { MusicZoneComponentEditor } from "./music-zone/editor";
+import { SeatComponentEditor } from "./seat/editor";
+import { GravityZoneComponentEditor } from "./gravity-zone/editor";
 import { VideoScreenComponentEditor } from "./video-screen/editor";
 
 export function registerAllEditors() {
@@ -61,6 +64,9 @@ export function registerAllEditors() {
   registerEditor("token-gate", TokenGateComponentEditor);
   registerEditor("chat-zone", ChatZoneComponentEditor);
   registerEditor("lift", LiftComponentEditor);
+  registerEditor("music-zone", MusicZoneComponentEditor);
+  registerEditor("seat", SeatComponentEditor);
+  registerEditor("gravity-zone", GravityZoneComponentEditor);
   registerEditor("video-screen", VideoScreenComponentEditor);
   registerEditor("postprocessing", PostProcessingEditor);
   registerEditor("quarks", QuarksComponentEditor);

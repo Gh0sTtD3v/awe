@@ -5,3 +5,4 @@ export * from "./types";
 export * from "./resolve";
 export * from "./hierarchy";
 export * from "./migrate";
+export * from "./scene-groups";

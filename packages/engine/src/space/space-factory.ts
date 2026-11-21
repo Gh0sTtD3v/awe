@@ -127,28 +127,35 @@ class SpaceFactory {
 
   private _buildTree(data: Record<string, any>) {
     //
-    const roots = {};
+    // Work on shallow copies: the scene data can be frozen (the studio keeps
+    // it immutable), and adding `children` to it would throw.
+    const nodes: Record<string, any> = {};
 
     Object.values(data).forEach((res) => {
+      nodes[res.id] = { ...res };
+    });
+
+    const roots = {};
+
+    Object.values(nodes).forEach((node) => {
       //
-      if (!res.parentId) {
+      const parent = node.parentId ? nodes[node.parentId] : null;
+
+      if (!parent) {
         //
-        roots[res.id] = res;
+        if (node.parentId) {
+          // Keep it visible rather than dropping it (its parent is gone).
+          console.error(`Invalid parent id: ${node.parentId} (loading ${node.id} at the top level)`);
+          delete node.parentId;
+        }
+
+        roots[node.id] = node;
         //
       } else {
         //
-        const parent = data[res.parentId];
-
-        if (parent == null) {
-          //
-          console.error(`Invalid parent id: ${res.parentId}`);
-
-          return;
-        }
-
         parent.children ??= {};
 
-        parent.children[res.id] = res;
+        parent.children[node.id] = node;
       }
     });
 

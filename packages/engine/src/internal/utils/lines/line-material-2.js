@@ -265,7 +265,13 @@ ShaderLib["line"] = {
 
 			#include <logdepthbuf_vertex>
 			#include <clipping_planes_vertex>
-			
+
+			// The engine's fog chunk (xtend/override/fog-vertex) reads the
+			// local vertex position from 'transformed', which lines don't
+			// otherwise declare: without it this shader fails to compile and
+			// the line is never drawn.
+			vec3 transformed = ( position.y < 0.5 ) ? instanceStart : instanceEnd;
+
 			#include <fog_vertex>
 
 		}
@@ -433,15 +439,20 @@ ShaderLib["line"] = {
 		`,
 };
 
+// Keep our own reference: line-material.js and three's LineMaterial also
+// write ShaderLib["line"], and whichever module loads last would otherwise
+// replace this shader for every LineMaterial2.
+const LINE2_SHADER = ShaderLib["line"];
+
 class LineMaterial2 extends ShaderMaterial {
     constructor(parameters) {
         super({
             type: "LineMaterial",
 
-            uniforms: UniformsUtils.clone(ShaderLib["line"].uniforms),
+            uniforms: UniformsUtils.clone(LINE2_SHADER.uniforms),
 
-            vertexShader: ShaderLib["line"].vertexShader,
-            fragmentShader: ShaderLib["line"].fragmentShader,
+            vertexShader: LINE2_SHADER.vertexShader,
+            fragmentShader: LINE2_SHADER.fragmentShader,
 
             clipping: true, // required for clipping support
         });
