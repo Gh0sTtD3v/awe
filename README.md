@@ -85,7 +85,7 @@ For development commands, code style, branching, and PR workflow, see [CONTRIBUT
 
 ## Documentation
 
-- **[XION modules](MODULES.md)** — the XION studio modules (Seat, Reverse Gravity, Lift, Video Screen, Chat Zone, Token Gate, Portal): what each does and how to use it
+- **[XION modules](MODULES.md)** — the XION studio modules (Seat, Reverse Gravity, Music Zone, Lift, Video Screen, Chat Zone, Token Gate, Portal): what each does and how to use it
 - **[Create-oncyber-app README](packages/create-oncyber-app/README.md)** — scaffold workflow and generated game scaffold structure
 - **[Engine Package Exports](packages/engine/src/index.ts)** — core engine API entrypoint
 - **[Starter Example README](examples/starter/README.md)** — practical setup and control examples

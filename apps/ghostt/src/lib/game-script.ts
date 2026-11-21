@@ -82,6 +82,8 @@ import { describeRequirement, gateFromComponent, pointInGate } from "../../share
 import { floorsOf, liftAt, liftFromComponent, type LiftDef } from "../../shared/lifts";
 import { seatFromComponent, seatNear, type SeatDef } from "../../shared/seats";
 import { gravityZoneAt, gravityZoneFromComponent, nextSpeed, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
+import { musicZoneFromComponent, type MusicZoneDef } from "../../shared/music-zones";
+import { MusicPlayer } from "@/lib/music-player";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
 import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
@@ -229,6 +231,8 @@ const CINEMATIC_SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128];
 const CINEMATIC_DEFAULT_SPEED = 4; // index into CINEMATIC_SPEEDS (4 m/s)
 const GRAVITY = -1.81;
 const FLY_VERTICAL_SPEED = 8;
+/** Music is heard from about head height above the avatar's feet (m). */
+const LISTENER_HEIGHT = 1.5;
 
 /** Fallback when the mesh can't be measured: hip joint height above the seat, in metres. */
 const HIPS_ABOVE_SEAT = 0.1;
@@ -351,6 +355,8 @@ export class GameScript {
   private settling: { seat: SeatDef; frames: number } | null = null;
   /** True while a reverse gravity zone is carrying the player (gravity is off). */
   private inGravityZone = false;
+  /** Plays and fades the music of music zones. */
+  private music = new MusicPlayer();
 
   /**
    * Initialize the game scene.
@@ -603,6 +609,8 @@ export class GameScript {
     this.cameraRig = null;
     this.inputs?.dispose();
     this.inputs = null;
+
+    this.music.dispose();
 
     // Destroy the space
     this.space?.destroy();
@@ -872,7 +880,25 @@ export class GameScript {
     this.chatBubbles?.update(dt);
     this.broadcastLocalPlayerState(dt);
     this.syncInfoState(dt);
+    this.music.update(this.musicZones(), this.listenerPosition(), dt);
   };
+
+  /** Music zones (with a file) in the loaded chunks. */
+  private musicZones(): MusicZoneDef[] {
+    const out: MusicZoneDef[] = [];
+    for (const c of this.space?.components.byType("music-zone") ?? []) {
+      const zone = musicZoneFromComponent(c.data);
+      if (zone) out.push(zone);
+    }
+    return out;
+  }
+
+  /** Where music is heard from: the avatar's head, or the free camera in cinematic mode. */
+  private listenerPosition(): { x: number; y: number; z: number } | null {
+    if (this.cinematicRig) return Camera.current.position;
+    const pos = this.localPlayerAvatar?.position;
+    return pos ? { x: pos.x, y: pos.y + LISTENER_HEIGHT, z: pos.z } : null;
+  }
 
   /** Throttled push of player roster + current chunk to the info UI store. */
   private syncInfoState(dt: number): void {

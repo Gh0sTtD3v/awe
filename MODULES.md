@@ -8,6 +8,7 @@ All of them are **invisible markers during play**: you see them in the studio (a
 | --- | --- | --- |
 | [Seat](#seat) | Walk up, press E, the avatar sits | E |
 | [Reverse Gravity](#reverse-gravity) | Lifts players up, or slows their fall: elevators, safe drops | — |
+| [Music Zone](#music-zone) | Music in a box or sphere, fading in and out around it | — |
 | [Lift](#lift) | Teleport between the floors of a building | E |
 | [Video Screen](#video-screen) | A screen with a playlist everyone watches in sync | E (to control) |
 | [Chat Zone](#chat-zone) | An area with its own text chat room | — |
@@ -65,6 +66,39 @@ A zone where normal gravity is replaced. With a **positive** Strength you are ca
 **Falling in from above:** a fast fall is braked within a few metres (a 50 m/s fall into a −2 zone slows to about 4 m/s in roughly 3 m), then continues at the slow speed. **Jumping inside a zone:** the jump goes up as usual, then the zone takes over (in a slow-fall zone you drift back down; in a rising zone you keep rising). Flying players are not affected. Only the floor size (x and z scale) matters; the y scale is ignored, use Height.
 
 **Code:** `packages/engine/src/space/components/gravity-zone/` (component), `packages/engine-edit/src/editors/gravity-zone/editor.ts` (studio panel and corner handles), `apps/ghostt/shared/gravity-zones.ts` (which zone a player is in, target speed), `apps/ghostt/src/lib/game-script.ts` (`applyGravityZone`).
+
+---
+
+## Music Zone
+
+Music that plays while players are in an area. Inside the zone the track plays at **full volume**. Around it you can add an optional **fade band**: walking toward the zone, the music rises from silent to full; walking away, it fades back out. Each player hears the music for where they are (nothing is synced between players).
+
+Two shapes:
+
+- **Box (rectangle):** a room, a stage, a corner of the map. Every side can be moved on its own.
+- **Sphere:** ambience over a whole area, with the same fade all round.
+
+**How to use**
+
+1. Add **Music Zone**. A translucent green box appears; a fainter outline around it shows the fade band.
+2. **Upload the music** in the **Music** section of the right panel (.mp3, .ogg, .wav, .m4a).
+3. **Size it by its sides:** while the zone is selected, the middle of each of its six sides (left, right, front, back, top, bottom) shows a small white cube. Click one (it turns green) and drag it with the move arrows: that side moves, the opposite side stays where it is. For a sphere, dragging any cube changes the radius and the centre stays put. Undo works as usual. (Transform → Scale also works: x = width, y = height, z = depth; for a sphere x is the diameter.)
+4. Set the volume and the fade distance.
+
+**Settings (Music panel)**
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Music file | — | The track to play |
+| Volume (0 to 1) | 0.8 | Volume inside the zone |
+| Fade distance (m) | 6 | Width of the fade band around the zone: full volume at the edge, silent this far out. **0 = no fade band**: the music stops at the edge (with a quarter-second fade so it doesn't click) |
+| Shape | Box | Box (rectangle) or Sphere |
+| Loop | on | Play the track again when it ends |
+| Restart when you come back | off | Off: leaving pauses the track and coming back continues where it was. On: it starts from the beginning each time |
+
+Music is heard from the avatar's head height (from the camera in cinematic mode). Tracks only load when a player gets near and pause after a moment of silence, so far-away zones cost nothing. Overlapping zones each play their own track. Browsers only allow sound after a click, so music starts once the player has clicked "Click to start".
+
+**Code:** `packages/engine/src/space/components/music-zone/` (component), `packages/engine-edit/src/editors/music-zone/editor.ts` (studio panel and side handles), `apps/ghostt/shared/music-zones.ts` (distance and volume), `apps/ghostt/src/lib/music-player.ts` (playing and fading), `apps/ghostt/src/lib/game-script.ts` (`musicZones`, `listenerPosition`).
 
 ---
 
