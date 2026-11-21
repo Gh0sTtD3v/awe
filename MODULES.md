@@ -96,7 +96,11 @@ Two shapes:
 | Loop | on | Play the track again when it ends |
 | Restart when you come back | off | Off: leaving pauses the track and coming back continues where it was. On: it starts from the beginning each time |
 
-Music is heard from the avatar's head height (from the camera in cinematic mode). Tracks only load when a player gets near and pause after a moment of silence, so far-away zones cost nothing. Overlapping zones each play their own track. Browsers only allow sound after a click, so music starts once the player has clicked "Click to start".
+**Paths with one song:** zones that use the **same music file share one track**. Put boxes end to end (or touching at a corner, like an L) with the same song: walking from one into the next, the music keeps playing at the same point in the song, with no restart and no dip. Where they overlap, the louder one is used (volumes don't add up). Each box can still have its own volume and fade. Zones with different files play separately (and can overlap, e.g. a sphere of ambience with a box of music inside).
+
+**Loading:** a music file is only downloaded once a player reaches the fade band of one of its zones (or the zone itself when the fade is 0); far-away zones download nothing. After a moment of silence the track pauses, and after 20 seconds out of earshot it is released from memory; its position is remembered so coming back continues the song (unless "Restart when you come back" is on).
+
+Music is heard from the avatar's head height (from the camera in cinematic mode). Browsers only allow sound after a click, so music starts once the player has clicked "Click to start".
 
 **Code:** `packages/engine/src/space/components/music-zone/` (component), `packages/engine-edit/src/editors/music-zone/editor.ts` (studio panel and side handles), `apps/ghostt/shared/music-zones.ts` (distance and volume), `apps/ghostt/src/lib/music-player.ts` (playing and fading), `apps/ghostt/src/lib/game-script.ts` (`musicZones`, `listenerPosition`).
 

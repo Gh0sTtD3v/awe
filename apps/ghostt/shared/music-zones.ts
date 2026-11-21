@@ -81,3 +81,30 @@ export function zoneGain(zone: MusicZoneDef, point: Vec3): number {
   const t = 1 - d / zone.fade;
   return t * t;
 }
+
+/** What one music file should do right now, across every zone that uses it. */
+export interface TrackTarget {
+  url: string;
+  /** Volume to play at, 0 to 1: the loudest of its zones for this listener. */
+  volume: number;
+  loop: boolean;
+  restartOnEnter: boolean;
+}
+
+/**
+ * Zones that use the same music file share one track, so walking from one
+ * zone into the next (a path of touching boxes) keeps the song going without
+ * restarting. Where zones overlap, the loudest wins (volumes don't add up).
+ * Loop / restart come from the loudest zone (or the first one when silent).
+ */
+export function trackTargets(zones: MusicZoneDef[], listener: Vec3 | null): Map<string, TrackTarget> {
+  const out = new Map<string, TrackTarget>();
+  for (const zone of zones) {
+    const volume = listener ? zoneGain(zone, listener) * zone.volume : 0;
+    const prev = out.get(zone.url);
+    if (!prev || volume > prev.volume) {
+      out.set(zone.url, { url: zone.url, volume, loop: zone.loop, restartOnEnter: zone.restartOnEnter });
+    }
+  }
+  return out;
+}

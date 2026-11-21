@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distanceOutside, musicZoneFromComponent, zoneGain, type MusicZoneDef } from "../shared/music-zones";
+import { distanceOutside, musicZoneFromComponent, trackTargets, zoneGain, type MusicZoneDef } from "../shared/music-zones";
 
 function zone(id: string, data: Record<string, unknown> = {}): MusicZoneDef {
   const def = musicZoneFromComponent({ id, type: "music-zone", url: "/assets/song.mp3", scale: { x: 8, y: 4, z: 6 }, ...data });
@@ -55,5 +55,27 @@ describe("music zones", () => {
     const hard = zone("h", { fadeDistance: 0 });
     expect(zoneGain(hard, { x: 3.9, y: 0, z: 0 })).toBe(1);
     expect(zoneGain(hard, { x: 4.1, y: 0, z: 0 })).toBe(0);
+  });
+
+  it("zones with the same file share one track: a path of touching boxes plays one continuous song", () => {
+    // An L-shaped path: a long box along x, and a box along z touching its end.
+    const a = zone("a", { position: { x: 0, y: 0, z: 0 }, scale: { x: 20, y: 4, z: 4 }, fadeDistance: 0, volume: 0.8 });
+    const b = zone("b", { position: { x: -8, y: 0, z: 12 }, scale: { x: 4, y: 4, z: 20 }, fadeDistance: 0, volume: 0.6 });
+    const other = zone("c", { url: "/assets/other.mp3", position: { x: 100, y: 0, z: 0 } });
+    const zones = [a, b, other];
+
+    const inA = trackTargets(zones, { x: 5, y: 0, z: 0 });
+    expect(inA.size).toBe(2); // one entry per file, not per zone
+    expect(inA.get("/assets/song.mp3")?.volume).toBeCloseTo(0.8);
+    expect(inA.get("/assets/other.mp3")?.volume).toBe(0);
+
+    // Walking into b: same track (same key), now at b's volume.
+    expect(trackTargets(zones, { x: -8, y: 0, z: 15 }).get("/assets/song.mp3")?.volume).toBeCloseTo(0.6);
+    // Where they overlap the loudest wins; volumes don't add up.
+    expect(trackTargets(zones, { x: -8, y: 0, z: 1.5 }).get("/assets/song.mp3")?.volume).toBeCloseTo(0.8);
+    // Off the path: silent.
+    expect(trackTargets(zones, { x: 5, y: 0, z: 10 }).get("/assets/song.mp3")?.volume).toBe(0);
+    // No listener: everything silent.
+    expect(trackTargets(zones, null).get("/assets/song.mp3")?.volume).toBe(0);
   });
 });
