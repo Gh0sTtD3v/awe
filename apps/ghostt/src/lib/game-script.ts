@@ -81,6 +81,7 @@ import { addChatMessage, setChatError, setChatRoom } from "./chat-store";
 import { describeRequirement, gateFromComponent, pointInGate } from "../../shared/gates";
 import { floorsOf, liftAt, liftFromComponent, type LiftDef } from "../../shared/lifts";
 import { seatFromComponent, seatNear, type SeatDef } from "../../shared/seats";
+import { gravityZoneAt, gravityZoneFromComponent, nextSpeed, targetSpeed, type GravityZoneDef } from "../../shared/gravity-zones";
 import { NETWORK_TICK_INTERVAL } from "../../shared/network-constants";
 import { mayControlScreen, type ScreenAction } from "../../shared/screens";
 
@@ -365,6 +366,8 @@ export class GameScript {
   private seatedFrom: Vector3 | null = null;
   /** Just sat down: frames left before the hips are measured. */
   private settling: { seat: SeatDef; frames: number } | null = null;
+  /** True while a reverse gravity zone is carrying the player (gravity is off). */
+  private inGravityZone = false;
 
   /**
    * Initialize the game scene.
@@ -824,8 +827,9 @@ export class GameScript {
         v.y = 0;
         this.mover.setVelocity(v);
       }
+      const carried = this.applyGravityZone(dt);
       this.mover.update(dt);
-      this.updateAnimation(dt, this.flying);
+      this.updateAnimation(dt, this.flying || (carried && !this.mover.grounded));
       return;
     }
 
@@ -846,9 +850,62 @@ export class GameScript {
       this.mover.startJump();
     }
 
+    const carried = this.applyGravityZone(dt);
     this.mover.update(dt);
-    this.updateAnimation(dt, this.flying && !this.mover.isMoving);
+    // Floating in a zone holds idle, like hovering in fly mode.
+    this.updateAnimation(dt, (this.flying && !this.mover.isMoving) || (carried && !this.mover.grounded));
   };
+
+  /** Reverse gravity zones in the loaded chunks. */
+  private gravityZones(): GravityZoneDef[] {
+    const out: GravityZoneDef[] = [];
+    for (const c of this.space?.components.byType("gravity-zone") ?? []) {
+      const zone = gravityZoneFromComponent(c.data);
+      if (zone) out.push(zone);
+    }
+    return out;
+  }
+
+  /**
+   * Inside a reverse gravity zone (and not flying), normal gravity is off and
+   * the player's vertical speed follows the zone: rising at a positive
+   * strength, falling slowly at a negative one. Returns true while the zone
+   * is in control.
+   */
+  private applyGravityZone(dt: number): boolean {
+    const mover = this.mover;
+    const pos = this.localPlayerAvatar?.position;
+    const zone = !this.flying && pos && dt > 0 ? gravityZoneAt(this.gravityZones(), pos) : null;
+
+    if (!zone) {
+      if (this.inGravityZone) {
+        this.inGravityZone = false;
+        if (mover && !this.flying) mover.gravity = GRAVITY;
+      }
+      return false;
+    }
+    if (!mover) return false;
+
+    this.inGravityZone = true;
+    mover.gravity = 0;
+    const v = mover.velocity;
+    // The mover's velocity is per step (metres moved this step); convert to m/s and back.
+    // On the ground the mover holds a small downward push; start from rest instead.
+    const speed = mover.grounded ? Math.max(0, v.y / dt) : v.y / dt;
+    const target = targetSpeed(zone, pos.y);
+
+    // A jump follows its own arc and would ignore the zone (falling back at
+    // full speed in a slow-fall zone). Once it drops below the zone's speed,
+    // end the jump and let the zone take over.
+    const state = mover.saveState();
+    if (state.jump.isJumping && speed < target) {
+      mover.restoreState({ ...state, jump: { ...state.jump, isJumping: false, elapsedTime: 0, maxHeight: 0 } });
+    }
+
+    v.y = nextSpeed(speed, target, dt) * dt;
+    mover.setVelocity(v);
+    return true;
+  }
 
   /**
    * Hovering holds idle. Letting the machine update there would switch to the

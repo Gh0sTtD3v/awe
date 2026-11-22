@@ -7,6 +7,7 @@ All of them are **invisible markers during play**: you see them in the studio (a
 | Module | What it does | Player key |
 | --- | --- | --- |
 | [Seat](#seat) | Walk up, press E, the avatar sits | E |
+| [Reverse Gravity](#reverse-gravity) | Lifts players up, or slows their fall: elevators, safe drops | — |
 | [Lift](#lift) | Teleport between the floors of a building | E |
 | [Video Screen](#video-screen) | A screen with a playlist everyone watches in sync | E (to control) |
 | [Chat Zone](#chat-zone) | An area with its own text chat room | — |
@@ -37,6 +38,33 @@ A place to sit. Put the square on a chair, bench, step or ledge; a player who wa
 The square's scale only changes how big it looks in the studio. Teleports, lifts, fly mode, cinematic mode and pausing all stand the player up first.
 
 **Code:** `packages/engine/src/space/components/seat/` (component), `packages/engine-edit/src/editors/seat/editor.ts` (studio panel), `apps/ghostt/shared/seats.ts` (finding the nearest seat), `apps/ghostt/src/lib/game-script.ts` (`sit` / `standUp`), `apps/ghostt/src/components/seat-controls.tsx` (prompt).
+
+---
+
+## Reverse Gravity
+
+A zone where normal gravity is replaced. With a **positive** Strength you are carried up at that speed and stop at the top: use it for **elevators** (a column from the ground floor up to the next floor). With a **negative** Strength gravity is slowed, not reversed: you fall gently, no faster than that speed, like a parachute: use it for **safe drops** and the way down from an elevator. 0 makes players float.
+
+**How to use**
+
+1. Add **Reverse Gravity**. A translucent box appears: **blue** when it lifts, **orange** when it slows falls.
+2. Put its floor where players step in (Transform → Position is the centre of the floor).
+3. **Resize the floor by its corners:** while the zone is selected, its four floor corners show as small white cubes. Click one (it turns green) and drag it with the move arrows. The opposite corner stays where it is and the floor stretches between them. Undo works as usual.
+4. Set **Height** so the top of the box is the floor players should arrive on: a rising zone slows down near the top and stops players exactly at the top, so they can step off.
+5. Set **Strength**.
+
+**Settings (Reverse Gravity panel)**
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Height (m) | 6 | How tall the zone is, from its floor up. The floor square becomes a box this tall |
+| Strength (m/s) | 4 | **Positive:** lift speed (players stop at the top). **Negative:** slow fall, players come down at no more than this speed (−2 = a gentle 2 m/s drift; −10 is still fast). **0:** float |
+
+**Elevator recipe:** a 2 × 2 m zone on the ground floor, Height = the height of the upper floor's surface above the ground, Strength 3 to 6. Players walk in, rise, stop level with the upper floor and walk off. For the way down, a second column next to it with Strength −2 to −4 and the same Height: players step in at the top and drift down slowly.
+
+**Falling in from above:** a fast fall is braked within a few metres (a 50 m/s fall into a −2 zone slows to about 4 m/s in roughly 3 m), then continues at the slow speed. **Jumping inside a zone:** the jump goes up as usual, then the zone takes over (in a slow-fall zone you drift back down; in a rising zone you keep rising). Flying players are not affected. Only the floor size (x and z scale) matters; the y scale is ignored, use Height.
+
+**Code:** `packages/engine/src/space/components/gravity-zone/` (component), `packages/engine-edit/src/editors/gravity-zone/editor.ts` (studio panel and corner handles), `apps/ghostt/shared/gravity-zones.ts` (which zone a player is in, target speed), `apps/ghostt/src/lib/game-script.ts` (`applyGravityZone`).
 
 ---
 

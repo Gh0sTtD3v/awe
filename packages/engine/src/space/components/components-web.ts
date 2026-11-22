@@ -42,6 +42,7 @@ import { TokenGateComponentFactory } from "./token-gate";
 import { ChatZoneComponentFactory } from "./chat-zone";
 import { LiftComponentFactory } from "./lift";
 import { SeatComponentFactory } from "./seat";
+import { GravityZoneComponentFactory } from "./gravity-zone";
 import { VideoScreenComponentFactory } from "./video-screen";
 
 export const components: Array<typeof ComponentFactory<any>> = [
@@ -64,6 +65,7 @@ export const components: Array<typeof ComponentFactory<any>> = [
   ChatZoneComponentFactory,
   LiftComponentFactory,
   SeatComponentFactory,
+  GravityZoneComponentFactory,
   VideoScreenComponentFactory,
   BackgroundComponentFactory,
   LightingComponentFactory,

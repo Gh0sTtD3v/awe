@@ -159,6 +159,13 @@ export class MouseRaycast {
 
         intersects.sort(ascSort);
 
+        // Handles drawn on top of everything (`userData.pickFirst`, e.g. resize
+        // corners) win over whatever is in front of them.
+        const onTop = intersects.filter((it) => it.object.userData?.pickFirst);
+        if (onTop.length) {
+            return [...onTop, ...intersects.filter((it) => !it.object.userData?.pickFirst)] as Intersection<Mesh>[];
+        }
+
         // console.log("intersects", intersects);
 
         return intersects as Intersection<Mesh>[];
