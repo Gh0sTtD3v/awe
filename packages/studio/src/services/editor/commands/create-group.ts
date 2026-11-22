@@ -92,15 +92,24 @@ export class CreateGroupCommand extends AbstractCommand {
             parent = this.getComponent(this._parentId);
         }
 
+        // On redo, recreate the group with its original id (and name), so
+        // later commands in the undo history that refer to it still work.
+        const data: any = { _index: this._groupIdx };
+        if (this._groupData) {
+            data.id = this._groupData.id;
+            if (this._groupData.name) data.name = this._groupData.name;
+        }
+
         let group = await EngineFacade.editor.commands.createGroup(children, {
             center: true,
             parent,
-            data: { _index: this._groupIdx },
+            data,
         });
 
         this._setIndex3D(this._indexes);
 
-        this._groupData = group.data;
+        // A plain copy: the live data object goes away with the group on undo.
+        this._groupData = structuredClone(group.data);
 
         this.updateGameData((state) => {
             //
@@ -146,7 +155,7 @@ export class CreateGroupCommand extends AbstractCommand {
 
     async redo() {
         //
-        this._createGroup();
+        await this._createGroup();
     }
 
     private _updateChildrenData(draft: Draft<GameData>) {

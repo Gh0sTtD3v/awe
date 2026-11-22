@@ -156,6 +156,23 @@ A spawn point that opens the destination directory when a player enters it. `?pl
 
 ---
 
+## Groups
+
+Any objects (models, modules, other groups) can be grouped so they move, rotate and scale together.
+
+| Action | How |
+| --- | --- |
+| Group | Select 2 or more objects that are at the same level (shift+click), then **G** or the toolbar's Group button. The group is centred on its contents and selected |
+| Ungroup | Select the group, then **Shift+G** or the toolbar's Ungroup button. Everything stays where it is |
+| Select inside a group | Click selects the outermost group; **double-click** goes one level in |
+| Add to / take out of a group | Drag items onto a group (or out of it) in the World Items list |
+| Delete a group | Select it and press Delete: **only the group goes, its contents stay** where they are. To delete everything, select the group and its contents |
+| Duplicate | Duplicating a group copies everything inside it |
+
+Undo / redo works for all of these. Inside a group, an object's position is saved relative to the group; the studio, the game and the game server convert it to its world position, so modules (lifts, seats, token gates, zones…) work inside groups too. A group and everything inside it are always saved in, and loaded with, the chunk of the outermost group.
+
+---
+
 ## Adding a new module
 
 Copy the Seat or the Lift; a module touches these places:
