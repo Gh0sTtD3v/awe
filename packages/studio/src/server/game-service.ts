@@ -7,6 +7,7 @@ import { resolveWorkingFolder } from "./working-folder-service";
 import { randomUUID } from "crypto";
 import {
   CHUNK_SIZE,
+  chunkKeyOf,
   chunkKeyToCoords,
   isGlobalComponent,
   isGlobalType,
