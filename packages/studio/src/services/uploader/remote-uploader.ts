@@ -10,6 +10,7 @@ import { ClientUserUploadsService as UserUploadService } from "../client-user-up
 import { OptimizedFiles } from "../../types/optimized-files";
 import { mutate } from "swr";
 import { OptimizerServices } from "../../utils/uploader/optimizer";
+import { isOptimizationCurrent } from "../../actions/optimize";
 import { gifCompress } from "../../utils/ffmpeg/gif-compress";
 
 export class RemoteUploader {
@@ -70,10 +71,21 @@ export class RemoteUploader {
 
     if (existingUpload?.exists) {
       //
+      let existingFiles = existingUpload.d_optimized_files;
+      const existingMime = existingUpload.mimeType ?? mime;
+
+      // Optimised by an older optimiser (which could deform small detail):
+      // redo it, and use the original file until the new version is ready.
+      if (existingMime?.startsWith("model/") && existingFiles && !(await isOptimizationCurrent(existingFiles))) {
+        existingFiles = null;
+        await this.setOptimizedFiles(hashHex, null);
+        this.optimizeInBackground(hashHex, existingUpload.url, existingMime);
+      }
+
       return {
         exists: true,
         url: existingUpload.url,
-        d_optimized_files: existingUpload.d_optimized_files,
+        d_optimized_files: existingFiles,
         name: file.name,
         hash: hashHex,
         mimeType: mime,
@@ -83,6 +95,9 @@ export class RemoteUploader {
     let url = existingUpload?.url;
 
     let d_optimized_files = existingUpload?.d_optimized_files;
+    if (d_optimized_files && !(await isOptimizationCurrent(d_optimized_files))) {
+      d_optimized_files = null;
+    }
 
     if (existingUpload == null) {
       //
@@ -144,18 +159,7 @@ export class RemoteUploader {
     });
 
     if (d_optimized_files == null && mime.startsWith("model/")) {
-      //
-      OptimizerServices.optimizeAsset({
-        asset: {
-          type: "model",
-          url,
-          mime_type: mime,
-          hash: hashHex,
-        },
-      }).then((result) => {
-        d_optimized_files = result.optimized;
-        this.setOptimizedFiles(hashHex, d_optimized_files);
-      });
+      this.optimizeInBackground(hashHex, url, mime);
     }
 
     this.refresh();
@@ -170,12 +174,26 @@ export class RemoteUploader {
     };
   }
 
-  async setOptimizedFiles(hash: string, files: OptimizedFiles) {
+  async setOptimizedFiles(hash: string, files: OptimizedFiles | null) {
     //
 
     await UserUploadService.setOptimizedFiles(hash, files);
 
     this.refresh();
+  }
+
+  /** Optimise a model upload without blocking; the optimised files are stored when ready. */
+  private optimizeInBackground(hash: string, url: string, mime: string) {
+    OptimizerServices.optimizeAsset({
+      asset: {
+        type: "model",
+        url,
+        mime_type: mime,
+        hash,
+      },
+    })
+      .then((result) => this.setOptimizedFiles(hash, result.optimized))
+      .catch((error) => console.error("Model optimisation failed", error));
   }
 
   refresh() {

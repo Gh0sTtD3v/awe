@@ -30,7 +30,7 @@ export {
 } from "./utils";
 
 // Optimize Service
-export { OptimizeService } from "./optimize-service";
+export { OptimizeService, OPTIMIZER_VERSION, isCurrentOptimization } from "./optimize-service";
 export type { OptimizeAssetResult } from "./optimize-service";
 
 // Scene Validation

@@ -4,7 +4,19 @@ import { optimizeGLTF } from "./gltf/optimize-gltf";
 import { processVRMBuffer } from "./vrm/vrm-processing";
 import { OOAsset, OptimizedFiles } from "./types";
 
-const VERSION = "v0";
+/**
+ * Version of the optimiser's output, part of every optimised file name.
+ * Bump it when optimisation changes, so older optimised files are not reused.
+ * v1: absolute tolerances for weld / simplify / Draco (v0 deformed small
+ * detail such as text on large merged meshes).
+ */
+export const OPTIMIZER_VERSION = "v1";
+const VERSION = OPTIMIZER_VERSION;
+
+/** True when optimised file URLs were made by the current optimiser version. */
+export function isCurrentOptimization(files: { high?: string | null } | null | undefined): boolean {
+  return typeof files?.high === "string" && files.high.includes(`_${OPTIMIZER_VERSION}_`);
+}
 
 /**
  * Read file with size limit check

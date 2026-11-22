@@ -24,7 +24,7 @@ import { Quaternion, Vector3 } from "three";
 import { createGame } from "@/lib/utils";
 import { gameStore, setStarted, setPaused, setFlying, setFast, setUiHidden, showModeNotice } from "@/lib/game-store";
 import { loadPortals } from "@/lib/portals";
-import { findPlotEntry, readPlotParam } from "@/lib/plots";
+import { findSpawnEntry } from "@/lib/plots";
 import {
   setPortals,
   setPlayers,
@@ -297,6 +297,19 @@ export function togglePause() {
 }
 
 /** Access the running game script from UI code. */
+export interface DebugInfo {
+  position: { x: number; y: number; z: number };
+  /** Only while the cinematic camera has left the avatar. */
+  cameraPosition: { x: number; y: number; z: number } | null;
+  /** Degrees, 0-360, 0 = north (-Z). */
+  yaw: number;
+  /** Degrees, up is positive. */
+  pitch: number;
+  flying: boolean;
+  fast: boolean;
+  cinematic: boolean;
+}
+
 export function getScript(): GameScript | null {
   return scriptInstance;
 }
@@ -314,6 +327,8 @@ const INFO_SYNC_INTERVAL = 200;
 // teleport can still be in flight. Ignore those for this long; walking back
 // into the gate is still caught at once by the local sensor.
 const GATE_DENIAL_GRACE = 400;
+// Arriving on a portal disc (spawn, travel) doesn't open the directory for this long.
+const PORTAL_ARRIVAL_QUIET_MS = 2000;
 
 export class GameScript {
   private space: Space | null = null;
@@ -336,6 +351,8 @@ export class GameScript {
   /** True while we're being moved out of a gate or members-only chunk. */
   private leavingRestricted = false;
   private leftRestrictedAt = -Infinity;
+  /** Until when arriving on a portal doesn't open the directory (spawn, travel). */
+  private portalQuietUntil = 0;
 
   // Control primitives
   private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
@@ -449,6 +466,11 @@ export class GameScript {
       const playerAvatar = await this.playersReplica.whenLocalComponentReady();
       this.localPlayerAvatar = playerAvatar;
 
+      // The world's default spawn point is where the Player avatar was placed
+      // in the studio; the server only ever starts players at 0,0,0.
+      const tp = (playerTemplate.data as any)?.position ?? {};
+      const spawnPoint = { x: tp.x ?? 0, y: tp.y ?? 0, z: tp.z ?? 0 };
+
       playerTemplate.destroy();
 
       // Input system
@@ -539,6 +561,8 @@ export class GameScript {
 
       // Entering a portal opens the directory on the Destinations tab.
       this.portalCleanup = this.space._onEngineEvent("portal_open", () => {
+        // Landing on a portal (spawning, travelling) isn't walking into it.
+        if (performance.now() < this.portalQuietUntil) return;
         openInfo("destinations");
         try {
           document.exitPointerLock();
@@ -563,10 +587,13 @@ export class GameScript {
 
       // Keep the intro up until the chunk we spawn in has streamed in, so the
       // world doesn't build itself in front of the player.
+      // Players always start on a portal: the linked plot's first one, or the
+      // spawn plot's first one. The studio keeps at least one in every plot.
       const chunks = this.space.chunks;
-      if (chunks && !(await this.enterLinkedPlot())) {
-        const p = playerAvatar.position;
-        await chunks.loadChunk(posToChunkKey({ x: p.x, y: p.y, z: p.z }));
+      const entry = await findSpawnEntry(spawnPoint);
+      if (!(entry && (await this.travelTo(entry.position)))) {
+        if (chunks) await chunks.loadChunk(posToChunkKey(spawnPoint));
+        await this.travelTo(spawnPoint);
       }
 
       await reveal();
@@ -681,6 +708,30 @@ export class GameScript {
       this.cameraBeforeCinematic = null;
     }
     if (this.cameraRig) this.cameraRig.active = this.controlsActive;
+  }
+
+  /**
+   * Live numbers for the F3 screen. Yaw and pitch are worked out the same way
+   * as the studio's camera readout (yaw 0 = north = -Z), so both agree.
+   */
+  getDebugInfo(): DebugInfo | null {
+    const avatar = this.localPlayerAvatar;
+    if (!avatar) return null;
+    const camera = Camera.current;
+    const dir = camera.getWorldDirection(new Vector3());
+    const yaw = (Math.atan2(dir.x, -dir.z) * 180) / Math.PI;
+    const pitch = (Math.asin(Math.max(-1, Math.min(1, dir.y))) * 180) / Math.PI;
+    const p = avatar.position;
+    const c = camera.position;
+    return {
+      position: { x: p.x, y: p.y, z: p.z },
+      cameraPosition: this.cinematicRig ? { x: c.x, y: c.y, z: c.z } : null,
+      yaw: ((yaw % 360) + 360) % 360,
+      pitch,
+      flying: this.flying,
+      fast: this.fast,
+      cinematic: !!this.cinematicRig,
+    };
   }
 
   /** Fly mode needs the `fly` permission (owner and administrators always have it). */
@@ -1274,8 +1325,11 @@ export class GameScript {
     const target = new Vector3(pos.x, pos.y, pos.z);
     const chunks = this.space?.chunks;
 
+    this.portalQuietUntil = Number.POSITIVE_INFINITY;
+    const quiet = () => (this.portalQuietUntil = performance.now() + PORTAL_ARRIVAL_QUIET_MS);
+
     if (chunks) {
-      return chunks.travelTo(target, avatar);
+      return chunks.travelTo(target, avatar).finally(quiet);
     }
 
     // No chunking: direct teleport (assets already present).
@@ -1284,20 +1338,8 @@ export class GameScript {
     avatar.position.copy(target);
     avatar.rigidBody.enabled = true;
     avatar.rigidBody.teleport(target, avatar.quaternion);
+    quiet();
     return true;
-  }
-
-  /**
-   * `?plot=<key | slug>` links start the player at that plot's first portal.
-   * Returns false (normal spawn) when the link matches no plot with a portal,
-   * or the plot can't be entered.
-   */
-  private async enterLinkedPlot(): Promise<boolean> {
-    const plot = readPlotParam();
-    if (!plot) return false;
-    const entry = await findPlotEntry(plot);
-    if (!entry) return false;
-    return this.travelTo(entry.position);
   }
 
   /** Teleport the local player to another player's current position. */

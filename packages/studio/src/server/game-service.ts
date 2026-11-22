@@ -4,8 +4,10 @@ import { applyPatches, enablePatches, Patch } from "immer";
 import { GameData } from "../types/game-data";
 import { DEFAULT_SCENE } from "../lib/default-game-data";
 import { resolveWorkingFolder } from "./working-folder-service";
+import { randomUUID } from "crypto";
 import {
-  chunkKeyOf,
+  CHUNK_SIZE,
+  chunkKeyToCoords,
   isGlobalComponent,
   isGlobalType,
   isPresetType,
@@ -281,12 +283,60 @@ export class GameService {
    * then `static-scene.json` with the globals only.
    */
   private static writeWorldSync(workingFolder: string, dataFile: string, world: GameData): void {
+    this.ensurePortalPerChunk(world);
     this.generateChunkFiles(workingFolder, world);
     const globals: Record<string, any> = {};
     for (const [id, comp] of Object.entries(world.components ?? {})) {
       if (isGlobalComponent(comp)) globals[id] = comp;
     }
     this.writeJsonSync(dataFile, { ...world, components: globals });
+  }
+
+  /**
+   * Every plot needs at least one portal: it's where players spawn and where
+   * `?plot=` links arrive. A plot with content but no portal (a new plot, or
+   * its last portal deleted) gets one at the centre of the plot, on the floor.
+   */
+  private static ensurePortalPerChunk(world: GameData): void {
+    // Copy: patched data from immer is frozen.
+    const components = { ...(world.components ?? {}) } as Record<string, any>;
+    const withContent = new Set<string>();
+    const withPortal = new Set<string>();
+
+    for (const comp of Object.values(components)) {
+      if (!comp || isGlobalComponent(comp)) continue;
+      const key = posToChunkKey(comp.position ?? { x: 0, y: 0, z: 0 });
+      withContent.add(key);
+      if (comp.type === "portal") withPortal.add(key);
+    }
+
+    for (const key of withContent) {
+      if (withPortal.has(key)) continue;
+      const c = chunkKeyToCoords(key);
+      if (!c) continue;
+      const id = `portal-${randomUUID().replace(/-/g, "").slice(0, 21)}`;
+      components[id] = {
+        id,
+        type: "portal",
+        kit: "cyber",
+        name: "",
+        p_name: "",
+        position: { x: c.x * CHUNK_SIZE, y: c.y * CHUNK_SIZE + 0.1, z: c.z * CHUNK_SIZE },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+        image: "",
+        slug: "",
+        cooldown: 1500,
+        radius: 1,
+        color: "#00ffff",
+        opacity: 0.8,
+        display: true,
+        collider: { enabled: true, rigidbodyType: "fixed", colliderType: "cylinder", isSensor: true },
+      };
+      console.log(`Plot ${key} had no portal; added ${id} at its centre`);
+    }
+
+    world.components = components as any;
   }
 
   /**

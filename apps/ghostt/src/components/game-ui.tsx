@@ -15,6 +15,7 @@ import { VoiceControls } from "./voice-controls";
 import { ChatPanel } from "./chat-panel";
 import { RolePreviewBanner } from "./role-preview-banner";
 import { MobileControls, MOBILE_STICK_CLEARANCE } from "./mobile-controls";
+import { DebugOverlay } from "./debug-overlay";
 import { useTouchScreen } from "@/hooks/use-touch-screen";
 
 function StartScreen() {
@@ -77,6 +78,7 @@ function ScreenOverlay() {
       <SeatControls />
       <MobileControls />
       <ModeNotice />
+      <DebugOverlay />
       {/* Bottom-left column: chat sits on top of the voice controls, whatever their size.
           On touch screens it moves up to make room for the move stick. */}
       <div
