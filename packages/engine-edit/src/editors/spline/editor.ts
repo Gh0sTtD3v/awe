@@ -5,6 +5,30 @@ import type { GuiGroupDescriptor } from "@oncyberio/engine/space/gui-types";
 
 import { Mesh, Intersection, MeshBasicMaterial } from "three";
 
+/**
+ * Readable name for a component in the follower list: its name, else the file
+ * name of its model or image (most models have no name), else its type, with
+ * the end of its id to tell copies apart.
+ */
+function followerLabel(component: any): string {
+    const data = component?.data ?? {};
+    const id = String(data.id ?? "");
+    // Generated ids are long ("mesh-DLUK3Hcs..."); short ones such as
+    // "Player" are already readable.
+    const shortId = id.length > 12 ? id.slice(-4) : "";
+    let label = data.name;
+
+    if (!label && typeof data.url === "string" && data.url) {
+        label = decodeURIComponent(data.url.split("?")[0].split("/").pop() ?? "");
+    }
+
+    label ||= data.type ?? "component";
+
+    if (!shortId && id && id !== label) label = `${label} (${id})`;
+
+    return shortId ? `${label} (${shortId})` : label;
+}
+
 /** @internal */
 export class SplineEditor extends Component3DEditor<SplineComponent> {
     //
@@ -148,9 +172,13 @@ export class SplineEditor extends Component3DEditor<SplineComponent> {
                                 return (
                                     !component.info.singleton &&
                                     component.info.type != "terrain" &&
-                                    component.info.type != "batch"
+                                    component.info.type != "batch" &&
+                                    component.info.type != "spline"
                                 );
-                            }),
+                            }).map((option) => ({
+                                ...option,
+                                name: followerLabel(this.component.container.byInternalId(option.id)),
+                            })),
                         nullable: true,
                         value: [this.data, "preset"],
                     },
@@ -193,6 +221,17 @@ export class SplineEditor extends Component3DEditor<SplineComponent> {
                         min: 0.01,
                         max: 5,
                         step: 0.01,
+                    },
+
+                    followerRotation: {
+
+                        visible: () => this.data.preset != null,
+                        type: "number",
+                        label: "Facing (degrees)",
+                        value: [this.data, "followerRotation"],
+                        min: 0,
+                        max: 360,
+                        step: 1,
                     }
 
 

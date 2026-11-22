@@ -101,6 +101,13 @@ export interface SplineComponentData extends Component3DData {
   followerSpeedVariation: number;
 
   /**
+   * Turns every follower around its up axis, in degrees, for models whose
+   * front isn't the direction of travel. Valid range: `0`–`360`.
+   * Defaults to `0` (the model's front faces the way the curve goes).
+   */
+  followerRotation?: number;
+
+  /**
    * Width of the rendered spline line. Valid range: `0.25`–`6`. Defaults to `3`.
    */
   lineWidth: number;

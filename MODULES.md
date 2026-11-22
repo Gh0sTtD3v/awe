@@ -9,6 +9,7 @@ All of them are **invisible markers during play**: you see them in the studio (a
 | [Seat](#seat) | Walk up, press E, the avatar sits | E |
 | [Reverse Gravity](#reverse-gravity) | Lifts players up, or slows their fall: elevators, safe drops | — |
 | [Music Zone](#music-zone) | Music in a box or sphere, fading in and out around it | — |
+| [Spline](#spline) | A curve that copies of a model fly along: space traffic, birds, trains | — |
 | [Lift](#lift) | Teleport between the floors of a building | E |
 | [Video Screen](#video-screen) | A screen with a playlist everyone watches in sync | E (to control) |
 | [Chat Zone](#chat-zone) | An area with its own text chat room | — |
@@ -103,6 +104,38 @@ Two shapes:
 Music is heard from the avatar's head height (from the camera in cinematic mode). Browsers only allow sound after a click, so music starts once the player has clicked "Click to start".
 
 **Code:** `packages/engine/src/space/components/music-zone/` (component), `packages/engine-edit/src/editors/music-zone/editor.ts` (studio panel and side handles), `apps/ghostt/shared/music-zones.ts` (distance and volume), `apps/ghostt/src/lib/music-player.ts` (playing and fading), `apps/ghostt/src/lib/game-script.ts` (`musicZones`, `listenerPosition`).
+
+---
+
+## Spline
+
+A curve through points you place, with copies of any object in your world travelling along it. This is the Season 1 "Spline arrival" tool (the module was already in the engine but missing from the studio menu). Use it for space traffic: one curve per lane, a ship model as the follower, a few copies with different speeds.
+
+**How to use**
+
+1. Add **Spline** (Add → Items). A white curve with 4 points appears in front of the camera.
+2. **Shape it:** while the spline is selected, its points show as red cubes. Click one (it turns green) and drag it with the move arrows. In **Edition**: *Add New Point* adds one at the end; pick a point number and *Add New Point At Selected index* inserts one there; *Delete current point* removes the selected one (a spline keeps at least 4). *Closed* joins the end back to the start, for loops. Moving or rotating the whole spline (Transform) carries everything with it.
+3. **Pick what travels on it:** first place the object somewhere in your world (e.g. upload the ship .glb). Then in **Follower → Component**, choose it from the list (models are listed by file name). Copies of it start moving along the curve, facing the way they go. The object you picked stays where you placed it; put it out of sight if you only want the moving copies.
+4. Set how many copies, their speed and spread.
+
+**Settings**
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Color, Line width, Opacity (Aspect) | white, 3, 1 | How the curve looks |
+| Display on Live Mode (Aspect) | off | Off: the curve is only visible in the studio, players only see the moving copies. On: players see the line too (never the red point cubes) |
+| Closed (Edition) | off | Off: copies reaching the end start again at the beginning. On: the curve is a loop |
+| Smoothness (Edition) | 1000 | How finely the curve is drawn and followed |
+| Component (Follower) | none | The object copied onto the curve |
+| Count (Follower) | 1 | Number of copies (1 to 40), spread at random along the curve |
+| Follower offset variation (Follower) | 0, 0, 0 | Moves each copy off the line by a random amount up to this, per axis (in metres), so they don't all fly in single file |
+| Follower speed (Follower) | 1 | 1 = a full trip in 10 seconds whatever the curve's length (a long curve means faster copies) |
+| Follower speed variation (Follower) | 0 | Random extra speed per copy, so they don't move in lockstep |
+| Facing (degrees) (Follower) | 0 | Turns the copies around their up axis (0 to 360). Use it when a model flies sideways or backwards: e.g. 90, 180 or 270 until its nose points along the curve. Changes apply straight away |
+
+Copies move on each player's screen on their own (they're decoration: not synced between players, no collision).
+
+**Code:** `packages/engine/src/space/components/spline/` (component and followers), `packages/engine/src/internal/spline/spline-object.js` (curve and line), `packages/engine-edit/src/editors/spline/editor.ts` (studio panel and point handles).
 
 ---
 

@@ -96,12 +96,9 @@ export class SplineComponent extends Component3D<SplineComponentData> {
             ...this.data,
         });
 
-        // dont display if not in edit mode
-        // and display is false
-
-        if (IS_EDIT_MODE != true && this.data.display == false) {
-            this._spline.visible = false;
-        }
+        // Always visible in the studio; in the game only with "Display on
+        // Live Mode" (the spline object hides itself outside the studio).
+        this._spline.visible = IS_EDIT_MODE || this.data.display == true;
 
         this._lastPoints = this.data.points;
 
@@ -172,7 +169,11 @@ export class SplineComponent extends Component3D<SplineComponentData> {
         if (val == null) {
             return;
         } else {
-            this._baseFollower = (await this.space.components.create(val, {
+            // A follower lives at the top of the scene even when its source
+            // object sits inside a group.
+            const { parentId, ...followerData } = val as any;
+
+            this._baseFollower = (await this.space.components.create(followerData, {
                 transient: true,
             })) as any;
 
@@ -280,6 +281,8 @@ export class SplineComponent extends Component3D<SplineComponentData> {
         this._spline.smoothness = this.data.smoothness;
 
         this._spline.closed = this.data.closed || false;
+
+        this._spline.visible = IS_EDIT_MODE || this.data.display == true;
 
         if (this._lastPoints != this.data.points) {
             //
@@ -389,8 +392,6 @@ export class SplineComponent extends Component3D<SplineComponentData> {
                     point.z +=
                         follower._followOptions.followerOffsetVariation.z;
 
-                    follower.position.copy(point);
-
                     let look =
                         (follower._followOptions.progressionBase + 0.05) % 1;
                     let pointlook = this._spline.getBakedPointAt(look);
@@ -402,7 +403,17 @@ export class SplineComponent extends Component3D<SplineComponentData> {
                     pointlook.z +=
                         follower._followOptions.followerOffsetVariation.z;
 
+                    follower.position.copy(point);
+
                     this._lookAt(follower, point, pointlook);
+
+                    // Turn the copy around its up axis, for models whose
+                    // front isn't the way the curve goes (degrees, 0-360).
+                    const facing = this.data.followerRotation ?? 0;
+
+                    if (facing) {
+                        follower.rotateY((facing * Math.PI) / 180);
+                    }
 
                     i++;
                 }
