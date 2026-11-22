@@ -40,6 +40,21 @@ const yAxis = new Vector3(0, 1, 0);
 
 import { radixSort } from "three/addons/utils/SortUtils.js";
 
+/** Plain copy of a geometry attribute: de-interleaved, item size and `normalized` kept. */
+function copyAttribute(attribute) {
+    if (attribute.isInterleavedBufferAttribute) {
+        const { array, itemSize, normalized } = attribute.clone();
+
+        return new BufferAttribute(array, itemSize, normalized);
+    }
+
+    return new BufferAttribute(
+        attribute.array,
+        attribute.itemSize,
+        attribute.normalized
+    );
+}
+
 export default class GeometryInstancer extends InstancedBufferGeometry {
     constructor(geometry, opts = {}) {
         super();
@@ -794,36 +809,35 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
             if (geo.attributes.position) {
                 scope.setAttribute(
                     "position",
-                    new BufferAttribute(geo.attributes.position.array, 3)
+                    copyAttribute(geo.attributes.position)
                 );
             }
 
             if (geometry.attributes.color && this.useGeometryColor) {
                 scope.setAttribute(
                     "color",
-                    new BufferAttribute(geometry.attributes.color.array, 3)
+                    copyAttribute(geometry.attributes.color)
                 );
             }
 
             if (geo.attributes.normal && this.useNormal) {
                 scope.setAttribute(
                     "normal",
-                    new BufferAttribute(geo.attributes.normal.array, 3)
+                    copyAttribute(geo.attributes.normal)
                 );
             }
 
-            if (geo.attributes.uv) {
-                scope.setAttribute(
-                    "uv",
-                    new BufferAttribute(geo.attributes.uv.array, 2)
-                );
-            }
+            // Every UV set: materials can read any of them (glTF texCoord
+            // 0-3, e.g. a light bake on its own UV set). Keep the
+            // attribute's own item size and `normalized` flag, and
+            // de-interleave, so quantized or interleaved UVs (optimised
+            // GLBs) stay correct.
+            for (const name of ["uv", "uv1", "uv2", "uv3"]) {
+                const uvAttribute = geo.attributes[name];
 
-            if (geo.attributes.uv1) {
-                scope.setAttribute(
-                    "uv1",
-                    new BufferAttribute(geo.attributes.uv1.array, 2)
-                );
+                if (uvAttribute) {
+                    scope.setAttribute(name, copyAttribute(uvAttribute));
+                }
             }
 
             if (geo.customAttributes && geo.customAttributes.length > 0) {

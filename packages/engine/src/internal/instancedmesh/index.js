@@ -7,6 +7,7 @@ import { createInstancedMesh } from "../pipeline/lod-instanced-pipeline-mesh";
 import InstancedShadow from "../rendering/materials/instancedshadow";
 
 import { CAMERA_LAYERS } from "../constants";
+import { withUnlitEmissive, applyUnlitEmissive } from "../pipeline/unlit-emissive";
 import { pipe } from "gsap";
 
 var id = 0;
@@ -107,9 +108,14 @@ export class InstancedMeshFactory {
 
         } else {
 
-            diffuseMaterial = new InstancedBasic(opts);
+            diffuseMaterial = new InstancedBasic(
+                withUnlitEmissive(opts, baseMesh.material)
+            );
 
             diffuseMaterial.copy(baseMesh.material);
+
+            // Unlit copy: keep emissive (light-baked materials would render black).
+            applyUnlitEmissive(diffuseMaterial, baseMesh.material);
 
             diffuseMaterial.side = 2;
 

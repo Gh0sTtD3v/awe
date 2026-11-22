@@ -3,6 +3,7 @@
 import EventEmitter from "../events/augmented";
 import emitter from "../engine-emitter";
 import { EngineEvents } from "../engine-events";
+import { CURRENT_LIGHTING_STATE } from "../lighting-state";
 import { DEFAULT_PIPELINE_OPTIONS, DEFAULT_STATE } from "./constants";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineMaterial2 } from "../utils/lines/line-material-2";
@@ -185,8 +186,11 @@ export default class PipeLineMesh extends Line2 {
 
     this.currentMode = this.diffuseMaterials;
 
-    if (this.useLighting && state.lighting == true) {
-      this._onLighting(state.lighting);
+    // The engine's current state, not this module's last-seen copy: the
+    // LIGHTING event fires once, and a mesh created after it (e.g. a model
+    // streamed in with its chunk) would otherwise stay unlit (black bakes).
+    if (this.useLighting && CURRENT_LIGHTING_STATE === true) {
+      this._onLighting(true);
     }
   }
 
@@ -367,6 +371,13 @@ export default class PipeLineMesh extends Line2 {
     this._onMirror(state.mirror);
 
     this._onOcclusion(state.occlusion);
+
+    // _onMirror / _onOcclusion skip instanced meshes with no instances yet
+    // (a model that was just created), leaving the previous mode's material
+    // on screen. Outside those passes, show this mode's material directly.
+    if (!state.mirror && !state.occlusion) {
+      this._material = this.currentMode.material;
+    }
   }
 
   _addEvents() {
