@@ -1318,9 +1318,10 @@ export class GameScript {
       return false;
     }
 
-    // Land on the destination floor rather than hovering above it.
+    // Fly mode carries over: a flying player arrives hovering at the landing
+    // point (half a body height above the floor) instead of dropping.
     this.standUp();
-    this.setFlyingState(false);
+    this.mover?.reset();
 
     const target = new Vector3(pos.x, pos.y, pos.z);
     const chunks = this.space?.chunks;
