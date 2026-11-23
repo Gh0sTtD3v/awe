@@ -19,9 +19,11 @@ export class ChangeLockCommand extends AbstractCommand {
     ) {
         super(context);
 
-        this._oldLocks = this._getLocks();
-
+        // New locks first: _getLocks reads the current lock of each of them
+        // (it read nothing before, so undoing a lock change did nothing).
         this._newLocks = opts.locks;
+
+        this._oldLocks = this._getLocks();
     }
 
     private _getLocks() {
@@ -32,7 +34,7 @@ export class ChangeLockCommand extends AbstractCommand {
             //
             const component = this.gameData.components[id];
 
-            locks[id] = structuredClone(component.lock);
+            locks[id] = structuredClone(component.lock ?? null);
         }
 
         return locks;

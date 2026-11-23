@@ -1,4 +1,5 @@
 import Scene from "@oncyberio/engine/internal/scene";
+import { isComponentLocked } from "../utils/lock";
 import { PivotControls } from "../controls/pivot-controls";
 import { CANVAS } from "@oncyberio/engine/internal/constants";
 import emitter from "@oncyberio/engine/internal/engine-emitter";
@@ -81,6 +82,9 @@ export class Transformer extends Group {
     }
 
     isTransformable(component: Component3D) {
+        // A locked component (or one inside a locked group) gets no gizmo.
+        if (isComponentLocked(component)) return false;
+
         return getOrCreateEditor(component)?.getSelectionMesh() != null;
     }
 
@@ -249,8 +253,18 @@ export class Transformer extends Group {
         }
     };
 
+    /** The selection last handed to us, to re-apply when a lock changes. */
+    private _selection: Component3D[] = [];
+
+    /** Locking or unlocking the selection removes or restores its gizmo. */
+    onLockChanged = () => {
+        this.onSelectionChanged({ selection: this._selection });
+    };
+
     onSelectionChanged = (event) => {
         //
+        this._selection = event.selection ?? [];
+
         this.detachAll();
 
         if (event.selection.length) {
@@ -327,7 +341,7 @@ export class Transformer extends Group {
         //
         emitter.on(Events.SELECTION_CHANGED, this.onSelectionChanged);
 
-        emitter.on(Events.COMPONENT_LOCK_CHANGED, this.syncLockState);
+        emitter.on(Events.COMPONENT_LOCK_CHANGED, this.onLockChanged);
 
         this.pivotControls.addEventListener(
             "dragging-changed" as any,
@@ -347,7 +361,7 @@ export class Transformer extends Group {
         //
         emitter.off(Events.SELECTION_CHANGED, this.onSelectionChanged);
 
-        emitter.off(Events.COMPONENT_LOCK_CHANGED, this.syncLockState);
+        emitter.off(Events.COMPONENT_LOCK_CHANGED, this.onLockChanged);
 
         this.pivotControls.removeEventListener(
             "dragging" as any,

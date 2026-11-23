@@ -16,6 +16,7 @@ import { useCurrentGameData } from "../../contexts/game-data-context";
 import { useWorldTransformerState } from "../../hooks/use-world-transformer-state";
 import SpriteIcon from "../../ui/sprite";
 import { RenameField } from "../rename-field";
+import { isComponentLocked, hasOwnLock } from "@oncyberio/engine-edit/utils/lock";
 import "./edit-component-styles.css";
 
 export function EditComponent({ className, showWorldItems, onSizeChanged }) {
@@ -68,6 +69,11 @@ export function EditComponent({ className, showWorldItems, onSizeChanged }) {
 
   const canLock = (selected.data as any).position != null;
 
+  // Locked itself or inside a locked group: the panel can be read, not used,
+  // until it is unlocked.
+  const lockedAll =
+    hasOwnLock(selected.data) || isComponentLocked(editor.getComponent(selected.data.id));
+
   const canDraw = useMemo(() => {
     //
     const instance = selection.singleSelected;
@@ -116,7 +122,7 @@ export function EditComponent({ className, showWorldItems, onSizeChanged }) {
 
   // const disableLock = selected?.info?.disableLock;
 
-  const canDelete = !selected?.info?.required;
+  const canDelete = !selected?.info?.required && !lockedAll;
 
   // const canEdit = selected?.data?.meta?.metaType !== "nft";
 
@@ -184,7 +190,7 @@ export function EditComponent({ className, showWorldItems, onSizeChanged }) {
         >
           <RenameField
             id={id}
-            // disabledEditing={isModule}
+            disabledEditing={lockedAll}
             value={title}
             error={error}
             resetError={() => {
@@ -244,8 +250,8 @@ export function EditComponent({ className, showWorldItems, onSizeChanged }) {
           {/* Draw */}
           <button
             type="button"
-            onClick={canDraw ? handleDraw : null}
-            disabled={!canDraw}
+            onClick={canDraw && !lockedAll ? handleDraw : null}
+            disabled={!canDraw || lockedAll}
           >
             <span className="u-visually-hidden">
               Draw a batch of this element
@@ -294,8 +300,19 @@ export function EditComponent({ className, showWorldItems, onSizeChanged }) {
           </button>
         </div>
 
+        {lockedAll && (
+          <div className="edit-locked-note shrink-0 px-1 py-2 text-[12px] text-white/60 flex items-center gap-1.5">
+            <SpriteIcon id="studio/lock" width={10} height={12} />
+            {hasOwnLock(selected.data) ? "Locked: unlock to edit" : "In a locked group: unlock the group to edit"}
+          </div>
+        )}
+
         <ScrollableSection>
-          <div className="resizer-wrapper w-full" ref={resizerWrapper}>
+          <div
+            className={classes("resizer-wrapper w-full", lockedAll && "opacity-50")}
+            ref={resizerWrapper}
+            inert={lockedAll || undefined}
+          >
             {uiEditor}
           </div>
         </ScrollableSection>
