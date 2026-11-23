@@ -1,5 +1,5 @@
 import { Undo } from "./undo";
-import { isComponentLocked } from "@oncyberio/engine-edit/utils/lock";
+import { isComponentLocked, hasOwnLock } from "@oncyberio/engine-edit/utils/lock";
 import { UndoManager } from "../undo-manager";
 import {
   CommandType,
@@ -802,6 +802,12 @@ export class WorldEditorService {
 
   canDelete(ids: string[]) {
     //
+    // Nothing loaded for it (e.g. a model whose file is missing): its data
+    // still decides whether it is locked.
+    if (ids.some((id) => this.getComponent(id) == null && hasOwnLock(this.gameData.components[id]))) {
+      return false;
+    }
+
     const components = ids
       .map((id) => this.getComponent(id))
       .filter((it) => it != null);

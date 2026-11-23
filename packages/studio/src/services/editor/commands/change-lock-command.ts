@@ -63,7 +63,14 @@ export class ChangeLockCommand extends AbstractCommand {
         //
         for (const id in locks) {
             //
-            const component = this.getComponent(id);
+            // Nothing loaded for it (e.g. a model whose file is missing): only
+            // the data changes, so it can still be unlocked and deleted.
+            let component = null;
+            try {
+                component = this.getComponent(id);
+            } catch {
+                continue;
+            }
 
             EngineFacade.editor.commands.changeComponentLock(
                 component,
