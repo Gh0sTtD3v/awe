@@ -1,4 +1,5 @@
-import { MeshBasicMaterial, MeshLambertMaterial, SkinnedMesh } from "three";
+import { MeshBasicMaterial, MeshLambertMaterial, SkinnedMesh, Sphere } from "three";
+import { measureBoneSpheres, poseBoundingSphere } from "./skinned-bounds";
 import emitter from "../engine-emitter";
 import { EngineEvents } from "../engine-events";
 import { CURRENT_LIGHTING_STATE } from "../lighting-state";
@@ -191,6 +192,36 @@ export default class PipeLineSkinnedMesh extends SkinnedMesh {
     if (this.useLighting && CURRENT_LIGHTING_STATE === true) {
       this._onLighting(true);
     }
+  }
+
+  /**
+   * three.js culls and sorts a SkinnedMesh with `boundingSphere`, computed
+   * once in the rest pose and never updated: animated parts far from their
+   * rest spot were culled in plain view, or sorted as if still there. This
+   * sphere follows the current pose instead (see skinned-bounds.js).
+   */
+  get boundingSphere() {
+    if (this.skeleton) {
+      if (this._boneSpheresSkeleton !== this.skeleton || this._boneSpheresGeometry !== this.geometry) {
+        this._boneSpheres = measureBoneSpheres(this);
+        this._boneSpheresSkeleton = this.skeleton;
+        this._boneSpheresGeometry = this.geometry;
+      }
+
+      if (this._boneSpheres) {
+        if (this._poseSphere == null) this._poseSphere = new Sphere();
+
+        if (poseBoundingSphere(this, this._boneSpheres, this._poseSphere)) {
+          return this._poseSphere;
+        }
+      }
+    }
+
+    return this._storedBoundingSphere ?? null;
+  }
+
+  set boundingSphere(value) {
+    this._storedBoundingSphere = value;
   }
 
   overrideOcclusionMaterial(val) {
