@@ -55,7 +55,9 @@ export function createPlayersReplica(
       if (!component || isLocal || !model.anim) return;
 
       if (component.data?.animation !== model.anim) {
-        component.play(model.anim, { fadeIn: 0.15, persist: true });
+        // Crossfade out whatever was playing; without stopAll the previous
+        // clip keeps running and blends with the new one.
+        component.play(model.anim, { fadeIn: 0.15, fadeOut: 0.15, stopAll: true, persist: true });
       }
     },
   };
