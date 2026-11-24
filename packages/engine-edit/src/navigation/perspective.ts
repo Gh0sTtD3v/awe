@@ -303,9 +303,10 @@ export class PerspectiveControls {
     let rotation = new Euler(0, 0, 0, "YXZ");
 
     if (opts?.space) {
-      const player = opts.space.components.find(
-        (c) => c.data.script?._isPlayer,
-      );
+      // Legacy player marker if present, otherwise the first portal (spawn point).
+      const player =
+        opts.space.components.find((c) => c.data.script?._isPlayer) ??
+        opts.space.components.find((c) => c.data.type === "portal");
       if (player != null) {
         tempObj.position.copy(player.position);
         tempObj.quaternion.copy(player.quaternion);

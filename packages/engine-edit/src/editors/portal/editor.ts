@@ -62,25 +62,6 @@ export class PortalComponentEditor extends Component3DEditor<PortalComponent> {
 						},
 					},
 				},
-				material: {
-					type: "folder",
-					label: "Material",
-					children: {
-						color: {
-							type: "color",
-							label: "Color",
-							value: [this.data, "color"],
-						},
-						opacity: {
-							type: "number",
-							label: "Opacity",
-							value: [this.data, "opacity"],
-							min: 0,
-							max: 1,
-							step: 0.01,
-						},
-					},
-				},
 			},
 		};
 	}

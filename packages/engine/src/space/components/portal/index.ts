@@ -10,7 +10,7 @@ export class PortalComponentFactory extends DefaultComponentFactory<PortalCompon
 		type: "portal",
 		title: "Portal",
 		image: "https://raw.githubusercontent.com/Gh0sTtD3v/cdn/refs/heads/main/oncyber/icon/portal.png",
-		description: "A spawnpoint that opens the destination directory on enter",
+		description: "Spawn point and destination; opens the destination directory on enter",
 		draggable: true,
 		transform: true,
 		studioTab: "worldSettings",

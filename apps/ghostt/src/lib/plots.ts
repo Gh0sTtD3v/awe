@@ -4,7 +4,7 @@
  * writes whenever a chunk config is saved.
  */
 
-import { chunkKeyToCoords, posToChunkKey } from "@oncyberio/world-config";
+import { chunkKeyToCoords } from "@oncyberio/world-config";
 import { loadPortals, type PortalEntry } from "@/lib/portals";
 
 interface PlotIndexEntry {
@@ -56,15 +56,15 @@ export async function firstPortalIn(key: string): Promise<PortalEntry | null> {
 
 /**
  * Where the player starts: the first portal of the linked plot (`?plot=`),
- * otherwise the first portal of the plot holding the world's spawn point.
+ * otherwise the first portal of `defaultKey` (the Lobby).
  * Null only when that plot has no portal at all.
  */
-export async function findSpawnEntry(spawnPoint: { x: number; y: number; z: number }): Promise<PortalEntry | null> {
+export async function findSpawnEntry(defaultKey: string): Promise<PortalEntry | null> {
   const linked = readPlotParam();
   const linkedKey = linked ? await resolvePlotKey(linked) : null;
   if (linkedKey) {
     const entry = await firstPortalIn(linkedKey);
     if (entry) return entry;
   }
-  return firstPortalIn(posToChunkKey(spawnPoint));
+  return firstPortalIn(defaultKey);
 }

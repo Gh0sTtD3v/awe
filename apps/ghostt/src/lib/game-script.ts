@@ -217,6 +217,37 @@ function getLandingClip(
   }
 }
 
+/**
+ * Every player's avatar is built from this. It used to come from the "Player"
+ * component placed in the studio; that marker is retired (players spawn on
+ * portals) and avatars always spawn at full scale.
+ */
+const PLAYER_AVATAR_TEMPLATE = {
+  type: "avatar",
+  kit: "cyber",
+  name: "Player",
+  position: { x: 0, y: 0, z: 0 },
+  rotation: { x: 0, y: 0, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+  plugins: [],
+  renderMode: "default",
+  useCpuAnimation: true,
+  collider: { enabled: true, rigidbodyType: "PLAYER", colliderType: "CAPSULE" },
+  url: "https://cdn.oncyber.xyz/engine-assets/vrms/sunshine.glb",
+  picture: "",
+  awaitAvatarLoading: true,
+  awaitPictureLoading: true,
+  awaitLoaderThrottle: 0,
+  text: "",
+  nameDisplayWithPicture: true,
+  animation: "IDLE",
+  opacity: 1,
+  ignoreLOD: false,
+} as unknown as AvatarComponent["data"];
+
+/** Plot players start in when no `?plot=` link is given (the Lobby). */
+const DEFAULT_SPAWN_PLOT = "0_0_0";
+
 // --- Movement tuning ---
 const SPEED = 10;
 const FAST_BOOST = 1.5;
@@ -387,12 +418,9 @@ export class GameScript {
       const { space, reveal } = await createGame({ baseUrl: "" });
       this.space = space;
 
-      const playerTemplate = this.space.components.byId(
-        "player",
-      ) as AvatarComponent | null;
-      if (!playerTemplate) {
-        throw new Error("[Game] Player avatar template not found");
-      }
+      // Retired "Player" spawnpoint: older scenes may still contain it. Its
+      // data is no longer used; just make sure it doesn't stand in the world.
+      this.space.components.byId("player")?.destroy();
 
       let room: Room<any>;
       try {
@@ -459,19 +487,12 @@ export class GameScript {
       this.playersReplica = createPlayersReplica(
         room,
         this.space,
-        playerTemplate.data as AvatarComponent["data"],
+        PLAYER_AVATAR_TEMPLATE,
       );
       this.playersReplica.init();
 
       const playerAvatar = await this.playersReplica.whenLocalComponentReady();
       this.localPlayerAvatar = playerAvatar;
-
-      // The world's default spawn point is where the Player avatar was placed
-      // in the studio; the server only ever starts players at 0,0,0.
-      const tp = (playerTemplate.data as any)?.position ?? {};
-      const spawnPoint = { x: tp.x ?? 0, y: tp.y ?? 0, z: tp.z ?? 0 };
-
-      playerTemplate.destroy();
 
       // Input system
       this.inputs = createInputs(GAMEPLAY_INPUTS);
@@ -588,12 +609,13 @@ export class GameScript {
       // Keep the intro up until the chunk we spawn in has streamed in, so the
       // world doesn't build itself in front of the player.
       // Players always start on a portal: the linked plot's first one, or the
-      // spawn plot's first one. The studio keeps at least one in every plot.
+      // Lobby's first one. The studio keeps at least one in every plot.
       const chunks = this.space.chunks;
-      const entry = await findSpawnEntry(spawnPoint);
+      const entry = await findSpawnEntry(DEFAULT_SPAWN_PLOT);
       if (!(entry && (await this.travelTo(entry.position)))) {
-        if (chunks) await chunks.loadChunk(posToChunkKey(spawnPoint));
-        await this.travelTo(spawnPoint);
+        const origin = { x: 0, y: 0, z: 0 };
+        if (chunks) await chunks.loadChunk(posToChunkKey(origin));
+        await this.travelTo(origin);
       }
 
       await reveal();

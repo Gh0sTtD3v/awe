@@ -181,9 +181,9 @@ An area only holders of a token or NFT can enter. Players who don't qualify are 
 
 ## Portal
 
-A spawn point that opens the destination directory when a player enters it. `?plot=<slug>` links start players at a plot's first portal.
+The spawn point and travel destination, drawn as a green spawn halo. Players start on the Lobby's first portal, or on a plot's first portal with a `?plot=<slug>` link. Walking into one opens the destination directory. (The old "Player" spawnpoint is retired: avatars are built from a template in code at scale 1, and a leftover Player in a scene is removed at load.)
 
-**Settings:** Image, Name, Slug, Cooldown (ms), Display in Live Mode, Radius, Color, Opacity.
+**Settings:** Image, Name, Slug, Cooldown (ms), Display in Live Mode, Radius.
 
 **Code:** `packages/engine/src/space/components/portal/`, `apps/ghostt/src/lib/portals.ts`.
 
