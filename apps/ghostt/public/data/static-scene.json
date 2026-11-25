@@ -241,26 +241,6 @@
       "_version": 1769775851149,
       "enabled": true
     },
-    "Player": {
-      "name": "Player",
-      "id": "Player",
-      "type": "avatar",
-      "kit": "cyber",
-      "position": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "rotation": {
-        "x": 1.6960369922133703e-16,
-        "y": 0,
-        "z": -3.5068231544738513e-17
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
       "plugins": [],
       "renderMode": "default",
       "useCpuAnimation": true,
