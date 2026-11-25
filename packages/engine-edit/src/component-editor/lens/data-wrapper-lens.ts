@@ -1,5 +1,6 @@
 import { DataWrapper } from "@oncyberio/engine/space/datamodel/data-wrapper";
 import { AbstractLens } from "./abstract";
+import { hasOwnLock } from "../../utils/lock";
 
 /**
  * When editing guis sometimes we don't want to edit the data directly.
@@ -75,8 +76,8 @@ export class DataWrapperLens<S = any> extends AbstractLens {
 
 
     get isLocked() {
-        //
-        return this.wrapper.data.lock?.[this.path[0]];
+        // A locked component locks every field, not only position/rotation.
+        return hasOwnLock(this.wrapper.data) || this.wrapper.data.lock?.[this.path[0]];
     }
 
     get source() {

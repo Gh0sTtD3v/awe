@@ -10,6 +10,9 @@ class GLTF {
     constructor() {
         this.promiseList = {};
 
+        // Rejects of the calls waiting in promiseList, to fail them when the load fails.
+        this.rejectList = {};
+
         this.rawLoadings = {};
 
         this._isLoading = {};
@@ -69,21 +72,35 @@ class GLTF {
         if (this._isLoading[object.name] == null) {
             this._isLoading[object.name] = true;
 
-            const res = await this.load(object);
+            // A failed load (e.g. the file was deleted from the server) must
+            // release the name and fail the calls waiting for it. Before, the
+            // name stayed "loading" forever: every later load of the same
+            // file (a copy, undoing a delete, adding it again) hung for good.
+            try {
+                return await this.load(object);
+            } catch (err) {
+                this.failWaiting(object.name, err);
 
-            delete this._isLoading[object.name];
-
-            return res;
+                throw err;
+            } finally {
+                delete this._isLoading[object.name];
+            }
         } else {
             // if asking to load a specific model, but already loading somewhere else
 
             if (this[object.name] == null) {
-                const promise = new Promise((resolve) => {
+                const promise = new Promise((resolve, reject) => {
                     if (this.promiseList[object.name] == null) {
                         this.promiseList[object.name] = [];
                     }
 
                     this.promiseList[object.name].push(resolve);
+
+                    if (this.rejectList[object.name] == null) {
+                        this.rejectList[object.name] = [];
+                    }
+
+                    this.rejectList[object.name].push(reject);
                 });
 
                 return promise;
@@ -107,13 +124,21 @@ class GLTF {
             res = await Subsystems.gltf.parseGLTF(this["raw" + url].rawBuffer);
         } else {
             if (this.rawLoadings[url] == null) {
-                this.rawLoadings[url] = new Promise(async (resolve, reject) => {
-                    res = await Subsystems.gltf.loadGLTF(url);
+                // Reject (and forget) a failed load instead of leaving the
+                // promise pending forever for every later caller.
+                this.rawLoadings[url] = Subsystems.gltf.loadGLTF(url).then((loaded) => {
+                    res = loaded;
 
-                    resolve(res);
+                    return loaded;
                 });
 
-                await this.rawLoadings[url];
+                try {
+                    await this.rawLoadings[url];
+                } catch (err) {
+                    delete this.rawLoadings[url];
+
+                    throw err;
+                }
 
                 this["raw" + url] = res;
             }
@@ -163,6 +188,21 @@ class GLTF {
             this.promiseList[name] = null;
 
             delete this.promiseList[name];
+        }
+
+        delete this.rejectList[name];
+    }
+
+    /** Fail every call waiting for `name` (its load failed). */
+    failWaiting(name, err) {
+        const rejects = this.rejectList[name] ?? [];
+
+        delete this.rejectList[name];
+
+        delete this.promiseList[name];
+
+        for (const reject of rejects) {
+            reject(err);
         }
     }
 
