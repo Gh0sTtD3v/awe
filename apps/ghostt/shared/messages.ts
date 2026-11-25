@@ -25,6 +25,37 @@ export function isPlayerUpdateMessage(
   );
 }
 
+// ── Teleport effect ──────────────────────────────────────────────────────────
+
+/**
+ * Client → server: the player is beaming out (`out`) or has arrived (`in`).
+ * Send `in` right after the position update for the destination, so the
+ * server relays the accepted position.
+ */
+export const TELEPORT_FX_MESSAGE = "player:teleport";
+
+export type TeleportPhase = "out" | "in";
+
+export interface TeleportFxSend {
+  phase: TeleportPhase;
+}
+
+export function isTeleportFxSend(value: unknown): value is TeleportFxSend {
+  if (value == null || typeof value !== "object") return false;
+  const phase = (value as TeleportFxSend).phase;
+  return phase === "out" || phase === "in";
+}
+
+/** Server → other clients: play the teleport effect on `sessionId`'s avatar. */
+export interface TeleportFxMessage {
+  sessionId: string;
+  phase: TeleportPhase;
+  /** Where the player arrived (`in` only): their last accepted position. */
+  position?: { x: number; y: number; z: number };
+  /** Server time of that position (`in` only), as in `PlayerState.updatedAt`. */
+  updatedAt?: number;
+}
+
 // ── Token gates ──────────────────────────────────────────────────────────────
 
 /** Server → client: which gates this player may enter. */

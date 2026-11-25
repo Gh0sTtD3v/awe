@@ -38,6 +38,9 @@ import {
   isModActionMessage,
   isPlayerUpdateMessage,
   PLAYER_UPDATE_MESSAGE,
+  TELEPORT_FX_MESSAGE,
+  isTeleportFxSend,
+  type TeleportFxMessage,
   SCREEN_CONTROL_MESSAGE,
   SCREEN_DURATION_MESSAGE,
   SCREEN_REFUSED_MESSAGE,
@@ -98,6 +101,8 @@ const CHAT_REFILL_MS = 5000;
 const DENIED_THROTTLE_MS = 250;
 /** Re-checking holdings hits the indexer; don't let a client hammer it. */
 const AUTH_UPDATE_THROTTLE_MS = 5000;
+/** Shortest gap between relayed teleport effects from one player (a trip takes ~0.8s). */
+const TELEPORT_FX_MIN_INTERVAL_MS = 500;
 /**
  * Moves longer than this are treated as teleports (portals, travel), not
  * walking, so the segment check doesn't deny a legit jump that merely flies
@@ -119,6 +124,8 @@ interface GateSession {
   lastAccepted: Vec3 | null;
   lastDeniedAt: number;
   lastAuthUpdateAt: number;
+  /** Last relayed teleport effect, to rate-limit spam. */
+  lastTeleportFxAt: number;
   pendingToken: string | null;
   authTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -237,6 +244,31 @@ export class GameRoom extends Room<{ state: GameState }> {
       player.updatedAt = Date.now();
       session.lastAccepted = { x: payload.x, y: payload.y, z: payload.z };
       this.updateChatRoom(client);
+    },
+
+    // Relay the teleport effect to everyone else. `in` carries the player's
+    // last accepted position (the client sends its destination update just
+    // before), never a position the client claims.
+    [TELEPORT_FX_MESSAGE]: (client: Client, payload: unknown) => {
+      if (!isTeleportFxSend(payload)) return;
+
+      const player = this.state.players.get(client.sessionId);
+      const session = this.sessions.get(client.sessionId);
+      if (!player || !session) return;
+
+      // "out" starts a trip; an "in" always follows it, so only "out" is limited.
+      const now = Date.now();
+      if (payload.phase === "out") {
+        if (now - session.lastTeleportFxAt < TELEPORT_FX_MIN_INTERVAL_MS) return;
+        session.lastTeleportFxAt = now;
+      }
+
+      const message: TeleportFxMessage = { sessionId: client.sessionId, phase: payload.phase };
+      if (payload.phase === "in") {
+        message.position = { x: player.x, y: player.y, z: player.z };
+        message.updatedAt = player.updatedAt;
+      }
+      this.broadcast(TELEPORT_FX_MESSAGE, message, { except: client });
     },
 
     [AUTH_UPDATE_MESSAGE]: (client: Client, payload: unknown) => {
@@ -372,6 +404,7 @@ export class GameRoom extends Room<{ state: GameState }> {
       lastAccepted: null,
       lastDeniedAt: 0,
       lastAuthUpdateAt: 0,
+      lastTeleportFxAt: 0,
       pendingToken: null,
       authTimer: null,
     });

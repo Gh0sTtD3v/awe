@@ -41,11 +41,6 @@ export class PortalComponentEditor extends Component3DEditor<PortalComponent> {
 							max: 60000,
 							step: 100,
 						},
-						display: {
-							type: "checkbox",
-							label: "Display in Live Mode",
-							value: [this.data, "display"],
-						},
 					},
 				},
 				geometry: {

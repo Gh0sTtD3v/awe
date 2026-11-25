@@ -150,6 +150,38 @@ export class ComponentReplica<
     return null;
   }
 
+  /** A remote entry's component, or null if it isn't spawned (or is local). */
+  getRemoteComponent(key: string): TComponent | null {
+    const entry = this.entries.get(key);
+    return entry && !entry.isLocal ? entry.component : null;
+  }
+
+  /**
+   * Jump a remote entry straight to `position` instead of interpolating
+   * there, e.g. after a teleport. Later updates interpolate from here.
+   */
+  snapRemote(
+    key: string,
+    position: { x: number; y: number; z: number },
+    /** Server timestamp for that position (same clock as the state's `updatedAt`). */
+    updatedAt: number,
+  ): void {
+    const entry = this.entries.get(key);
+    if (!entry || entry.isLocal) return;
+
+    const component = entry.component as any;
+    component?.position?.set(position.x, position.y, position.z);
+
+    if (entry.transformSync) {
+      entry.transformSync.reset();
+      entry.transformSync.push({
+        position,
+        rotation: { x: 0, y: component?.rotation?.y ?? 0, z: 0 },
+        updatedAt,
+      });
+    }
+  }
+
   whenLocalComponentReady(): Promise<TComponent> {
     const component = this.getLocalComponent();
     if (component) {

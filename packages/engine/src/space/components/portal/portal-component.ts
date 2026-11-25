@@ -34,7 +34,7 @@ function getCollisionMaterial(): MeshBasicMaterial {
  * letting the player travel to any other portal — a one-to-many relationship
  * rather than a hard-wired one-to-one link.
  *
- * Drawn as the green spawn halo.
+ * Shown as the green spawn halo in the studio only; invisible in play.
  */
 export class PortalComponent extends Component3D<PortalComponentData> {
 
@@ -56,12 +56,12 @@ export class PortalComponent extends Component3D<PortalComponentData> {
 		});
 	}
 
+	/** The halo is an editor marker, like the old spawnpoint: never drawn in play. */
 	private _buildHalo() {
 		this._disposeHalo();
+		if (!IS_EDIT_MODE) return;
 		this._halo = SpawnSelectionMesh.createForRadius(this.data.radius ?? 1, HALO_HEIGHT);
 		this._halo.name = "portal-halo";
-		// Always shown while editing; in play, `display: false` hides it.
-		this._halo.visible = IS_EDIT_MODE || this.data.display !== false;
 		this.add(this._halo);
 	}
 
@@ -111,10 +111,6 @@ export class PortalComponent extends Component3D<PortalComponentData> {
 				this._collision.geometry.dispose();
 				this._collision.geometry = new CylinderGeometry(radius, radius, 0.05, 32);
 			}
-		}
-
-		if (this._halo) {
-			this._halo.visible = IS_EDIT_MODE || this.data.display !== false;
 		}
 	}
 

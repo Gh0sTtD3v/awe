@@ -25,6 +25,7 @@ import { createGame } from "@/lib/utils";
 import { gameStore, setStarted, setPaused, setFlying, setFast, setUiHidden, showModeNotice } from "@/lib/game-store";
 import { loadPortals } from "@/lib/portals";
 import { findSpawnEntry } from "@/lib/plots";
+import { clearTeleportFx, playTeleportFx } from "@/lib/teleport-fx";
 import {
   setPortals,
   setPlayers,
@@ -64,6 +65,8 @@ import {
   VOICE_BROADCAST_MESSAGE,
   MOD_RESULT_MESSAGE,
   PLAYER_UPDATE_MESSAGE,
+  TELEPORT_FX_MESSAGE,
+  type TeleportFxMessage,
   type AccessSelfMessage,
   type ChunkDeniedMessage,
   type GateAccessMessage,
@@ -360,6 +363,8 @@ const INFO_SYNC_INTERVAL = 200;
 const GATE_DENIAL_GRACE = 400;
 // Arriving on a portal disc (spawn, travel) doesn't open the directory for this long.
 const PORTAL_ARRIVAL_QUIET_MS = 2000;
+/** A remote player who beamed out reappears after this long if no arrival comes (chunk loads can take a while). */
+const REMOTE_TELEPORT_TIMEOUT_MS = 15_000;
 
 export class GameScript {
   private space: Space | null = null;
@@ -384,6 +389,8 @@ export class GameScript {
   private leftRestrictedAt = -Infinity;
   /** Until when arriving on a portal doesn't open the directory (spawn, travel). */
   private portalQuietUntil = 0;
+  /** Per remote player: restores visibility if their teleport arrival never comes. */
+  private remoteTeleportTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   // Control primitives
   private inputs: ReturnType<typeof createInputs<typeof GAMEPLAY_INPUTS>> | null = null;
@@ -469,6 +476,7 @@ export class GameScript {
         addChatMessage(msg);
         this.chatBubbles?.show(msg);
       });
+      room.onMessage(TELEPORT_FX_MESSAGE, (msg: TeleportFxMessage) => this.onRemoteTeleport(msg));
       room.onMessage(CHAT_ROOM_MESSAGE, (msg: ChatRoomMessage) => setChatRoom(msg.room));
       room.onMessage(CHAT_REFUSED_MESSAGE, (msg: ChatRefusedMessage) => setChatError(msg.error));
       room.onLeave((code: number) => {
@@ -612,13 +620,15 @@ export class GameScript {
       // Lobby's first one. The studio keeps at least one in every plot.
       const chunks = this.space.chunks;
       const entry = await findSpawnEntry(DEFAULT_SPAWN_PLOT);
-      if (!(entry && (await this.travelTo(entry.position)))) {
+      if (!(entry && (await this.travelTo(entry.position, { fx: false })))) {
         const origin = { x: 0, y: 0, z: 0 };
         if (chunks) await chunks.loadChunk(posToChunkKey(origin));
-        await this.travelTo(origin);
+        await this.travelTo(origin, { fx: false });
       }
 
       await reveal();
+      // Beam in on the spawn portal once the world is visible.
+      void playTeleportFx(playerAvatar, "in");
     } catch (error) {
       this.dispose();
       throw error;
@@ -661,6 +671,9 @@ export class GameScript {
     this.inputs = null;
 
     this.music.dispose();
+
+    for (const timer of this.remoteTeleportTimers.values()) clearTimeout(timer);
+    this.remoteTeleportTimers.clear();
 
     // Destroy the space
     this.space?.destroy();
@@ -1231,7 +1244,8 @@ export class GameScript {
     this.leavingRestricted = true;
     try {
       showGateNotice(label, requirement, kind);
-      if (exit) await this.travelTo(exit);
+      // Being turned away should be instant, not a beam-out.
+      if (exit) await this.travelTo(exit, { fx: false });
     } finally {
       this.leavingRestricted = false;
       this.leftRestrictedAt = performance.now();
@@ -1293,22 +1307,66 @@ export class GameScript {
     console.log("[Game] Game disposed");
   };
 
+  /**
+   * Another player beamed out or in: play the effect on their avatar. While
+   * they're between the two they stay invisible, so the trip isn't seen as a
+   * slide across the map; `in` snaps them to where they arrived.
+   */
+  private onRemoteTeleport(msg: TeleportFxMessage): void {
+    const replica = this.playersReplica;
+    if (!replica || typeof msg?.sessionId !== "string") return;
+
+    const pending = this.remoteTeleportTimers.get(msg.sessionId);
+    if (pending) clearTimeout(pending);
+    this.remoteTeleportTimers.delete(msg.sessionId);
+
+    const avatar = replica.getRemoteComponent(msg.sessionId);
+
+    if (msg.phase === "out") {
+      if (!avatar) return;
+      void playTeleportFx(avatar as any, "out");
+      // If the arrival never comes (they left, or the trip failed silently),
+      // don't leave them invisible.
+      this.remoteTeleportTimers.set(
+        msg.sessionId,
+        setTimeout(() => {
+          this.remoteTeleportTimers.delete(msg.sessionId);
+          const still = this.playersReplica?.getRemoteComponent(msg.sessionId);
+          if (still) clearTeleportFx(still as any);
+        }, REMOTE_TELEPORT_TIMEOUT_MS),
+      );
+      return;
+    }
+
+    const p = msg.position;
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z)) {
+      replica.snapRemote(msg.sessionId, p, msg.updatedAt ?? Date.now());
+    }
+    if (avatar) void playTeleportFx(avatar as any, "in");
+  }
+
+  /** Send the local player's transform now. */
+  private sendPlayerUpdate(): void {
+    const avatar = this.localPlayerAvatar;
+    if (!this.room || !avatar) return;
+    this.room.send(PLAYER_UPDATE_MESSAGE, {
+      x: avatar.position.x,
+      y: avatar.position.y,
+      z: avatar.position.z,
+      rotY: avatar.rotation.y,
+      anim: avatar.data?.animation ?? "idle",
+    });
+  }
+
   private broadcastLocalPlayerState(dt: number): void {
     if (!this.room || !this.localPlayerAvatar) return;
 
-    const avatar = this.localPlayerAvatar;
     this.timeSinceLastBroadcast += dt * 1000;
 
     while (this.timeSinceLastBroadcast >= NETWORK_TICK_INTERVAL) {
       this.timeSinceLastBroadcast -= NETWORK_TICK_INTERVAL;
 
-      this.room.send(PLAYER_UPDATE_MESSAGE, {
-        x: avatar.position.x,
-        y: avatar.position.y,
-        z: avatar.position.z,
-        rotY: avatar.rotation.y,
-        anim: avatar.data?.animation ?? "idle",
-      });
+      this.sendPlayerUpdate();
 
       if (this.timeSinceLastBroadcast > NETWORK_TICK_INTERVAL * 4) {
         this.timeSinceLastBroadcast = 0;
@@ -1326,10 +1384,16 @@ export class GameScript {
    * enabled the destination chunk is streamed in via {@link ChunkManager};
    * otherwise (full scene loaded) we teleport the avatar directly.
    *
+   * With `fx` (the default) the avatar beams out, moves, then beams in;
+   * input is paused for the duration.
+   *
    * Returns false if the trip was abandoned because the destination chunk
    * could not be loaded — the player is left where they were.
    */
-  async travelTo(pos: { x: number; y: number; z: number }): Promise<boolean> {
+  async travelTo(
+    pos: { x: number; y: number; z: number },
+    opts: { fx?: boolean } = {},
+  ): Promise<boolean> {
     const avatar = this.localPlayerAvatar as any;
     if (!avatar?.rigidBody) return false;
 
@@ -1345,6 +1409,30 @@ export class GameScript {
     this.standUp();
     this.mover?.reset();
 
+    if (opts.fx === false) return this.moveAvatarTo(avatar, pos);
+
+    this.inputs?.disable();
+    let sentOut = false;
+    try {
+      this.room?.send(TELEPORT_FX_MESSAGE, { phase: "out" });
+      sentOut = true;
+      await playTeleportFx(avatar, "out");
+      const arrived = await this.moveAvatarTo(avatar, pos);
+      this.mover?.reset();
+      // Position first, so the server relays where we actually landed.
+      this.sendPlayerUpdate();
+      this.room?.send(TELEPORT_FX_MESSAGE, { phase: "in" });
+      sentOut = false;
+      await playTeleportFx(avatar, "in");
+      return arrived;
+    } finally {
+      // Never leave others seeing us invisible if the trip threw.
+      if (sentOut) this.room?.send(TELEPORT_FX_MESSAGE, { phase: "in" });
+      if (this.controlsActive) this.inputs?.enable();
+    }
+  }
+
+  private async moveAvatarTo(avatar: any, pos: { x: number; y: number; z: number }): Promise<boolean> {
     const target = new Vector3(pos.x, pos.y, pos.z);
     const chunks = this.space?.chunks;
 
