@@ -273,6 +273,15 @@ const LISTENER_HEIGHT = 1.5;
 const HIPS_ABOVE_SEAT = 0.1;
 /** Frames to wait after starting the sitting clip before measuring the pose. */
 const SETTLE_FRAMES = 3;
+/**
+ * After that first fit, keep checking the pose for this long (ms): the sitting
+ * pose can take longer to appear (clip still downloading on a first sit, a
+ * slow frame), and a fit taken from the previous pose (walking, standing)
+ * leaves the avatar floating or sunk.
+ */
+const SETTLE_WATCH_MS = 3000;
+/** Re-fit when the seated pose is further than this from the seat (m); the clip itself moves ~2 cm. */
+const SETTLE_TOLERANCE = 0.03;
 /** Bones whose skin forms what rests on a seat: the backside and thighs. */
 const SEATED_BONES = /(hips|upleg|upperleg)$/i;
 
@@ -408,7 +417,7 @@ export class GameScript {
   /** Set while sitting: where the player stood before, to return to on standing up. */
   private seatedFrom: Vector3 | null = null;
   /** Just sat down: frames left before the hips are measured. */
-  private settling: { seat: SeatDef; frames: number } | null = null;
+  private settling: { seat: SeatDef; frames: number; watchUntil: number; tick: number } | null = null;
   /** True while a reverse gravity zone is carrying the player (gravity is off). */
   private inGravityZone = false;
   /** Plays and fades the music of music zones. */
@@ -1082,7 +1091,7 @@ export class GameScript {
     if (this.animStateMachine) this.animStateMachine.enabled = false;
     avatar.play("sitting", { fadeIn: 0, stopAll: true, persist: true });
     setSeated(true);
-    this.settling = { seat, frames: SETTLE_FRAMES };
+    this.settling = { seat, frames: SETTLE_FRAMES, watchUntil: 0, tick: 0 };
     return true;
   }
 
@@ -1093,10 +1102,25 @@ export class GameScript {
       this.settling = null;
       return;
     }
-    if (--this.settling.frames > 0) return;
-    const { seat } = this.settling;
-    this.settling = null;
-    this.settleOnSeat(seat);
+    const settling = this.settling;
+    if (settling.frames > 0) {
+      if (--settling.frames === 0) {
+        this.settleOnSeat(settling.seat);
+        settling.watchUntil = performance.now() + SETTLE_WATCH_MS;
+      }
+      return;
+    }
+    if (performance.now() > settling.watchUntil) {
+      this.settling = null;
+      return;
+    }
+    // Measuring the skin is not free: check every few frames.
+    if (++settling.tick % 5 !== 0) return;
+    // The pose may have changed since the fit (the sitting pose arrived late): re-fit.
+    const fit = this.seatFit(settling.seat);
+    if (fit && Math.abs(fit.y - (this.localPlayerAvatar as any).position.y) > SETTLE_TOLERANCE) {
+      this.settleOnSeat(settling.seat);
+    }
   }
 
   /**
@@ -1106,16 +1130,22 @@ export class GameScript {
    * backside and thighs rests exactly on it.
    */
   private settleOnSeat(seat: SeatDef): void {
-    const avatar = this.localPlayerAvatar as any;
-    const model = avatarModel(avatar);
+    const fit = this.seatFit(seat);
+    if (fit) (this.localPlayerAvatar as any).position.copy(fit);
+  }
+
+  /** Where the avatar must stand for its current pose to rest on the seat, or null if it can't be measured. */
+  private seatFit(seat: SeatDef): Vector3 | null {
+    const model = avatarModel(this.localPlayerAvatar);
     const hips = findHips(model);
-    if (!hips) return;
-    // Measure against the model's own origin: it follows the avatar every frame.
+    if (!hips) return null;
+    // Measure against the model's own origin: it follows the avatar every
+    // frame, possibly a frame late.
     model.updateMatrixWorld(true);
     const hipsAt = hips.getWorldPosition(new Vector3());
     const origin = model.getWorldPosition(new Vector3());
     const lowest = lowestSeatedPoint(model) ?? hipsAt.y - HIPS_ABOVE_SEAT;
-    avatar.position.set(
+    return new Vector3(
       seat.sitAt.x - (hipsAt.x - origin.x),
       seat.sitAt.y - (lowest - origin.y),
       seat.sitAt.z - (hipsAt.z - origin.z),
