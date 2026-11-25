@@ -241,30 +241,6 @@
       "_version": 1769775851149,
       "enabled": true
     },
-      "plugins": [],
-      "renderMode": "default",
-      "useCpuAnimation": true,
-      "script": {
-        "_isPlayer": true,
-        "identifier": "player"
-      },
-      "collider": {
-        "enabled": true,
-        "rigidbodyType": "PLAYER",
-        "colliderType": "CAPSULE"
-      },
-      "_version": 1772805483736,
-      "url": "https://cdn.oncyber.xyz/engine-assets/vrms/sunshine.glb",
-      "picture": "",
-      "awaitAvatarLoading": true,
-      "awaitPictureLoading": true,
-      "awaitLoaderThrottle": 0,
-      "text": "",
-      "nameDisplayWithPicture": true,
-      "animation": "IDLE",
-      "opacity": 1,
-      "ignoreLOD": false
-    },
     "postprocessing": {
       "name": "Post Processing",
       "type": "postprocessing",
