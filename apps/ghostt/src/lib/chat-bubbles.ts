@@ -2,8 +2,10 @@ import { Camera, type Space } from "@oncyberio/engine";
 import { CanvasTexture, LinearFilter, SRGBColorSpace, Sprite, SpriteMaterial, Vector3 } from "three";
 import type { ChatMessage } from "../../shared/messages";
 
-/** Height above the avatar's feet, in metres. */
-const HEAD_OFFSET = 2.35;
+/** Space between the top of the avatar's head and the tip of the bubble's tail, in metres. */
+const HEAD_GAP = 0.12;
+/** Avatar height to use until its model has loaded and can be measured, in metres. */
+const FALLBACK_AVATAR_HEIGHT = 1.8;
 /** Bubbles further than this from the camera aren't drawn. */
 const VISIBLE_RANGE = 35;
 /** World height of one line of text, in metres. */
@@ -49,6 +51,17 @@ function wrap(text: string): string[] {
     lines[MAX_LINES - 1] = `${lines[MAX_LINES - 1].slice(0, MAX_LINE_CHARS - 1)}…`;
   }
   return lines;
+}
+
+/** The avatar's current height in metres (model size × scale). Its origin is at its feet. */
+function avatarHeight(avatar: any): number {
+  try {
+    const h = avatar.getDimensions?.()?.y;
+    if (typeof h === "number" && Number.isFinite(h) && h > 0) return h;
+  } catch {
+    // Model not loaded yet.
+  }
+  return FALLBACK_AVATAR_HEIGHT;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -144,7 +157,11 @@ export class ChatBubbles {
         continue;
       }
       avatar.getWorldPosition(_avatarPos);
-      b.sprite.position.set(_avatarPos.x, _avatarPos.y + HEAD_OFFSET, _avatarPos.z);
+      // Feet + avatar height + gap = where the tail tip sits. The sprite is
+      // anchored at its bottom, so the balloon (sprite.scale.y tall) extends
+      // upwards from there and its top is at tail tip + balloon height.
+      const tailTipY = _avatarPos.y + avatarHeight(avatar) + HEAD_GAP;
+      b.sprite.position.set(_avatarPos.x, tailTipY, _avatarPos.z);
       b.sprite.visible = _avatarPos.distanceTo(_camPos) <= VISIBLE_RANGE;
       b.sprite.material.opacity = Math.min(1, b.age / FADE_S, (b.life - b.age) / FADE_S);
     }

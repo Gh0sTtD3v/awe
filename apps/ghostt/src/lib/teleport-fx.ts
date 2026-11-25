@@ -101,8 +101,8 @@ export async function playTeleportFx(
   const superseded = () => runs.get(avatar) !== run;
 
   const dims = avatar.getDimensions?.() ?? { x: 1, y: 2, z: 1 };
-  // The avatar's origin is its centre; the beams start at its feet.
-  const floorY = -dims.y / 2;
+  // The avatar's origin is at its feet, so the beams start at local y 0.
+  const floorY = 0;
   const radius = Math.max(dims.x, dims.z) * 0.6;
   const wrapY = dims.y * 1.4;
   const direction = phase === "out" ? 1 : -1;
