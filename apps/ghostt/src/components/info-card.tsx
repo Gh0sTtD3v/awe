@@ -396,9 +396,9 @@ function DestinationsTab() {
     return <Empty title="No destinations yet">Portals placed in this world show up here.</Empty>;
   }
 
-  const go = async (position: { x: number; y: number; z: number }) => {
-    await getScript()?.travelTo(position);
-    closeInfo();
+  // travelTo closes the modal as the trip starts.
+  const go = (position: { x: number; y: number; z: number }) => {
+    void getScript()?.travelTo(position);
   };
 
   return (

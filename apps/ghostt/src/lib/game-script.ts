@@ -31,6 +31,7 @@ import {
   setPlayers,
   setChunk,
   openInfo,
+  closeInfo,
   infoStore,
   showGateNotice,
   setSelfAccess,
@@ -1433,6 +1434,9 @@ export class GameScript {
       showGateNotice("That destination", "", "chunk");
       return false;
     }
+
+    // Get the info modal out of the way so the trip (and its effect) is seen.
+    closeInfo();
 
     // Fly mode carries over: a flying player arrives hovering at the landing
     // point (half a body height above the floor) instead of dropping.
