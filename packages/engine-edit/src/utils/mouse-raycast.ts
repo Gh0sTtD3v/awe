@@ -21,6 +21,7 @@ import Camera from "@oncyberio/engine/camera";
 import type { Component3D } from "@oncyberio/engine/space/abstract/component-3d";
 import { EngineEdit } from "..";
 import { getOrCreateEditor } from "../editors/editor-registry";
+import { isComponentLocked } from "./lock";
 
 export interface MouseRaycastCallbacks {
     //
@@ -141,6 +142,11 @@ export class MouseRaycast {
         for (let i = 0, l = this.components.length; i < l; i++) {
             //
             const component = this.components[i];
+
+            // Locked components (or inside a locked group) are see-through
+            // to the mouse: no hover, click or handle, and what is behind
+            // them can be picked.
+            if (isComponentLocked(component)) continue;
 
             const mesh = getOrCreateEditor(component)?.getSelectionMesh();
 
@@ -339,6 +345,9 @@ export class MouseRaycast {
         for (var i = 0; i < this.components.length; i++) {
             //
             const component = this.components[i];
+
+            // Box selection skips locked components too.
+            if (isComponentLocked(component)) continue;
 
             if (!component.layers.test(this.raycaster.layers)) continue;
 

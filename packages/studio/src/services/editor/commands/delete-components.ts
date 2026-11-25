@@ -48,15 +48,19 @@ export class DeleteComponentsCommand extends AbstractCommand {
     async _run3D() {
         //
         //
-        const instances = this._ids.map((id) => {
+        // this will delete the component as well as its children in 3D.
+        // Some may have nothing loaded (a model whose file is missing): the
+        // data is still removed below.
+        for (const id of this._ids) {
             //
-            return this.getComponent(id);
-        });
+            let instance = null;
+            try {
+                instance = this.getComponent(id);
+            } catch {
+                instance = null;
+            }
 
-        // this will delete the component as well as its children in 3D
-        for (const instance of instances) {
-            //
-            instance.destroy();
+            instance?.destroy();
         }
     }
 
@@ -78,9 +82,15 @@ export class DeleteComponentsCommand extends AbstractCommand {
 
     async _undo3D() {
         //
+        // A component that can't be created (missing file) still comes back
+        // in the data below, as it was before the delete.
         await Promise.all(
             //
-            this._savedNodes.map((node) => this.createComponent(node))
+            this._savedNodes.map((node) =>
+                Promise.resolve()
+                    .then(() => this.createComponent(node))
+                    .catch((err) => console.error("Could not recreate component", node?.data?.id ?? node, err))
+            )
         );
     }
 

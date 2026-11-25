@@ -34,12 +34,14 @@ export class DeleteSuperCommand extends AbstractCommand {
     //
     super(context);
 
-    this._ids = [...new Set(ids)].filter((id) => this._find(id) != null);
+    // Keep ids that exist in the world data even when nothing is loaded for
+    // them (e.g. a model whose file is gone): they must stay deletable.
+    this._ids = [...new Set(ids)].filter((id) => this._find(id) != null || this._inData(id));
 
     this._groupIds = this._ids
       .filter((id) => {
         const component = this._find(id);
-        return component.data.type === "group" && component.childComponents.length > 0;
+        return component != null && component.data.type === "group" && component.childComponents.length > 0;
       })
       .sort((a, b) => this._depth(this._find(a)) - this._depth(this._find(b)));
   }
@@ -50,6 +52,10 @@ export class DeleteSuperCommand extends AbstractCommand {
     } catch {
       return null;
     }
+  }
+
+  private _inData(id: string): boolean {
+    return this.gameData.components[id] != null;
   }
 
   private _depth(component: Component3D): number {
@@ -77,7 +83,7 @@ export class DeleteSuperCommand extends AbstractCommand {
 
     // 2. Delete everything else that was asked for (dissolved groups are already gone).
     const dissolved = new Set(this._ungroups.map((u) => u.groupId));
-    const rest = this._ids.filter((id) => !dissolved.has(id) && this._find(id) != null);
+    const rest = this._ids.filter((id) => !dissolved.has(id) && (this._find(id) != null || this._inData(id)));
 
     this._delete = rest.length > 0 ? new DeleteComponentsCommand(this.context, { ids: rest }) : null;
     await this._delete?._run3D();

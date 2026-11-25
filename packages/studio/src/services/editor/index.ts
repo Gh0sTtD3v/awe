@@ -1,4 +1,5 @@
 import { Undo } from "./undo";
+import { isComponentLocked, hasOwnLock } from "@oncyberio/engine-edit/utils/lock";
 import { UndoManager } from "../undo-manager";
 import {
   CommandType,
@@ -361,6 +362,9 @@ export class WorldEditorService {
     // No singleton
     if (component.info.singleton) return false;
 
+    // Locked: nothing can be done with it until it is unlocked
+    if (isComponentLocked(component)) return false;
+
     return (
       component.getCollisionMesh?.() == null || component.data.type !== "group"
     );
@@ -371,6 +375,8 @@ export class WorldEditorService {
     // No singleton
     const hasSingleton = components.some((it) => it.info.singleton);
     if (hasSingleton) return false;
+
+    if (components.some((it) => isComponentLocked(it))) return false;
 
     return true;
   }
@@ -492,10 +498,8 @@ export class WorldEditorService {
 
     const instances = ids.map((id) => this.getComponent(id));
 
-    if (!this.canDuplicate(instances)) {
-      //
-      throw new Error("Cannot duplicate selected components");
-    }
+    // e.g. Ctrl+D with a locked object selected: do nothing
+    if (!this.canDuplicate(instances)) return;
 
     return this.duplicateComponents(ids);
   }
@@ -538,6 +542,10 @@ export class WorldEditorService {
 
   canChangeParent(groupId: string, componentIds: string[]) {
     const components = componentIds.map((id) => this.getComponent(id));
+
+    // Locked items stay where they are, and a locked group takes nothing in
+    if (components.some((it) => isComponentLocked(it))) return false;
+    if (groupId != null && isComponentLocked(this.getComponent(groupId))) return false;
 
     if (groupId === null) {
       //
@@ -618,7 +626,7 @@ export class WorldEditorService {
     if (!canTransform) return false;
 
     // Locked objects must not move; grouping them would let the group move them
-    if (components.some((it) => (it.data as any).lock)) return false;
+    if (components.some((it) => isComponentLocked(it))) return false;
 
     // Must have same parent (the group takes their place under it)
     if (!this.haveSameParent(components)) return false;
@@ -704,6 +712,8 @@ export class WorldEditorService {
 
     // Must have children
     if (group.childComponents.length == 0) return false;
+
+    if (isComponentLocked(group)) return false;
 
     return true;
   }
@@ -792,11 +802,19 @@ export class WorldEditorService {
 
   canDelete(ids: string[]) {
     //
+    // Nothing loaded for it (e.g. a model whose file is missing): its data
+    // still decides whether it is locked.
+    if (ids.some((id) => this.getComponent(id) == null && hasOwnLock(this.gameData.components[id]))) {
+      return false;
+    }
+
     const components = ids
       .map((id) => this.getComponent(id))
       .filter((it) => it != null);
 
     if (components.some((it) => it.info.required)) return false;
+
+    if (components.some((it) => isComponentLocked(it))) return false;
 
     return true;
   }
@@ -824,6 +842,9 @@ export class WorldEditorService {
     const ids = [];
 
     selection.forEach((it) => ids.push(it.data.id));
+
+    // e.g. the Delete key with a locked object selected: do nothing
+    if (!this.canDelete(ids)) return;
 
     EngineFacade.editor.selection.setSelection([]);
 

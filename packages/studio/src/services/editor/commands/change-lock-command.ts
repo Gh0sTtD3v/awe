@@ -19,9 +19,11 @@ export class ChangeLockCommand extends AbstractCommand {
     ) {
         super(context);
 
-        this._oldLocks = this._getLocks();
-
+        // New locks first: _getLocks reads the current lock of each of them
+        // (it read nothing before, so undoing a lock change did nothing).
         this._newLocks = opts.locks;
+
+        this._oldLocks = this._getLocks();
     }
 
     private _getLocks() {
@@ -32,7 +34,7 @@ export class ChangeLockCommand extends AbstractCommand {
             //
             const component = this.gameData.components[id];
 
-            locks[id] = structuredClone(component.lock);
+            locks[id] = structuredClone(component.lock ?? null);
         }
 
         return locks;
@@ -61,7 +63,14 @@ export class ChangeLockCommand extends AbstractCommand {
         //
         for (const id in locks) {
             //
-            const component = this.getComponent(id);
+            // Nothing loaded for it (e.g. a model whose file is missing): only
+            // the data changes, so it can still be unlocked and deleted.
+            let component = null;
+            try {
+                component = this.getComponent(id);
+            } catch {
+                continue;
+            }
 
             EngineFacade.editor.commands.changeComponentLock(
                 component,
