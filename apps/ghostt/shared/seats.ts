@@ -11,7 +11,7 @@ export interface SeatDef {
   id: string;
   /** Where the avatar is placed: the square's centre, plus the height offset. */
   sitAt: Vec3;
-  /** Which way the seated avatar faces (the square's Y rotation). */
+  /** Which way the seated avatar faces: the yaw of the square's arrow (radians, around Y). */
   rotY: number;
   /** How close a player must be, in metres, measured flat. */
   range: number;
@@ -22,18 +22,30 @@ export interface SeatDef {
 /** Players further above or below a seat than this don't get its prompt. */
 const MAX_HEIGHT_GAP = 2;
 
+/**
+ * Yaw of a seat's arrow from its rotation. Rotations are three.js XYZ Euler
+ * angles, and a turn past 90 degrees is stored as (±180, 180 - yaw, ±180):
+ * taking `y` alone mirrors the facing (a bench turned 150.8 degrees reads
+ * 29.2). After an XYZ rotation the arrow (local Z) points along
+ * (sin y, -sin x cos y, cos x cos y); its yaw ignores z.
+ */
+export function seatYaw(rotation: Vec3): number {
+  return Math.atan2(Math.sin(rotation.y), Math.cos(rotation.x) * Math.cos(rotation.y));
+}
+
 /** A seat for a `seat` component, or null for anything else. */
 export function seatFromComponent(component: any): SeatDef | null {
   if (component?.type !== "seat" || !component.id) return null;
 
   const position = vec(component.position);
+  const rotation = vec(component.rotation);
   const offset = Number(component.heightOffset);
   const range = Number(component.range);
 
   return {
     id: component.id,
     sitAt: { x: position.x, y: position.y + (Number.isFinite(offset) ? offset : 0), z: position.z },
-    rotY: vec(component.rotation).y,
+    rotY: seatYaw(rotation),
     range: Number.isFinite(range) && range > 0 ? range : 1.5,
     prompt: String(component.prompt ?? "").trim() || "Sit",
   };
