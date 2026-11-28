@@ -30,7 +30,7 @@ export function RemovedOverlay() {
  * takes precedence.
  */
 export function ConnectionNotice() {
-  const { connection, removed } = useStore(infoStore);
+  const { connection, removed, closeCode } = useStore(infoStore);
   if (removed || connection === "online") return null;
 
   if (connection === "reconnecting") {
@@ -52,6 +52,7 @@ export function ConnectionNotice() {
       >
         Reload
       </button>
+      {closeCode != null && <p className="text-xs text-white/40">Code {closeCode}</p>}
     </div>
   );
 }

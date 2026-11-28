@@ -421,8 +421,8 @@ export class GameRoom extends Room<{ state: GameState }> {
    * download saturating the link…). Keep their place while the client
    * reconnects; onLeave runs if it doesn't make it back in time.
    */
-  onDrop(client: Client) {
-    console.log("[Server] Player dropped, waiting to reconnect:", client.sessionId);
+  onDrop(client: Client, code?: number) {
+    console.log(`[Server] Player dropped (code ${code}), waiting ${RECONNECT_WINDOW_S}s to reconnect:`, client.sessionId);
     this.allowReconnection(client, RECONNECT_WINDOW_S);
   }
 
@@ -437,7 +437,8 @@ export class GameRoom extends Room<{ state: GameState }> {
     await this.refreshAccess(client);
   }
 
-  onLeave(client: Client) {
+  onLeave(client: Client, code?: number) {
+    console.log(`[Server] Player leaving (code ${code}):`, client.sessionId);
     this.state.players.delete(client.sessionId);
     const session = this.sessions.get(client.sessionId);
     if (session?.authTimer) clearTimeout(session.authTimer);

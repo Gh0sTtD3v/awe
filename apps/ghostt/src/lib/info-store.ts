@@ -112,6 +112,8 @@ export interface InfoState {
   seated: boolean;
   /** The link to the game server: dropped connections reconnect for a while before giving up. */
   connection: ConnectionStatus;
+  /** Why the connection last dropped or closed (WebSocket close code), for diagnosis. */
+  closeCode: number | null;
 }
 
 export type ConnectionStatus = "online" | "reconnecting" | "disconnected";
@@ -145,10 +147,13 @@ export const infoStore = new Store<InfoState>({
   nearSeat: null,
   seated: false,
   connection: "online",
+  closeCode: null,
 });
 
-export function setConnection(connection: ConnectionStatus) {
-  if (infoStore.state.connection !== connection) infoStore.update({ connection });
+export function setConnection(connection: ConnectionStatus, closeCode?: number) {
+  const s = infoStore.state;
+  const code = closeCode ?? s.closeCode;
+  if (s.connection !== connection || s.closeCode !== code) infoStore.update({ connection, closeCode: code });
 }
 
 export function openInfo(tab?: InfoTab) {

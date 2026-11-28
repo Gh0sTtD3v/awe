@@ -492,14 +492,21 @@ export class GameScript {
       room.onMessage(CHAT_REFUSED_MESSAGE, (msg: ChatRefusedMessage) => setChatError(msg.error));
       // A dropped connection (weak signal, saturated link) reconnects on its
       // own for a while; only moderation codes mean removed.
-      room.onDrop(() => setConnection("reconnecting"));
-      room.onReconnect(() => setConnection("online"));
+      room.onDrop((code: number, reason?: string) => {
+        console.warn(`[MP] Connection dropped (code ${code}${reason ? `: ${reason}` : ""}), reconnecting…`);
+        setConnection("reconnecting", code);
+      });
+      room.onReconnect(() => {
+        console.log("[MP] Reconnected");
+        setConnection("online");
+      });
       room.onLeave((code: number) => {
         if (code === KICKED_CLOSE_CODE) return setRemoved("You were removed by a moderator.");
         if (code === BANNED_CLOSE_CODE) return setRemoved("You are banned from this world.");
         // 1000 / 4000: we left on purpose (closing the game).
         if (code === 1000 || code === 4000) return;
-        setConnection("disconnected");
+        console.warn(`[MP] Disconnected (code ${code}), could not reconnect.`);
+        setConnection("disconnected", code);
       });
 
       // Video screens follow the playback the server shares.
