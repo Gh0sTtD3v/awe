@@ -75,6 +75,8 @@ export interface NearScreen {
   canControl: boolean;
   /** The video on screen couldn't be loaded here. */
   loadError: boolean;
+  /** The video is waiting for data (slow connection). */
+  buffering: boolean;
 }
 
 export interface ChunkInfo {
@@ -108,7 +110,11 @@ export interface InfoState {
   nearSeat: NearSeat | null;
   /** True while the local player is sitting. */
   seated: boolean;
+  /** The link to the game server: dropped connections reconnect for a while before giving up. */
+  connection: ConnectionStatus;
 }
+
+export type ConnectionStatus = "online" | "reconnecting" | "disconnected";
 
 export interface GateNotice {
   kind: "gate" | "chunk";
@@ -138,7 +144,12 @@ export const infoStore = new Store<InfoState>({
   liftPanelOpen: false,
   nearSeat: null,
   seated: false,
+  connection: "online",
 });
+
+export function setConnection(connection: ConnectionStatus) {
+  if (infoStore.state.connection !== connection) infoStore.update({ connection });
+}
 
 export function openInfo(tab?: InfoTab) {
   infoStore.update((s) => ({ ...s, isOpen: true, tab: tab ?? s.tab }));
