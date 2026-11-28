@@ -47,7 +47,7 @@ import { getAccessToken } from "@/lib/auth-bridge";
 import { ScreenSync } from "@/lib/screen-sync";
 import { VoiceClient } from "@/lib/voice-client";
 import { ChatBubbles } from "@/lib/chat-bubbles";
-import { connectToRoom, disconnectFromRoom } from "@/multiplayer/client";
+import { connectToRoom, disconnectFromRoom, isRoomConnected } from "@/multiplayer/client";
 import {
   createPlayersReplica,
   type PlayersReplica,
@@ -493,6 +493,8 @@ export class GameScript {
       // A dropped connection (weak signal, saturated link) reconnects on its
       // own for a while; only moderation codes mean removed.
       room.onDrop((code: number, reason?: string) => {
+        // A late close from an old socket while the live one is fine (see client.ts).
+        if (isRoomConnected(room)) return;
         console.warn(`[MP] Connection dropped (code ${code}${reason ? `: ${reason}` : ""}), reconnecting…`);
         setConnection("reconnecting", code);
       });
@@ -505,6 +507,10 @@ export class GameScript {
         if (code === BANNED_CLOSE_CODE) return setRemoved("You are banned from this world.");
         // 1000 / 4000: we left on purpose (closing the game).
         if (code === 1000 || code === 4000) return;
+        if (isRoomConnected(room)) {
+          console.warn(`[MP] Ignoring leave (code ${code}): the connection is still open.`);
+          return;
+        }
         console.warn(`[MP] Disconnected (code ${code}), could not reconnect.`);
         setConnection("disconnected", code);
       });

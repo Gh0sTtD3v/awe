@@ -26,7 +26,63 @@ export async function connectToRoom(
 ): Promise<Room<any, GameState>> {
   const client = new Client(gameServerUrl());
   room = await client.joinOrCreate<GameState>("game", { accessToken, ...(previewRole ? { previewRole } : {}) });
+  guardReconnection(room);
   return room;
+}
+
+/**
+ * Work around a Colyseus SDK (0.17) reconnection race. On a flaky link a
+ * late close event from an earlier socket can start a second retry chain
+ * after the first one already got back in. That chain keeps retrying with a
+ * stale token, gives up with 4003 (FAILED_TO_RECONNECT), and the SDK then
+ * treats the room as left: it clears every message and state listener while
+ * the real connection is fine. The game shows "Disconnected" yet you can
+ * still move, but other players, chat and screens silently stop updating.
+ *
+ * While the live connection is open, ignore drops and retries.
+ */
+function guardReconnection(r: Room<any, GameState>) {
+  const room = r as any;
+  const isOpen = () => !!room.connection?.isOpen;
+
+  const handleReconnection = room.handleReconnection?.bind(room);
+  const retryReconnection = room.retryReconnection?.bind(room);
+  if (!handleReconnection || !retryReconnection) return; // SDK changed: nothing to patch
+
+  room.handleReconnection = () => {
+    if (isOpen()) {
+      console.info("[MP] Ignoring a stale connection drop: the connection is open.");
+      room.reconnection.isReconnecting = false;
+      return;
+    }
+    handleReconnection();
+  };
+  room.retryReconnection = () => {
+    if (isOpen()) {
+      // Already back in (another attempt succeeded): stop this chain.
+      room.reconnection.isReconnecting = false;
+      return;
+    }
+    retryReconnection();
+  };
+
+  // A retry already scheduled must not replace a socket that is open again.
+  const connection = room.connection;
+  const reconnect = connection?.reconnect?.bind(connection);
+  if (connection && reconnect) {
+    connection.reconnect = (params: unknown) => {
+      if (isOpen()) {
+        room.reconnection.isReconnecting = false;
+        return;
+      }
+      reconnect(params);
+    };
+  }
+}
+
+/** Is the room's live socket open right now? */
+export function isRoomConnected(r: Room<any, GameState> | null): boolean {
+  return !!(r as any)?.connection?.isOpen;
 }
 
 export function disconnectFromRoom() {
