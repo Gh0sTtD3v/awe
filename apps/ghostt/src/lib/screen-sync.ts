@@ -15,6 +15,9 @@ import { screenPosition, type ScreenAction, type ScreenState } from "../../share
 import { setNearScreen, showModMessage, type NearScreen } from "./info-store";
 
 const _screenPos = new Vector3();
+const _viewer = new Vector3();
+/** The avatar's origin is at its feet; test the playback box at about chest height. */
+const VIEWER_HEIGHT = 1.2;
 
 function titleOf(item: { title?: string; url: string }, index: number): string {
   if (item.title) return item.title;
@@ -93,17 +96,23 @@ export class ScreenSync {
     }
   }
 
-  /** Called a few times a second with the local player's position. */
+  /**
+   * Called a few times a second with the local player's position (feet).
+   * Each screen's playback box follows the player, and the controls are for
+   * the screen whose box the player is in (the closest, if boxes overlap).
+   */
   update(player: Vector3 | null): void {
     this.apply();
-    if (!player) return setNearScreen(null);
+    if (player) _viewer.set(player.x, player.y + VIEWER_HEIGHT, player.z);
 
     let nearest: VideoScreenComponent | null = null;
     let best = Infinity;
     for (const screen of this.screens()) {
+      screen.setViewerPosition(player ? _viewer : null);
+      if (!player || !screen.containsPoint(_viewer)) continue;
       screen.getWorldPosition(_screenPos);
-      const dist = _screenPos.distanceTo(player);
-      if (dist <= (screen.data.controlDistance ?? 8) && dist < best) {
+      const dist = _screenPos.distanceTo(_viewer);
+      if (dist < best) {
         best = dist;
         nearest = screen;
       }
@@ -119,6 +128,7 @@ export class ScreenSync {
       state: this.states.get(id) ?? null,
       canControl: this.mayControl(nearest.data.controlGate || null),
       loadError: nearest.loadError,
+      buffering: nearest.buffering,
     });
   }
 

@@ -151,9 +151,11 @@ Boxes placed on each floor of a building. Boxes that share a **Lift name** are t
 
 ## Video Screen
 
-A screen with a playlist that every player watches in sync. Players near it with permission press **E** to open its controls.
+A screen with a playlist that every player watches in sync. Each screen has a **playback box** (drawn in the studio): inside it the video loads and plays with full sound, and players with permission press **E** to open its controls; outside it nothing downloads and nothing is heard. The default box is 12 × 6 × 12 m in front of the screen.
 
-**Settings:** Playlist (title + URL or upload), Ads, Who can control (roles with *Control Screens*, everyone, or holders of a token gate), Interaction distance, Auto play, At the end (next video / repeat / stop), Load distance, Volume, Audio range, Background colour, Idle image.
+On slow connections the video doesn't chase the live position: it keeps playing from where it is and catches up gently, jumping only when the target is already downloaded or it's more than 45 s behind. `.m3u8` (HLS) links stream with adaptive quality; plain `.mp4` links always download at full quality, so keep them light for mobile players.
+
+**Settings:** Playlist (title + URL or upload), Ads, Who can control (roles with *Control Screens*, everyone, or holders of a token gate), Playback box (size, offset), Auto play, At the end (next video / repeat / stop), Volume, Background colour, Idle image.
 
 **Code:** `packages/engine/src/space/components/video-screen/`, `apps/ghostt/shared/screens.ts`, `apps/ghostt/src/lib/screen-sync.ts`, `apps/ghostt/src/components/screen-controls.tsx`.
 

@@ -7,7 +7,7 @@ import { InfoCard } from "./info-card";
 import { ChunkLoading } from "./chunk-loading";
 import { AccountPanel } from "./account-panel";
 import { GateNotice } from "./gate-notice";
-import { ModMessage, RemovedOverlay } from "./moderation-notice";
+import { ConnectionNotice, ModMessage, RemovedOverlay } from "./moderation-notice";
 import { ScreenControls } from "./screen-controls";
 import { LiftControls } from "./lift-controls";
 import { SeatControls } from "./seat-controls";
@@ -102,7 +102,13 @@ function ChunkLoadingOverlay() {
 export function GameUI() {
   const { uiHidden } = useStore(gameStore);
   // V hides everything (mode messages included); being removed still shows.
-  if (uiHidden) return <RemovedOverlay />;
+  if (uiHidden)
+    return (
+      <>
+        <RemovedOverlay />
+        <ConnectionNotice />
+      </>
+    );
 
   return (
     <>
@@ -116,6 +122,7 @@ export function GameUI() {
       <GateNotice />
       <ModMessage />
       <RemovedOverlay />
+      <ConnectionNotice />
     </>
   );
 }

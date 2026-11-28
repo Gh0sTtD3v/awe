@@ -26,6 +26,7 @@ import {
   ACCESS_SELF_MESSAGE,
   AUTH_UPDATE_MESSAGE,
   BANNED_CLOSE_CODE,
+  RECONNECT_WINDOW_S,
   CHUNK_DENIED_MESSAGE,
   GATE_ACCESS_MESSAGE,
   GATE_DENIED_MESSAGE,
@@ -413,6 +414,27 @@ export class GameRoom extends Room<{ state: GameState }> {
     client.send(SCREEN_STATE_MESSAGE, screenMessage(this.screens.all()));
     client.send(VOICE_CONFIG_MESSAGE, voiceConfigFor(client.sessionId));
     await Promise.all([this.refreshAccess(client), this.refreshProfile(client)]);
+  }
+
+  /**
+   * The connection dropped without the player leaving (weak signal, a big
+   * download saturating the link…). Keep their place while the client
+   * reconnects; onLeave runs if it doesn't make it back in time.
+   */
+  onDrop(client: Client) {
+    console.log("[Server] Player dropped, waiting to reconnect:", client.sessionId);
+    this.allowReconnection(client, RECONNECT_WINDOW_S);
+  }
+
+  /** Back after a drop: re-send what may have changed while they were away. */
+  async onReconnect(client: Client) {
+    console.log("[Server] Player reconnected:", client.sessionId);
+    client.send(SCREEN_STATE_MESSAGE, screenMessage(this.screens.all()));
+    client.send(VOICE_CONFIG_MESSAGE, voiceConfigFor(client.sessionId));
+    // Forget the last chat room sent so it's sent again.
+    this.chatRooms.delete(client.sessionId);
+    this.updateChatRoom(client);
+    await this.refreshAccess(client);
   }
 
   onLeave(client: Client) {
