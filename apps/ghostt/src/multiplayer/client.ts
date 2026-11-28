@@ -66,6 +66,25 @@ function guardReconnection(r: Room<any, GameState>) {
     retryReconnection();
   };
 
+  // The root of it: a close event that arrives while the live socket is open
+  // belongs to an old socket. Drop it before the SDK sees it, or it will
+  // treat the room as dropped or left (and wipe every listener: voice peers,
+  // chat, other players).
+  const events = room.connection?.events;
+  const onclose = events?.onclose;
+  if (events && typeof onclose === "function") {
+    events.onclose = (e: { code?: number; reason?: string }) => {
+      // 4010 (MAY_TRY_RECONNECT): the SDK closing the live socket itself (the
+      // browser went offline). It fires this before the socket shuts, so the
+      // socket still reads as open; it must go through.
+      if (e?.code !== 4010 && isOpen()) {
+        console.info(`[MP] Ignoring close (code ${e?.code}) from an old socket: the connection is open.`);
+        return;
+      }
+      onclose(e);
+    };
+  }
+
   // A retry already scheduled must not replace a socket that is open again.
   const connection = room.connection;
   const reconnect = connection?.reconnect?.bind(connection);

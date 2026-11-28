@@ -434,6 +434,9 @@ export class GameRoom extends Room<{ state: GameState }> {
     // Forget the last chat room sent so it's sent again.
     this.chatRooms.delete(client.sessionId);
     this.updateChatRoom(client);
+    // Voice peers are only sent when they change: anything missed while away is sent again.
+    this.voice.resend(client.sessionId);
+    this.updateVoice();
     await this.refreshAccess(client);
   }
 

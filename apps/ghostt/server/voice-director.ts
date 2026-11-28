@@ -48,6 +48,11 @@ export class VoiceDirector {
     return from !== to && this.pairs.has(pairKey(from, to));
   }
 
+  /** Send this session its peer list on the next update even if unchanged (it may have missed one). */
+  resend(sessionId: string): void {
+    this.sent.delete(sessionId);
+  }
+
   remove(sessionId: string): void {
     this.sent.delete(sessionId);
     for (const key of [...this.pairs]) {
