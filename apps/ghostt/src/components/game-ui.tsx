@@ -12,6 +12,7 @@ import { ScreenControls } from "./screen-controls";
 import { LiftControls } from "./lift-controls";
 import { SeatControls } from "./seat-controls";
 import { VoiceControls } from "./voice-controls";
+import { WebcamControls } from "./webcam-controls";
 import { ChatPanel } from "./chat-panel";
 import { RolePreviewBanner } from "./role-preview-banner";
 import { MobileControls, MOBILE_STICK_CLEARANCE } from "./mobile-controls";
@@ -87,6 +88,7 @@ function ScreenOverlay() {
       >
         <ChatPanel />
         <VoiceControls />
+        <WebcamControls />
       </div>
     </>
   );

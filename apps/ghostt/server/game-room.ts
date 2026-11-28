@@ -40,6 +40,7 @@ import {
   PLAYER_UPDATE_MESSAGE,
   TELEPORT_FX_MESSAGE,
   isTeleportFxSend,
+  DEBUG_FRAME_MESSAGE,
   type TeleportFxMessage,
   SCREEN_CONTROL_MESSAGE,
   SCREEN_DURATION_MESSAGE,
@@ -87,6 +88,7 @@ import {
 import { GateRegistry, type ChunkRule } from "./gate-registry";
 import { ScreenDirector } from "./screen-director";
 import { VoiceDirector } from "./voice-director";
+import { DebugRecorder, asBytes } from "./debug-recorder";
 import { voiceConfigFor } from "./voice-config";
 import { isVoiceSignal, type VoiceMember } from "../shared/voice";
 
@@ -183,6 +185,17 @@ export class GameRoom extends Room<{ state: GameState }> {
   private chatRooms = new Map<string, ZoneDef | null>();
   private chatBuckets = new Map<string, { tokens: number; at: number }>();
   private chatId = 0;
+  private recorder = new DebugRecorder();
+
+  /**
+   * Testers whose own roles grant Debug Recording. Not while an admin is
+   * previewing a role, and never anonymous players (no account to file under).
+   */
+  private isRecordedTester(session: GateSession): boolean {
+    if (session.previewRoleId) return false;
+    const subject = session.identity && !session.identity.synthetic ? session.identity.userId : null;
+    return !!subject && hasPermission(session.roles, "debug_recording");
+  }
 
   onCreate() {
     this.setPatchRate(NETWORK_TICK_INTERVAL);
@@ -244,6 +257,14 @@ export class GameRoom extends Room<{ state: GameState }> {
       player.updatedAt = Date.now();
       session.lastAccepted = { x: payload.x, y: payload.y, z: payload.z };
       this.updateChatRoom(client);
+    },
+
+    // A tester's webcam frame: stored, never relayed. Anyone else's is dropped.
+    [DEBUG_FRAME_MESSAGE]: (client: Client, payload: unknown) => {
+      const session = this.sessions.get(client.sessionId);
+      const bytes = asBytes(payload);
+      if (!session || !bytes || !this.isRecordedTester(session)) return;
+      void this.recorder.save(client.sessionId, session.identity!.userId!, bytes);
     },
 
     // Relay the teleport effect to everyone else. `in` carries the player's
@@ -422,6 +443,7 @@ export class GameRoom extends Room<{ state: GameState }> {
     this.sessions.delete(client.sessionId);
     this.chatRooms.delete(client.sessionId);
     this.chatBuckets.delete(client.sessionId);
+    this.recorder.forget(client.sessionId);
     this.voice.remove(client.sessionId);
     this.updateVoice();
     console.log("[Server] Player left:", client.sessionId);

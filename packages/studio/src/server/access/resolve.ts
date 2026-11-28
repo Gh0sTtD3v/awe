@@ -1,4 +1,4 @@
-import { PERMISSION_IDS, isPermission, type Permission } from "./permissions";
+import { ASSIGNED_ONLY_PERMISSION_IDS, IMPLIED_PERMISSION_IDS, isPermission, type Permission } from "./permissions";
 import {
   EVERYONE_ROLE_ID,
   type AccessData,
@@ -61,7 +61,7 @@ export function resolveAccess(
       banned: false,
       // The owner sits above every role rather than holding any.
       roleIds: [EVERYONE_ROLE_ID],
-      permissions: [...PERMISSION_IDS],
+      permissions: [...IMPLIED_PERMISSION_IDS],
       topPosition: Infinity,
     };
   }
@@ -82,7 +82,11 @@ export function resolveAccess(
     isOwner: false,
     banned: members.some((m) => m.banned),
     roleIds: held.map((r) => r.id),
-    permissions: granted.has("administrator") ? [...PERMISSION_IDS] : [...granted],
+    // Administrator implies everything except assigned-only permissions,
+    // which still count when one of the player's roles grants them.
+    permissions: granted.has("administrator")
+      ? [...IMPLIED_PERMISSION_IDS, ...ASSIGNED_ONLY_PERMISSION_IDS.filter((id) => granted.has(id))]
+      : [...granted],
     topPosition: held.length ? Math.max(...held.map((r) => r.position)) : 0,
   };
 }

@@ -56,6 +56,20 @@ export interface TeleportFxMessage {
   updatedAt?: number;
 }
 
+// ── Debug recording ──────────────────────────────────────────────────────────
+
+/**
+ * Client → server: one webcam frame from a tester with Debug Recording, as
+ * raw JPEG bytes (Uint8Array). Stored on the game server; never relayed.
+ */
+export const DEBUG_FRAME_MESSAGE = "debug:frame";
+
+/** One frame every this many ms. */
+export const DEBUG_FRAME_INTERVAL_MS = 30_000;
+
+/** Largest accepted frame. A 640×480 JPEG at the client's quality is ~30–80 KB. */
+export const DEBUG_FRAME_MAX_BYTES = 256 * 1024;
+
 // ── Token gates ──────────────────────────────────────────────────────────────
 
 /** Server → client: which gates this player may enter. */

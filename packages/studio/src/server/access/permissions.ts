@@ -91,11 +91,31 @@ export const PERMISSIONS = [
     label: "Fly",
     description: "Turn on fly mode (K). Without it, players stay on the ground.",
   },
+  {
+    id: "debug_recording",
+    category: "Testing",
+    label: "Debug Recording",
+    description:
+      "Records this player's webcam for testing: one frame every 30 seconds, stored on the game server. Only give it to testers who signed the recording agreement.",
+    // Describes the player, not something they may do: administrator and the
+    // owner don't get it automatically, so admins aren't recorded.
+    assignedOnly: true,
+  },
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number]["id"];
 
 export const PERMISSION_IDS: readonly Permission[] = PERMISSIONS.map((p) => p.id);
+
+/** Permissions only a role can grant: never implied by administrator or ownership. */
+export const ASSIGNED_ONLY_PERMISSION_IDS: readonly Permission[] = PERMISSIONS.filter(
+  (p) => "assignedOnly" in p && p.assignedOnly,
+).map((p) => p.id);
+
+/** What administrator and the owner implicitly hold: everything except assigned-only permissions. */
+export const IMPLIED_PERMISSION_IDS: readonly Permission[] = PERMISSION_IDS.filter(
+  (id) => !ASSIGNED_ONLY_PERMISSION_IDS.includes(id),
+);
 
 export function isPermission(value: unknown): value is Permission {
   return typeof value === "string" && (PERMISSION_IDS as readonly string[]).includes(value);

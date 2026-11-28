@@ -6,6 +6,7 @@ import {
   AccessError,
   JsonAccessStore,
   PERMISSION_IDS,
+  IMPLIED_PERMISSION_IDS,
   addMember,
   createRole,
   defaultAccessData,
@@ -77,7 +78,7 @@ describe("resolveAccess", () => {
   it("gives the owner everything, above every role", () => {
     const access = resolveAccess({ userId: OWNER, cosmosAddress: null }, world(), OWNER);
     expect(access.isOwner).toBe(true);
-    expect(access.permissions.sort()).toEqual([...PERMISSION_IDS].sort());
+    expect(access.permissions.sort()).toEqual([...IMPLIED_PERMISSION_IDS].sort());
     expect(access.topPosition).toBe(Infinity);
   });
 
@@ -116,7 +117,21 @@ describe("resolveAccess", () => {
     const data = normalizeAccessData({ ...world(), roles: [...world().roles, role("admin", 9, { administrator: true })] });
     data.members.push({ subject: "did:privy:dan", roleIds: ["admin"], addedAt: 1 });
     const access = resolveAccess({ userId: "did:privy:dan", cosmosAddress: null }, data, OWNER);
-    expect(access.permissions.sort()).toEqual([...PERMISSION_IDS].sort());
+    expect(access.permissions.sort()).toEqual([...IMPLIED_PERMISSION_IDS].sort());
+  });
+
+  it("never implies assigned-only permissions (debug recording) for admins or the owner", () => {
+    const owner = resolveAccess({ userId: OWNER, cosmosAddress: null }, world(), OWNER);
+    expect(owner.permissions).not.toContain("debug_recording");
+
+    const data = normalizeAccessData({
+      ...world(),
+      roles: [...world().roles, role("admin", 9, { administrator: true }), role("tester", 8, { debug_recording: true })],
+    });
+    data.members.push({ subject: "did:privy:dan", roleIds: ["admin"], addedAt: 1 });
+    data.members.push({ subject: "did:privy:erin", roleIds: ["admin", "tester"], addedAt: 1 });
+    expect(resolveAccess({ userId: "did:privy:dan", cosmosAddress: null }, data, OWNER).permissions).not.toContain("debug_recording");
+    expect(resolveAccess({ userId: "did:privy:erin", cosmosAddress: null }, data, OWNER).permissions).toContain("debug_recording");
   });
 
   it("reports bans from either subject", () => {

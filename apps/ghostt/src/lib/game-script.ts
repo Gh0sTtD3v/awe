@@ -26,6 +26,8 @@ import { gameStore, setStarted, setPaused, setFlying, setFast, setUiHidden, show
 import { loadPortals } from "@/lib/portals";
 import { findSpawnEntry } from "@/lib/plots";
 import { clearTeleportFx, playTeleportFx } from "@/lib/teleport-fx";
+import { stopWebcam } from "@/lib/webcam-input";
+import { DebugRecording } from "@/lib/debug-recording";
 import {
   setPortals,
   setPlayers,
@@ -388,6 +390,8 @@ export class GameScript {
   private timeSinceInfoSync = 0;
   private screenSync: ScreenSync | null = null;
   private voice: VoiceClient | null = null;
+  /** Webcam frames to the game server, for testers with Debug Recording. */
+  private debugRecording: DebugRecording | null = null;
   private chatBubbles: ChatBubbles | null = null;
 
   /** gateId → may enter, as decided by the server. Missing means no. */
@@ -501,6 +505,7 @@ export class GameScript {
       });
       // Proximity voice: the server pairs nearby players, audio goes peer to peer.
       this.voice = new VoiceClient(room, this.space);
+      this.debugRecording = new DebugRecording(room);
 
       this.playersReplica = createPlayersReplica(
         room,
@@ -650,6 +655,8 @@ export class GameScript {
     this.screenSync?.dispose();
     this.screenSync = null;
     this.voice?.dispose();
+    this.debugRecording?.dispose();
+    this.debugRecording = null;
     this.chatBubbles?.dispose();
     this.chatBubbles = null;
     this.voice = null;
@@ -681,6 +688,8 @@ export class GameScript {
     this.inputs = null;
 
     this.music.dispose();
+
+    stopWebcam();
 
     for (const timer of this.remoteTeleportTimers.values()) clearTimeout(timer);
     this.remoteTeleportTimers.clear();

@@ -1,5 +1,5 @@
 import { isCosmosAddress } from "../keplr-auth";
-import { PERMISSIONS, PERMISSION_IDS, type Permission } from "./permissions";
+import { ASSIGNED_ONLY_PERMISSION_IDS, PERMISSIONS, PERMISSION_IDS, type Permission } from "./permissions";
 import {
   hasPermission,
   normalizeAccessData,
@@ -66,14 +66,22 @@ function findRole(data: AccessData, id: string): Role {
   return role;
 }
 
-/** Turning a permission on or off requires holding it. */
+/**
+ * Turning a permission on or off requires holding it. Assigned-only ones
+ * (which nobody holds by rank) can be set by administrators and the owner.
+ */
+function mayChangePermission(access: ResolvedAccess, id: Permission): boolean {
+  if (hasPermission(access, id)) return true;
+  return ASSIGNED_ONLY_PERMISSION_IDS.includes(id) && (access.isOwner || hasPermission(access, "administrator"));
+}
+
 function assertPermissionChangesHeld(
   access: ResolvedAccess,
   before: Role["permissions"],
   after: Role["permissions"],
 ): void {
   for (const id of PERMISSION_IDS) {
-    if (!!before[id] !== !!after[id] && !hasPermission(access, id)) {
+    if (!!before[id] !== !!after[id] && !mayChangePermission(access, id)) {
       throw new AccessError("forbidden", `You can't change "${labelOf(id)}" without holding it.`);
     }
   }
