@@ -24,8 +24,8 @@
     "headless:check": "tsx --import tsconfig-paths/register scripts/headless-check.ts"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "0.11.2",
     "@oncyberio/world-config": "workspace:*",
+    "@dimforge/rapier3d-compat": "0.11.2",
     "@pixiv/three-vrm": "^2.0.6",
     "@pixiv/three-vrm-springbone": "^2.0.6",
     "@recast-navigation/core": "^0.38.0",
@@ -33,7 +33,6 @@
     "dat.gui": "^0.7.9",
     "detect-gpu": "^5.0.37",
     "gsap": "^3.12.2",
-    "hls.js": "1.5.20",
     "postprocessing": "^6.38.0",
     "react": "^18",
     "react-dom": "^18",

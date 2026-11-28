@@ -11,20 +11,6 @@ import { XYZ } from "../types";
  */
 export type VideoScreenLoop = "off" | "one" | "all";
 
-/** @public A screen's playback box, in metres, in the screen's frame (front is +Z). */
-export interface VideoScreenPlayArea {
-	/** Width, height and depth. */
-	size: XYZ;
-	/** Centre of the box relative to the screen's centre. */
-	offset: XYZ;
-}
-
-/** @public A room-sized box in front of the screen. */
-export const DEFAULT_PLAY_AREA: VideoScreenPlayArea = {
-	size: { x: 12, y: 6, z: 12 },
-	offset: { x: 0, y: 0, z: 6 },
-};
-
 /** @public One entry of a screen's playlist. */
 export interface VideoScreenItem {
 	/** Shown in the controls. Defaults to the file name. */
@@ -103,24 +89,16 @@ export interface VideoScreenComponentData extends Component3DData {
 	/** Starting volume, 0 to 1. Defaults to `0.75`. */
 	volume?: number;
 
-	/**
-	 * The playback box. Inside it the video loads and plays with full sound,
-	 * and the controls are available; outside it nothing is downloaded and
-	 * nothing is heard. In the screen's own frame (front is +Z), in metres,
-	 * unaffected by the screen's scale. Defaults to {@link DEFAULT_PLAY_AREA}.
-	 */
-	playArea?: VideoScreenPlayArea;
-
-	/** @deprecated Ignored: sound follows the playback box. */
+	/** `spatial` fades with distance; `ambient` is heard everywhere. Defaults to `"spatial"`. */
 	audioType?: "spatial" | "ambient";
 
-	/** @deprecated Ignored: sound follows the playback box. */
+	/** Hearing range for spatial audio. Defaults to `15`. */
 	audioRange?: number;
 
-	/** @deprecated Ignored: replaced by the playback box. */
+	/** Videos only load within this distance of the camera. Defaults to `40`. */
 	loadDistance?: number;
 
-	/** @deprecated Ignored: replaced by the playback box. */
+	/** Players this close can open the screen's controls. Defaults to `8`. */
 	controlDistance?: number;
 
 	/** Colour around letterboxed video and while idle. Defaults to `"#000000"`. */

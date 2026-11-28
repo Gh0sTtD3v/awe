@@ -24,38 +24,6 @@ export function RemovedOverlay() {
   );
 }
 
-/**
- * The connection to the game server: a small banner while it reconnects, and
- * a full-screen notice once it has given up. Removal by a moderator (above)
- * takes precedence.
- */
-export function ConnectionNotice() {
-  const { connection, removed } = useStore(infoStore);
-  if (removed || connection === "online") return null;
-
-  if (connection === "reconnecting") {
-    return (
-      <div className="pointer-events-none fixed left-1/2 top-4 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-xl bg-black/80 px-4 py-2 text-sm text-white/90">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" aria-hidden />
-        Connection lost — reconnecting…
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-black/85 text-center text-white">
-      <p className="text-lg">Disconnected from the world.</p>
-      <p className="max-w-sm text-sm text-white/60">Your connection dropped and couldn&apos;t be restored. Check your signal and reload to join again.</p>
-      <button
-        onClick={() => window.location.reload()}
-        className="rounded-lg border border-white/20 px-4 py-2 text-sm hover:bg-white/10"
-      >
-        Reload
-      </button>
-    </div>
-  );
-}
-
 /** Brief feedback for the local moderator's kick or ban. */
 export function ModMessage() {
   const { modMessage } = useStore(infoStore);

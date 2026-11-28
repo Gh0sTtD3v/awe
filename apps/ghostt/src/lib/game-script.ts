@@ -36,7 +36,6 @@ import {
   showGateNotice,
   setSelfAccess,
   setRemoved,
-  setConnection,
   showModMessage,
   setNearLift,
   setNearSeat,
@@ -490,16 +489,9 @@ export class GameScript {
       room.onMessage(TELEPORT_FX_MESSAGE, (msg: TeleportFxMessage) => this.onRemoteTeleport(msg));
       room.onMessage(CHAT_ROOM_MESSAGE, (msg: ChatRoomMessage) => setChatRoom(msg.room));
       room.onMessage(CHAT_REFUSED_MESSAGE, (msg: ChatRefusedMessage) => setChatError(msg.error));
-      // A dropped connection (weak signal, saturated link) reconnects on its
-      // own for a while; only moderation codes mean removed.
-      room.onDrop(() => setConnection("reconnecting"));
-      room.onReconnect(() => setConnection("online"));
       room.onLeave((code: number) => {
-        if (code === KICKED_CLOSE_CODE) return setRemoved("You were removed by a moderator.");
-        if (code === BANNED_CLOSE_CODE) return setRemoved("You are banned from this world.");
-        // 1000 / 4000: we left on purpose (closing the game).
-        if (code === 1000 || code === 4000) return;
-        setConnection("disconnected");
+        if (code === KICKED_CLOSE_CODE) setRemoved("You were removed by a moderator.");
+        if (code === BANNED_CLOSE_CODE) setRemoved("You are banned from this world.");
       });
 
       // Video screens follow the playback the server shares.

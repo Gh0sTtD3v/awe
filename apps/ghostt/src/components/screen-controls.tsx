@@ -85,7 +85,7 @@ function NowPlaying({ screen, canControl }: { screen: NearScreen; canControl: bo
       {current && !screen.loadError && (
         <span className="max-w-[16rem] truncate">
           <span className="text-white/50">
-            {current.isAd ? "Ad" : screen.state?.playing ? (screen.buffering ? "Buffering…" : "Now playing") : "Paused"} ·{" "}
+            {current.isAd ? "Ad" : screen.state?.playing ? "Now playing" : "Paused"} ·{" "}
           </span>
           {current.title}
         </span>

@@ -1,10 +1,6 @@
 import {
 	Box3,
-	BoxGeometry,
 	Color,
-	EdgesGeometry,
-	LineBasicMaterial,
-	LineSegments,
 	Mesh,
 	MeshBasicMaterial,
 	PlaneGeometry,
@@ -18,12 +14,10 @@ import { Component3D } from "../../abstract/component-3d";
 import { IS_EDIT_MODE, USER_INTERACTED } from "../../../internal/constants";
 import Camera from "../../../camera";
 import { PositionalAudio } from "../../../internal/utils/positional-audio";
-import { DEFAULT_PLAY_AREA } from "./video-screen-data";
 import type {
 	VideoScreenComponentData,
 	VideoScreenItem,
 	VideoScreenLoop,
-	VideoScreenPlayArea,
 	VideoScreenPlayback,
 } from "./video-screen-data";
 
@@ -31,10 +25,8 @@ export type {
 	VideoScreenComponentData,
 	VideoScreenItem,
 	VideoScreenLoop,
-	VideoScreenPlayArea,
 	VideoScreenPlayback,
 } from "./video-screen-data";
-export { DEFAULT_PLAY_AREA } from "./video-screen-data";
 
 const SCREEN_EVENTS = {
 	PLAYBACK: "PLAYBACK",
@@ -58,38 +50,10 @@ const JUMP_THRESHOLD = 0.5;
 const SYNC_INTERVAL = 0.5;
 /** No arrival ad for a viewer who saw an ad on this screen this recently (ms). */
 const ARRIVAL_AD_COOLDOWN_MS = 2 * 60 * 1000;
-/**
- * A viewer this far (seconds) from the shared position jumps to it even if
- * that means buffering again. Below it, a slow connection is allowed to lag
- * rather than chase the live position (each chase seek restarts the download).
- */
-const MAX_LAG = 45;
-/** Seek this far (seconds) ahead of live when joining, bounded by how long loading actually takes. */
-const MIN_JOIN_LEAD = 1;
-const MAX_JOIN_LEAD = 6;
-/** This many stalls within STALL_WINDOW_MS put the video in patient mode: no chasing at all. */
-const STALL_LIMIT = 3;
-const STALL_WINDOW_MS = 20_000;
 
 const _camPos = new Vector3();
-const _viewerLocal = new Vector3();
+const _screenPos = new Vector3();
 const _worldScale = new Vector3();
-
-function isHls(url: string): boolean {
-	return /\.m3u8($|[?#])/i.test(url);
-}
-
-/** Is `time` inside what the video has already downloaded? */
-function isBuffered(video: HTMLVideoElement, time: number): boolean {
-	const ranges = video.buffered;
-	for (let i = 0; i < ranges.length; i++) {
-		if (time >= ranges.start(i) && time <= ranges.end(i) - 0.5) return true;
-	}
-	return false;
-}
-
-let _areaEdges: EdgesGeometry | null = null;
-const areaEdges = () => (_areaEdges ??= new EdgesGeometry(new BoxGeometry(1, 1, 1)));
 
 let _geometry: PlaneGeometry | null = null;
 function getGeometry(): PlaneGeometry {
@@ -149,23 +113,7 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 	private _hasFrame = false;
 	/** URL of the current video if it failed to load. */
 	private _failedUrl: string = null;
-	/** The viewer is inside the playback box (always true in the studio). */
-	private _inArea = IS_EDIT_MODE;
-	/** Where the viewer is, set by the game (its avatar); the camera if never set. */
-	private _viewer: Vector3 | null = null;
-	/** Studio-only wireframe of the playback box. */
-	private _areaHelper: LineSegments | null = null;
-	/** hls.js player for `.m3u8` items where the browser can't play HLS itself. */
-	private _hls: any = null;
-	/** The video is waiting for data. */
-	private _buffering = false;
-	private _stalls: number[] = [];
-	/** Stalled repeatedly on this video: stop trying to keep up with the live position. */
-	private _patient = false;
-	/** When the current source started loading, to size the join lead. */
-	private _loadStartedAt = 0;
-	/** Seconds to seek ahead of live when joining mid-video. */
-	private _joinLead = MIN_JOIN_LEAD;
+	private _inRange = IS_EDIT_MODE;
 	private _sinceSync = SYNC_INTERVAL;
 	/** Jump straight to the expected time on the next sync: new video, or playback was changed. */
 	private _seekPending = true;
@@ -270,51 +218,6 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		return this._playback.playing && this._playback.index >= 0;
 	}
 
-	/** The video is waiting for data (slow connection). */
-	get buffering(): boolean {
-		return this._buffering && this._loadedUrl != null;
-	}
-
-	/** The viewer is inside the playback box: the video loads and is heard. */
-	get inArea(): boolean {
-		return this._inArea;
-	}
-
-	/** The playback box, with defaults filled in. */
-	get playArea(): VideoScreenPlayArea {
-		const area = this.data.playArea;
-		return {
-			size: { ...DEFAULT_PLAY_AREA.size, ...(area?.size ?? {}) },
-			offset: { ...DEFAULT_PLAY_AREA.offset, ...(area?.offset ?? {}) },
-		};
-	}
-
-	/**
-	 * Tell the screen where the viewer is (e.g. the local player's avatar), so
-	 * the playback box follows the player rather than the camera. Pass null to
-	 * go back to using the camera.
-	 */
-	setViewerPosition(position: { x: number; y: number; z: number } | null) {
-		if (!position) this._viewer = null;
-		else (this._viewer ??= new Vector3()).set(position.x, position.y, position.z);
-	}
-
-	/** Is this world-space point inside the playback box? */
-	containsPoint(point: { x: number; y: number; z: number }): boolean {
-		const { size, offset } = this.playArea;
-		this.updateWorldMatrix(true, false);
-		_viewerLocal.set(point.x, point.y, point.z);
-		this.worldToLocal(_viewerLocal);
-		// Local units are scaled by the screen's size; the box is in metres.
-		this.getWorldScale(_worldScale);
-		_viewerLocal.multiply(_worldScale);
-		return (
-			Math.abs(_viewerLocal.x - offset.x) <= Math.abs(size.x) / 2 &&
-			Math.abs(_viewerLocal.y - offset.y) <= Math.abs(size.y) / 2 &&
-			Math.abs(_viewerLocal.z - offset.z) <= Math.abs(size.z) / 2
-		);
-	}
-
 	/**
 	 * Follow this playback from now on. The screen stops advancing through
 	 * its playlist by itself; the caller decides what happens at the end.
@@ -387,7 +290,7 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 
 	private _onFrame = (dt: number) => {
 		this._updateLook();
-		this._updateArea();
+		this._updateRange();
 
 		this._sinceSync += dt;
 		if (this._sinceSync < SYNC_INTERVAL) return;
@@ -395,46 +298,18 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		this._sync();
 	};
 
-	/** Enter or leave the playback box. In the studio, draw it instead. */
-	private _updateArea() {
-		if (IS_EDIT_MODE) return this._updateAreaHelper();
-
-		const viewer = this._viewer ?? Camera.current.getWorldPosition(_camPos);
-		const inArea = this.containsPoint(viewer);
-		if (inArea === this._inArea) return;
-
-		this._inArea = inArea;
-		this._sinceSync = SYNC_INTERVAL;
-		if (inArea) {
-			this._seekPending = true;
-			this._startArrivalAd();
-		}
-		else {
+	private _updateRange() {
+		if (IS_EDIT_MODE) return;
+		Camera.current.getWorldPosition(_camPos);
+		this.getWorldPosition(_screenPos);
+		const inRange = _camPos.distanceTo(_screenPos) <= (this.data.loadDistance ?? 40);
+		if (inRange !== this._inRange) {
+			this._inRange = inRange;
+			this._sinceSync = SYNC_INTERVAL;
+			if (inRange) this._startArrivalAd();
 			// Walked off mid-ad: it didn't count, so coming back shows one again.
-			this._arrivalAd = -1;
-			// Nothing downloads for someone who isn't watching.
-			this._unload();
+			else this._arrivalAd = -1;
 		}
-	}
-
-	/** Wireframe of the playback box, kept in metres whatever the screen's size. */
-	private _updateAreaHelper() {
-		if (!this._areaHelper) {
-			this._areaHelper = new LineSegments(
-				areaEdges(),
-				new LineBasicMaterial({ color: "#4fc3f7", transparent: true, opacity: 0.8, depthWrite: false }),
-			);
-			this._areaHelper.name = "video-screen-play-area";
-			this._areaHelper.raycast = () => {}; // never picked instead of the screen
-			this.add(this._areaHelper);
-		}
-		const { size, offset } = this.playArea;
-		this.getWorldScale(_worldScale);
-		const sx = _worldScale.x || 1;
-		const sy = _worldScale.y || 1;
-		const sz = _worldScale.z || 1;
-		this._areaHelper.scale.set(Math.abs(size.x) / sx, Math.abs(size.y) / sy, Math.abs(size.z) / sz);
-		this._areaHelper.position.set(offset.x / sx, offset.y / sy, offset.z / sz);
 	}
 
 	/** Arriving at a screen mid-video: play one ad for this viewer before joining it. */
@@ -471,25 +346,28 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		const item = this._shownItem();
 		const arrivalAd = this._arrivalAd >= 0;
 		// Watching the shared ad counts too: no arrival ad right after it.
-		if (this._inArea && this.isAd && !arrivalAd) this._lastAdAt = Date.now();
+		if (this._inRange && this.isAd && !arrivalAd) this._lastAdAt = Date.now();
 
 		if (!item) {
 			this._unload();
 			return;
 		}
-		// Outside the box nothing is downloaded (see _updateArea).
-		if (!this._inArea) return;
+		if (!this._inRange) {
+			this._video?.pause();
+			return;
+		}
 
 		const video = this._ensureVideo();
 		if (this._loadedUrl !== item.url) {
-			this._loadSource(video, item.url);
+			this._loadedUrl = item.url;
+			this._hasFrame = false;
+			this._failedUrl = null;
+			this._seekPending = true;
+			video.src = item.url;
+			video.load();
 			return; // continue once metadata is in (see _ensureVideo)
 		}
 		if (video.readyState < 1) return;
-
-		// Only fetch ahead for something that's actually playing.
-		const wantsData = arrivalAd || this._playback.playing;
-		video.preload = wantsData ? "auto" : "metadata";
 
 		video.loop = !arrivalAd && this._playback.loop === "one" && !this.isAd;
 		this._correctDrift(video);
@@ -508,75 +386,12 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		}
 	}
 
-	/** Point the video at a new source: plain file, native HLS (Safari) or hls.js. */
-	private _loadSource(video: HTMLVideoElement, url: string) {
-		this._destroyHls();
-		this._loadedUrl = url;
-		this._hasFrame = false;
-		this._failedUrl = null;
-		this._seekPending = true;
-		this._buffering = true;
-		this._stalls = [];
-		this._patient = false;
-		this._loadStartedAt = performance.now();
-
-		if (isHls(url) && !video.canPlayType("application/vnd.apple.mpegurl")) {
-			video.removeAttribute("src");
-			void import("hls.js").then(({ default: Hls }) => {
-				// Moved on (or left the box) while hls.js was loading.
-				if (this._loadedUrl !== url || this._video !== video) return;
-				if (!Hls.isSupported()) {
-					this._failedUrl = url;
-					return;
-				}
-				// A small forward buffer leaves bandwidth for the game connection;
-				// quality adapts to the measured speed.
-				const hls = new Hls({ maxBufferLength: 20, maxMaxBufferLength: 40, capLevelToPlayerSize: true });
-				hls.on(Hls.Events.ERROR, (_e: unknown, info: { fatal?: boolean }) => {
-					if (info?.fatal && this._loadedUrl === url) this._failedUrl = url;
-				});
-				hls.loadSource(url);
-				hls.attachMedia(video);
-				this._hls = hls;
-			});
-			return;
-		}
-
-		video.src = url;
-		video.load();
-	}
-
-	private _destroyHls() {
-		this._hls?.destroy();
-		this._hls = null;
-	}
-
-	/** Seek, telling the browser exactly where; also marks the start of a (re)load. */
-	private _seek(video: HTMLVideoElement, time: number) {
-		const duration = Number.isFinite(video.duration) ? video.duration : Infinity;
-		video.currentTime = Math.max(0, Math.min(time, duration - 0.1));
-	}
-
 	/**
-	 * Where to land when jumping to the shared position. If that point is
-	 * already downloaded, exactly there; otherwise a little ahead, so that by
-	 * the time the data arrives the video is close to live instead of behind.
-	 */
-	private _jumpTarget(video: HTMLVideoElement, expected: number): number {
-		if (!this._playback.playing || isBuffered(video, expected)) return expected;
-		return expected + this._joinLead;
-	}
-
-	/**
-	 * Keep the video at the shared position without stalling on a slow
-	 * connection. Every seek throws the download away, so:
-	 * - jumps happen for a new video or a changed playback, landing slightly
-	 *   ahead of live when the data isn't there yet;
-	 * - a viewer who falls behind while buffering keeps playing from where they
-	 *   are, and only jumps if the target is already downloaded or they're
-	 *   more than MAX_LAG behind;
-	 * - small drift is eased out with the playback rate, once enough is buffered;
-	 * - after repeated stalls ("patient" mode) it stops chasing altogether.
+	 * Keep the video at the shared position without stuttering. Seeking discards
+	 * the buffer, so it's only used to jump (a new video or a changed playback)
+	 * or to fix large drift. Small drift is eased out by playing slightly faster
+	 * or slower, and a video that is still buffering is left alone: seeking it
+	 * further ahead would only start the download over.
 	 */
 	private _correctDrift(video: HTMLVideoElement) {
 		// The arrival ad plays from the top at its own pace, whatever the loading took.
@@ -592,75 +407,25 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		const expected = this._expectedTime();
 		const behind = expected - video.currentTime;
 
-		// A new video, play/pause, or a seek by whoever controls the screen.
 		if (this._seekPending || !this._playback.playing) {
 			this._seekPending = false;
 			video.playbackRate = 1;
-			if (Math.abs(behind) > 0.05) this._seek(video, this._jumpTarget(video, expected));
+			if (Math.abs(behind) > 0.05) video.currentTime = expected;
 			return;
 		}
-		// Mid-seek or waiting for data: any further seek would restart the download.
-		if (video.seeking || this._buffering || video.readyState < video.HAVE_FUTURE_DATA) return;
+		if (video.seeking || video.readyState < video.HAVE_FUTURE_DATA) return;
 
-		const drift = Math.abs(behind);
-		if (drift > MAX_LAG) {
-			// Hopelessly far off: rejoin live, accepting one more buffer.
+		if (Math.abs(behind) > MAX_DRIFT) {
 			video.playbackRate = 1;
-			this._seek(video, this._jumpTarget(video, expected));
+			video.currentTime = expected;
 		}
-		else if (drift > MAX_DRIFT) {
-			// Jump only if the target is already downloaded (instant); otherwise
-			// keep playing and catch up gently rather than stall again.
-			if (isBuffered(video, expected)) {
-				video.playbackRate = 1;
-				this._seek(video, expected);
-			}
-			else {
-				video.playbackRate = this._catchUpRate(video, behind);
-			}
-		}
-		else if (drift > SOFT_DRIFT) {
-			video.playbackRate = this._catchUpRate(video, behind);
+		else if (Math.abs(behind) > SOFT_DRIFT) {
+			video.playbackRate = behind > 0 ? 1 + CATCH_UP_RATE : 1 - CATCH_UP_RATE;
 		}
 		else {
 			video.playbackRate = 1;
 		}
 	}
-
-	/** Slightly faster or slower to close drift; normal speed when the connection can't afford it. */
-	private _catchUpRate(video: HTMLVideoElement, behind: number): number {
-		if (this._patient) return 1;
-		// Playing faster needs data to spare.
-		if (behind > 0 && video.readyState < video.HAVE_ENOUGH_DATA) return 1;
-		return behind > 0 ? 1 + CATCH_UP_RATE : 1 - CATCH_UP_RATE;
-	}
-
-	/** The video ran out of data. Repeated stalls switch to patient mode for this video. */
-	private _onWaiting = () => {
-		if (!this._loadedUrl) return;
-		this._buffering = true;
-		const now = performance.now();
-		this._stalls = this._stalls.filter((t) => now - t < STALL_WINDOW_MS);
-		this._stalls.push(now);
-		if (this._stalls.length >= STALL_LIMIT && !this._patient) {
-			this._patient = true;
-			if (this._video) this._video.playbackRate = 1;
-		}
-	};
-
-	private _onPlaying = () => {
-		this._buffering = false;
-	};
-
-	/** First data in: size the lead for future jumps from how long this load took. */
-	private _onCanPlay = () => {
-		this._buffering = false;
-		if (this._loadStartedAt > 0) {
-			const took = (performance.now() - this._loadStartedAt) / 1000;
-			this._joinLead = Math.min(MAX_JOIN_LEAD, Math.max(MIN_JOIN_LEAD, took * 1.2));
-			this._loadStartedAt = 0;
-		}
-	};
 
 	private _ensureVideo(): HTMLVideoElement {
 		if (this._video) return this._video;
@@ -668,20 +433,8 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		const video = document.createElement("video");
 		video.crossOrigin = "anonymous";
 		video.playsInline = true;
-		video.preload = "metadata"; // "auto" once something is playing (see _sync)
+		video.preload = "auto";
 		video.muted = true; // the audio manager unmutes after the first user interaction
-
-		// Only "waiting" means the picture stopped; "stalled" fires while there is still data to play.
-		video.addEventListener("waiting", this._onWaiting);
-		video.addEventListener("playing", this._onPlaying);
-		video.addEventListener("canplay", this._onCanPlay);
-		// Every seek re-fetches: time it like a fresh load for the next lead.
-		video.addEventListener("seeking", () => {
-			if (!isBuffered(video, video.currentTime)) {
-				this._buffering = true;
-				this._loadStartedAt = performance.now();
-			}
-		});
 
 		video.addEventListener("loadedmetadata", () => {
 			this._sinceSync = SYNC_INTERVAL;
@@ -700,8 +453,7 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		});
 		video.addEventListener("ended", this._onVideoEnded);
 		video.addEventListener("error", () => {
-			// hls.js reports its own errors; a cleared src isn't a failure.
-			if (!this._loadedUrl || this._hls || !video.getAttribute("src")) return;
+			if (!this._loadedUrl || !video.getAttribute("src")) return;
 			this._failedUrl = this._loadedUrl;
 			// A broken ad mustn't keep the viewer from the video.
 			if (this._arrivalAd >= 0) this._endArrivalAd();
@@ -714,16 +466,16 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		this._videoTexture.generateMipmaps = false;
 
 		if (!IS_EDIT_MODE) {
-			// Full sound inside the playback box, silent outside it.
 			this.container._audioManager.addAudioSource(this, video, () => ({
-				audioType: "ambient",
+				audioType: this.data.audioType ?? "spatial",
 				volume: this._playback.volume,
-				muted: this._playback.muted || !this._inArea,
+				muted: this._playback.muted,
 			}));
 
 			USER_INTERACTED.then(() => {
 				if (this._video !== video) return;
 				this._posAudio = new PositionalAudio();
+				this._posAudio.edgeFade = true;
 				this.add(this._posAudio);
 				this._posAudio.setSource(video);
 				this._updateAudioType();
@@ -757,20 +509,20 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 
 	private _unload() {
 		if (!this._video || !this._loadedUrl) return;
-		this._destroyHls();
 		this._video.pause();
 		this._video.removeAttribute("src");
 		this._video.load();
 		this._loadedUrl = null;
 		this._hasFrame = false;
-		this._buffering = false;
 		this._updateLook();
 	}
 
-	/** No distance fade: the playback box decides who hears it (muted outside). */
 	private _updateAudioType() {
 		if (!this._posAudio) return;
-		this._posAudio.setAudioType("ambient");
+		this._posAudio.setAudioType(this.data.audioType ?? "spatial", this.data.audioRange ?? 15);
+		if ((this.data.audioType ?? "spatial") === "spatial") {
+			this._posAudio.setVolumeRange(this.data.audioRange ?? 15);
+		}
 	}
 
 	// --- Look ---
@@ -860,18 +612,8 @@ export class VideoScreenComponent extends Component3D<VideoScreenComponentData> 
 		this._posAudio?.dispose();
 		this._posAudio = null;
 
-		this._destroyHls();
-		if (this._areaHelper) {
-			this._areaHelper.removeFromParent();
-			(this._areaHelper.material as LineBasicMaterial).dispose();
-			this._areaHelper = null;
-		}
-
 		if (this._video) {
 			this._video.removeEventListener("ended", this._onVideoEnded);
-			this._video.removeEventListener("waiting", this._onWaiting);
-			this._video.removeEventListener("playing", this._onPlaying);
-			this._video.removeEventListener("canplay", this._onCanPlay);
 			this._video.pause();
 			this._video.removeAttribute("src");
 			this._video.load();

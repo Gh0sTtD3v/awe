@@ -1,10 +1,7 @@
 import { Component3DEditor } from "../../component-editor/ui-editor";
-import {
-	DEFAULT_PLAY_AREA,
-	VideoScreenComponent,
-	type VideoScreenPlayArea,
-} from "@oncyberio/engine/space/components/video-screen/video-screen-component";
+import { VideoScreenComponent } from "@oncyberio/engine/space/components/video-screen/video-screen-component";
 import { getTransformUI } from "../../component-editor/ui/transform-ui";
+import { getAudioOptsUI } from "../../component-editor/ui/audio-opts-ui";
 import { arrayItemLens } from "../../component-editor/ui/array-item-lens";
 import type { GuiDescriptor, GuiGroupDescriptor } from "@oncyberio/engine/space/gui-types";
 
@@ -61,21 +58,6 @@ export class VideoScreenComponentEditor extends Component3DEditor<VideoScreenCom
 		};
 	}
 
-	/**
-	 * One vector of the playback box. Older screens have no box saved: edits
-	 * start from the default, and the whole box is saved together.
-	 */
-	private _areaField(key: "size" | "offset") {
-		return {
-			format: (area: VideoScreenPlayArea | undefined) => ({ ...DEFAULT_PLAY_AREA[key], ...(area?.[key] ?? {}) }),
-			parse: (value: VideoScreenPlayArea["size"], prev: VideoScreenPlayArea | undefined) => ({
-				size: { ...DEFAULT_PLAY_AREA.size, ...(prev?.size ?? {}) },
-				offset: { ...DEFAULT_PLAY_AREA.offset, ...(prev?.offset ?? {}) },
-				[key]: value,
-			}),
-		};
-	}
-
 	/** Token gates in the scene, for "who can control". */
 	private _gateItems = () => {
 		const gates = ((this.component as any)?.space?.components?.byType?.("token-gate") ?? []) as any[];
@@ -120,28 +102,12 @@ export class VideoScreenComponentEditor extends Component3DEditor<VideoScreenCom
 							value: [this.data, "controlGate"],
 							items: this._gateItems,
 						},
-					},
-				},
-				playArea: {
-					type: "folder",
-					label: "Playback box",
-					children: {
-						size: {
-							type: "xyz",
-							label: "Size (W, H, D)",
-							value: [this.data, "playArea"],
-							format: this._areaField("size"),
-							min: 0.5,
-							max: 500,
-							step: 0.5,
-						},
-						offset: {
-							type: "xyz",
-							label: "Offset",
-							value: [this.data, "playArea"],
-							format: this._areaField("offset"),
-							min: -500,
-							max: 500,
+						controlDistance: {
+							type: "number",
+							label: "Interaction distance",
+							value: [this.data, "controlDistance"],
+							min: 1,
+							max: 50,
 							step: 0.5,
 						},
 					},
@@ -165,6 +131,14 @@ export class VideoScreenComponentEditor extends Component3DEditor<VideoScreenCom
 								{ id: "off", label: "Stop" },
 							],
 						},
+						loadDistance: {
+							type: "number",
+							label: "Load distance",
+							value: [this.data, "loadDistance"],
+							min: 5,
+							max: 200,
+							step: 1,
+						},
 					},
 				},
 				audio: {
@@ -179,6 +153,16 @@ export class VideoScreenComponentEditor extends Component3DEditor<VideoScreenCom
 							min: 0,
 							max: 100,
 							step: 1,
+						},
+						audioType: getAudioOptsUI([this.data, "audioType"]),
+						audioRange: {
+							visible: () => (this.data.audioType ?? "spatial") === "spatial",
+							type: "number",
+							label: "Range",
+							value: [this.data, "audioRange"],
+							min: 1,
+							max: 100,
+							step: 0.5,
 						},
 					},
 				},

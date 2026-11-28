@@ -1,6 +1,5 @@
 import { DefaultComponentFactory } from "../../abstract/default-component-factory";
 import { VideoScreenComponent } from "./video-screen-component";
-import { DEFAULT_PLAY_AREA } from "./video-screen-data";
 
 /** @internal */
 export class VideoScreenComponentFactory extends DefaultComponentFactory<VideoScreenComponent> {
@@ -33,10 +32,10 @@ export class VideoScreenComponentFactory extends DefaultComponentFactory<VideoSc
 			autoPlay: false,
 			loop: "all",
 			volume: 0.75,
-			playArea: {
-				size: { ...DEFAULT_PLAY_AREA.size },
-				offset: { ...DEFAULT_PLAY_AREA.offset },
-			},
+			audioType: "spatial",
+			audioRange: 15,
+			loadDistance: 40,
+			controlDistance: 8,
 			backgroundColor: "#000000",
 			idleImage: "",
 		};

@@ -313,16 +313,9 @@ export function cleanChatText(raw: string): string {
   return raw.replace(CHAT_STRIP, "").trim().slice(0, CHAT_MAX_LENGTH).trim();
 }
 
-/**
- * Close codes for players removed by moderation. Kept clear of Colyseus's own
- * codes (4000–4010: 4001 server shutdown, 4003 failed to reconnect…), which
- * used to collide and showed a dropped connection as a ban.
- */
-export const KICKED_CLOSE_CODE = 4101;
-export const BANNED_CLOSE_CODE = 4103;
-
-/** How long a dropped player keeps their place while the client reconnects, in seconds. */
-export const RECONNECT_WINDOW_S = 30;
+/** Close codes for players removed by moderation. */
+export const KICKED_CLOSE_CODE = 4001;
+export const BANNED_CLOSE_CODE = 4003;
 
 /** `rolePosition` of the owner, who outranks every role. */
 export const OWNER_ROLE_POSITION = 1_000_000;
